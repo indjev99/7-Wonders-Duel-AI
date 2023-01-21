@@ -1,2 +1,2 @@
-# 7-Wonders-Duel-Bot
- A bot to play 7 Wonders Duel.
+# 7-Wonders-Duel-AI
+An AI to play 7 Wonders Duel.

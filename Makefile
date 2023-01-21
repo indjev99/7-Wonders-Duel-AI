@@ -4,7 +4,7 @@ CXXFLAGS = -std=c++17 -Wall -O3
 LDFLAGS = -static -static-libgcc -static-libstdc++
 
 # Makefile settings - Can be customized.
-APPNAME = 7wdb
+APPNAME = 7wdai
 EXT = .cpp
 SRCDIR = src
 OBJDIR = obj
