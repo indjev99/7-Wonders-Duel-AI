@@ -27,7 +27,7 @@ void effScience(PlayerState& state)
 {
     if (state.sciences[SCI])
     {
-        state.buildGameToken = true;
+        state.shouldBuildGameToken = true;
     }
     else
     {
@@ -127,7 +127,7 @@ void effLooting(PlayerState& state)
 
 void effPlayAgain(PlayerState& state)
 {
-    state.playAgain = true;
+    state.shouldPlayAgain = true;
 }
 
 void effTheAppianWay(PlayerState& state)
@@ -139,7 +139,7 @@ void effTheAppianWay(PlayerState& state)
 
 void effCircusMaximus(PlayerState& state)
 {
-    state.destroyGray = true;
+    state.shouldDestroyGray = true;
     effMilirary<1>(state);
 }
 
@@ -150,7 +150,7 @@ void effTheColossus(PlayerState& state)
 
 void effTheGreatLibrary(PlayerState& state)
 {
-    state.buildDiscardedToken = true;
+    state.shouldBuildBoxToken = true;
 }
 
 void effTheGreatLighthouse(PlayerState& state)
@@ -166,7 +166,7 @@ void effTheHangingGardens(PlayerState& state)
 
 void effTheMausoleum(PlayerState& state)
 {
-    state.buildDiscardedCard = true;
+    state.shouldBuildDiscarded = true;
 }
 
 void effPiraeus(PlayerState& state)
@@ -185,7 +185,7 @@ void effTheSphinx(PlayerState& state)
 
 void effTheStatueOfZeus(PlayerState& state)
 {
-    state.destroyBrown = true;
+    state.shouldDestroyBrown = true;
     effMilirary<1>(state);
 }
 

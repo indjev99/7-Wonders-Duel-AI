@@ -2,6 +2,7 @@
 
 #include "coin_cost_calculator.h"
 #include "constants.h"
+#include "exceptions.h"
 #include "results.h"
 
 #include <cassert>
@@ -14,19 +15,16 @@ PlayerState::PlayerState()
 
 void PlayerState::buildObject(const Object& object)
 {
-    builtObjects[object.id] = true;
+    objectsBuilt[object.id] = true;
     typeCounts[object.type]++;
 
     if (object.effectFunc != nullptr) object.effectFunc(*this);
 
-    if (object.type == OT_WONDER && builtObjects[O_TOKEN_THEOLOGY]) playAgain = true;
+    if (object.type == OT_WONDER && objectsBuilt[O_TOKEN_THEOLOGY]) shouldPlayAgain = true;
 
-    if (object.type == OT_RED)
-    {
-        int mLead = militaryLead();
-        if (mLead >= MILITARY_THRESHOLD_2 && !builtObjects[O_LOOTING_LOOTING_1]) buildObject(objects[O_LOOTING_LOOTING_1]);
-        if (mLead >= MILITARY_THRESHOLD_3 && !builtObjects[O_LOOTING_LOOTING_2]) buildObject(objects[O_LOOTING_LOOTING_2]);
-    }
+    int mLead = militaryLead();
+    if (mLead >= MILITARY_THRESHOLD_2 && !objectsBuilt[O_LOOTING_LOOTING_1]) buildObject(objects[O_LOOTING_LOOTING_1]);
+    if (mLead >= MILITARY_THRESHOLD_3 && !objectsBuilt[O_LOOTING_LOOTING_2]) buildObject(objects[O_LOOTING_LOOTING_2]);
 }
 
 void PlayerState::payForAndBuildObject(const Object& object)
@@ -34,13 +32,10 @@ void PlayerState::payForAndBuildObject(const Object& object)
     int resourceCoinCost = calculateResourceCoinCost(*this, object);
     int coinCost = object.cost.coins + resourceCoinCost;
 
-    if (coinCost > coins)
-    {
-        illegalMove = true;
-    }
+    if (coinCost > coins) throw EXC_NOT_ENOUGH_COINS;
 
     coins -= coinCost;
-    if (otherPlayer->builtObjects[O_TOKEN_ECONOMY]) otherPlayer->coins += std::max(0, resourceCoinCost);
+    if (otherPlayer->objectsBuilt[O_TOKEN_ECONOMY]) otherPlayer->coins += std::max(0, resourceCoinCost);
 
     buildObject(object);
 }
@@ -59,9 +54,9 @@ int PlayerState::getScore(bool onlyBlue) const
 {
     int score = 0;
 
-    for (int id = 0; id < NUM_OBJECTS; ++id)
+    for (int id = 0; id < NUM_OBJECTS; id++)
     {
-        if (builtObjects[id])
+        if (objectsBuilt[id])
         {
             const Object& object = objects[id];
             if (onlyBlue && object.type != OT_BLUE) continue;
@@ -84,9 +79,6 @@ int PlayerState::getScore(bool onlyBlue) const
 
 int PlayerState::getResult(bool ended) const
 {
-    if (illegalMove) return - RESULT_WIN_ILLEGAL;
-    if (otherPlayer->illegalMove) return RESULT_WIN_ILLEGAL;
-
     if (distincSciences >= SCIENCE_THRESHOLD_WIN) return RESULT_WIN_SCIENCE;
     if (otherPlayer->distincSciences >= SCIENCE_THRESHOLD_WIN) return - RESULT_WIN_SCIENCE;
 

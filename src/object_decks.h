@@ -10,7 +10,7 @@
 #define NUM_GUILD_CARDS 7
 #define NUM_TOKENS 10
 #define NUM_WONDERS 12
-#define NUM_LOOTINGS 2
+#define NUM_NO_DECK 2
 
 extern const std::array<int, NUM_AGE_1_CARDS> age1Cards;
 extern const std::array<int, NUM_AGE_2_CARDS> age2Cards;
@@ -18,4 +18,5 @@ extern const std::array<int, NUM_AGE_3_CARDS> age3Cards;
 extern const std::array<int, NUM_GUILD_CARDS> guildCards;
 extern const std::array<int, NUM_TOKENS> tokens;
 extern const std::array<int, NUM_WONDERS> wonders;
-extern const std::array<int, NUM_LOOTINGS> lootings;
+extern const std::array<int, NUM_NO_DECK> noDeckObjects;
+

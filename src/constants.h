@@ -1,5 +1,7 @@
 #pragma once
 
+#define NUM_PLAYERS 2
+
 #define BASE_RESOURCE_COST 2
 #define MARKET_RESOURCE_COST 1
 #define BASE_DISCARD_COINS 2
@@ -15,3 +17,5 @@
 #define MILITARY_THRESHOLD_WIN 9
 
 #define SCIENCE_THRESHOLD_WIN 6
+
+#define MAX_WONDERS_BUILT 7

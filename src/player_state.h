@@ -25,16 +25,14 @@ struct PlayerState
     std::array<bool, NUM_SCIENCES> sciences;
     int distincSciences;
 
-    std::array<bool, NUM_OBJECTS> builtObjects;
+    std::array<bool, NUM_OBJECTS> objectsBuilt;
 
-    bool buildGameToken;
-    bool buildDiscardedToken;
-    bool buildDiscardedCard;
-    bool destroyBrown;
-    bool destroyGray;
-    bool playAgain;
-
-    bool illegalMove;
+    bool shouldBuildGameToken;
+    bool shouldBuildBoxToken;
+    bool shouldBuildDiscarded;
+    bool shouldDestroyBrown;
+    bool shouldDestroyGray;
+    bool shouldPlayAgain;
 
     PlayerState();
 

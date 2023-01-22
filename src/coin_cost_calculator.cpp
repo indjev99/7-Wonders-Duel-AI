@@ -23,9 +23,9 @@ void chooseMostExpensive(std::array<int, NUM_RESOURCES>& remaining, const std::a
 
 int calculateResourceCoinCost(const PlayerState& state, const Object& object)
 {
-    if (object.cost.chain != NO_CHAIN && state.builtObjects[object.cost.chain])
+    if (object.cost.chain != NO_CHAIN && state.objectsBuilt[object.cost.chain])
     {
-        if (state.builtObjects[O_TOKEN_URBANISM]) return - (URBANISM_COINS_PER_CHAIN + object.cost.coins);
+        if (state.objectsBuilt[O_TOKEN_URBANISM]) return - (URBANISM_COINS_PER_CHAIN + object.cost.coins);
         else return - object.cost.coins;
     }
 
@@ -48,21 +48,21 @@ int calculateResourceCoinCost(const PlayerState& state, const Object& object)
         else costs[res] = BASE_RESOURCE_COST + state.otherPlayer->resources[res];
     }
 
-    for (int i = 0; i < state.brownWildcards; ++i)
+    for (int i = 0; i < state.brownWildcards; i++)
     {
         chooseMostExpensive(remaining, costs, R_BROWNS_LIST);
     }
 
-    for (int i = 0; i < state.grayWildcards; ++i)
+    for (int i = 0; i < state.grayWildcards; i++)
     {
         chooseMostExpensive(remaining, costs, R_BROWNS_LIST);
     }
 
     int allWildcards = 0;
-    if (object.type == OT_WONDER && state.builtObjects[O_TOKEN_ARCHITECTURE]) allWildcards += 2;
-    if (object.type == OT_BLUE && state.builtObjects[O_TOKEN_MASONRY]) allWildcards += 2;
+    if (object.type == OT_WONDER && state.objectsBuilt[O_TOKEN_ARCHITECTURE]) allWildcards += 2;
+    if (object.type == OT_BLUE && state.objectsBuilt[O_TOKEN_MASONRY]) allWildcards += 2;
 
-    for (int i = 0; i < allWildcards; ++i)
+    for (int i = 0; i < allWildcards; i++)
     {
         chooseMostExpensive(remaining, costs, R_ALL_LIST);
     }

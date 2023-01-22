@@ -113,7 +113,7 @@ const std::array<int, NUM_WONDERS> wonders = {
     O_WONDER_THE_TEMPLE_OF_ARTEMIS
 };
 
-const std::array<int, NUM_LOOTINGS> lootings = {
+const std::array<int, NUM_NO_DECK> noDeckObjects = {
     O_LOOTING_LOOTING_1,
     O_LOOTING_LOOTING_2
 };
