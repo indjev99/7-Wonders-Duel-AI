@@ -1,7 +1,6 @@
 #include "coin_cost_calculator.h"
 
-const int BASE_COST = 2;
-const int MARKET_COST = 1;
+#include "constants.h"
 
 void chooseMostExpensive(std::array<int, NUM_RESOURCES>& remaining, const std::array<int, NUM_RESOURCES>& costs, const std::initializer_list<int>& possible)
 {
@@ -24,10 +23,10 @@ void chooseMostExpensive(std::array<int, NUM_RESOURCES>& remaining, const std::a
 
 int calculateResourceCoinCost(const PlayerState& state, const Object& object)
 {
-    if (object.cost.chain != NO_CHAIN && state.objects[object.cost.chain])
+    if (object.cost.chain != NO_CHAIN && state.builtObjects[object.cost.chain])
     {
-        if (state.objects[O_TOKEN_URBANISM]) return -4;
-        else return 0;
+        if (state.builtObjects[O_TOKEN_URBANISM]) return - (URBANISM_COINS_PER_CHAIN + object.cost.coins);
+        else return - object.cost.coins;
     }
 
     bool nonZero = false;
@@ -45,8 +44,8 @@ int calculateResourceCoinCost(const PlayerState& state, const Object& object)
 
     for (int res : R_ALL_LIST)
     {
-        if (state.markets[res]) costs[res] = MARKET_COST;
-        else costs[res] = BASE_COST + state.otherPlayer->resources[res];
+        if (state.markets[res]) costs[res] = MARKET_RESOURCE_COST;
+        else costs[res] = BASE_RESOURCE_COST + state.otherPlayer->resources[res];
     }
 
     for (int i = 0; i < state.brownWildcards; ++i)
@@ -60,8 +59,8 @@ int calculateResourceCoinCost(const PlayerState& state, const Object& object)
     }
 
     int allWildcards = 0;
-    if (object.type == OT_WONDER && state.objects[O_TOKEN_ARCHITECTURE]) allWildcards += 2;
-    if (object.type == OT_BLUE && state.objects[O_TOKEN_MASONRY]) allWildcards += 2;
+    if (object.type == OT_WONDER && state.builtObjects[O_TOKEN_ARCHITECTURE]) allWildcards += 2;
+    if (object.type == OT_BLUE && state.builtObjects[O_TOKEN_MASONRY]) allWildcards += 2;
 
     for (int i = 0; i < allWildcards; ++i)
     {

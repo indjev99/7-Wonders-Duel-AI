@@ -1,9 +1,9 @@
 #pragma once
 
-#include "resources.h"
-#include "sciences.h"
 #include "objects.h"
 #include "object_types.h"
+#include "resources.h"
+#include "sciences.h"
 
 #include <array>
 
@@ -23,9 +23,9 @@ struct PlayerState
     int military;
 
     std::array<bool, NUM_SCIENCES> sciences;
-    int disctincSciences;
+    int distincSciences;
 
-    std::array<bool, NUM_OBJECTS> objects;
+    std::array<bool, NUM_OBJECTS> builtObjects;
 
     bool buildGameToken;
     bool buildDiscardedToken;
@@ -34,5 +34,15 @@ struct PlayerState
     bool destroyGray;
     bool playAgain;
 
+    bool illegalMove;
+
     PlayerState();
+
+    void buildObject(const Object& object);
+    void payForAndBuildObject(const Object& object);
+    void discardCard();
+
+    int militaryLead() const;
+    int getScore(bool onlyBlue = false) const;
+    int getResult(bool ended = false) const;
 };

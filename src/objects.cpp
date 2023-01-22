@@ -1,5 +1,6 @@
 #include "objects.h"
 
+#include "constants.h"
 #include "object_types.h"
 #include "player_state.h"
 
@@ -31,16 +32,16 @@ void effScience(PlayerState& state)
     else
     {
         state.sciences[SCI] = true;
-        state.disctincSciences++;
+        state.distincSciences++;
     }
 }
 
 #define OT_UNIT -1
 #define OT_BROWN_AND_GRAY -2
-#define OT_COIN_TRIPLES -3
+#define OT_COIN_PACKETS -3
 
 template <int TYPE>
-int getCount(PlayerState& state)
+int getCount(const PlayerState& state)
 {
     if constexpr (TYPE == OT_UNIT)
     {
@@ -50,9 +51,9 @@ int getCount(PlayerState& state)
     {
         return state.typeCounts[OT_BROWN] + state.typeCounts[OT_GRAY];
     }
-    else if constexpr (TYPE == OT_COIN_TRIPLES)
+    else if constexpr (TYPE == OT_COIN_PACKETS)
     {
-        return state.coins / 3;
+        return state.coins / COIN_PACKET_SIZE;
     }
     else
     {
@@ -61,7 +62,7 @@ int getCount(PlayerState& state)
 }
 
 template <int TYPE>
-int getMaxCount(PlayerState& state)
+int getMaxCount(const PlayerState& state)
 {
     return std::max(getCount<TYPE>(state), getCount<TYPE>(*state.otherPlayer));
 }
@@ -273,7 +274,7 @@ std::array<Object, NUM_OBJECTS> initObjects()
     objects[O_GUILD_BUILDERS_GUILD] = Object(O_GUILD_BUILDERS_GUILD, "Builders Guild", OT_GUILD, Cost({R_STONE, R_STONE, R_CLAY, R_WOOD, R_GLASS}), scorePer<2, OT_WONDER, true>);
     objects[O_GUILD_MAGISTRATES_GUILD] = Object(O_GUILD_MAGISTRATES_GUILD, "Magistrates Guild", OT_GUILD, Cost({R_WOOD, R_WOOD, R_CLAY, R_PAPER}), scorePer<1, OT_BLUE, true>, effCoins<1, OT_BLUE, true>);
     objects[O_GUILD_SCIENTISTS_GUILD] = Object(O_GUILD_SCIENTISTS_GUILD, "Scientists Guild", OT_GUILD, Cost({R_CLAY, R_CLAY, R_WOOD, R_WOOD}), scorePer<1, OT_GREEN, true>, effCoins<1, OT_GREEN, true>);
-    objects[O_GUILD_MONEYLENDERS_GUILD] = Object(O_GUILD_MONEYLENDERS_GUILD, "Moneylenderers Guild", OT_GUILD, Cost({R_STONE, R_STONE, R_WOOD, R_WOOD}), scorePer<1, OT_COIN_TRIPLES, true>);
+    objects[O_GUILD_MONEYLENDERS_GUILD] = Object(O_GUILD_MONEYLENDERS_GUILD, "Moneylenderers Guild", OT_GUILD, Cost({R_STONE, R_STONE, R_WOOD, R_WOOD}), scorePer<1, OT_COIN_PACKETS, true>);
     objects[O_GUILD_TACTICIANS_GUILD] = Object(O_GUILD_TACTICIANS_GUILD, "Tacticians Guild", OT_GUILD, Cost({R_STONE, R_STONE, R_CLAY, R_PAPER}), scorePer<1, OT_RED, true>, effCoins<1, OT_RED, true>);
 
     objects[O_TOKEN_AGRICULTURE] = Object(O_TOKEN_AGRICULTURE, "Agriculture", OT_TOKEN, Cost(), 4, effCoins<4>);
