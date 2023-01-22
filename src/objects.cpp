@@ -80,7 +80,7 @@ void effCoins(PlayerState& state)
 }
 
 template <int N, int TYPE = OT_UNIT, bool MAX = false>
-int scorePer(PlayerState& state)
+int scorePer(const PlayerState& state)
 {
     if constexpr (MAX)
     {

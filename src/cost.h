@@ -13,8 +13,8 @@ struct Cost
     int coins;
     std::array<int, NUM_RESOURCES> resources;
 
-    Cost(int coins, std::initializer_list<int> resourceList, int chain = NO_CHAIN);
-    Cost(std::initializer_list<int> resourceList, int chain = NO_CHAIN);
+    Cost(int coins, const std::initializer_list<int>& resourceList, int chain = NO_CHAIN);
+    Cost(const std::initializer_list<int>& resourceList, int chain = NO_CHAIN);
     Cost(int coins, int chain = NO_CHAIN);
     Cost();
 };

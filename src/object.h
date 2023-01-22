@@ -14,17 +14,17 @@ struct Object
     int type;
     Cost cost;
     int score;
-    int (*scoreFunc)(PlayerState&);
+    int (*scoreFunc)(const PlayerState&);
     void (*effectFunc)(PlayerState&);
     void (*revEffectFunc)(PlayerState&);
 
-    Object(int id, std::string name, int type, Cost cost, int score, int (*scoreFunc)(PlayerState&), void (*effectFunc)(PlayerState&), void (*revEffectFunc)(PlayerState&));
+    Object(int id, std::string name, int type, Cost cost, int score, int (*scoreFunc)(const PlayerState&), void (*effectFunc)(PlayerState&), void (*revEffectFunc)(PlayerState&));
     Object(int id, std::string name, int type, Cost cost);
     Object(int id, std::string name, int type, Cost cost, void (*effectFunc)(PlayerState&));
     Object(int id, std::string name, int type, Cost cost, int score);
     Object(int id, std::string name, int type, Cost cost, int score, void (*effectFunc)(PlayerState&));
-    Object(int id, std::string name, int type, Cost cost, int (*scoreFunc)(PlayerState&));
-    Object(int id, std::string name, int type, Cost cost, int (*scoreFunc)(PlayerState&), void (*effectFunc)(PlayerState&));
+    Object(int id, std::string name, int type, Cost cost, int (*scoreFunc)(const PlayerState&));
+    Object(int id, std::string name, int type, Cost cost, int (*scoreFunc)(const PlayerState&), void (*effectFunc)(PlayerState&));
     Object(int id, std::string name, int type, Cost cost, void (*effectFunc)(PlayerState&), void (*revEffectFunc)(PlayerState&));
     Object();
 };

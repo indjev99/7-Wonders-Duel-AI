@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-Cost::Cost(int coins, std::initializer_list<int> resourceList, int chain)
+Cost::Cost(int coins, const std::initializer_list<int>& resourceList, int chain)
     : chain(chain)
     , coins(coins)
 {
@@ -13,7 +13,7 @@ Cost::Cost(int coins, std::initializer_list<int> resourceList, int chain)
     }
 }
 
-Cost::Cost(std::initializer_list<int> resourceList, int chain)
+Cost::Cost(const std::initializer_list<int>& resourceList, int chain)
     : Cost(0, resourceList, chain)
 {}
 

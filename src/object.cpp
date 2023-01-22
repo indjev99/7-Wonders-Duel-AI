@@ -2,7 +2,7 @@
 
 #include "object_types.h"
 
-Object::Object(int id, std::string name, int type, Cost cost, int score, int (*scoreFunc)(PlayerState&), void (*effectFunc)(PlayerState&), void (*revEffectFunc)(PlayerState&))
+Object::Object(int id, std::string name, int type, Cost cost, int score, int (*scoreFunc)(const PlayerState&), void (*effectFunc)(PlayerState&), void (*revEffectFunc)(PlayerState&))
     : id(id)
     , name(name)
     , cost(cost)
@@ -28,11 +28,11 @@ Object::Object(int id, std::string name, int type, Cost cost, int score, void (*
     : Object(id, name, type, cost, score, nullptr, effectFunc, nullptr)
 {}
 
-Object::Object(int id, std::string name, int type, Cost cost, int (*scoreFunc)(PlayerState&))
+Object::Object(int id, std::string name, int type, Cost cost, int (*scoreFunc)(const PlayerState&))
     : Object(id, name, type, cost, 0, scoreFunc, nullptr, nullptr)
 {}
 
-Object::Object(int id, std::string name, int type, Cost cost, int (*scoreFunc)(PlayerState&), void (*effectFunc)(PlayerState&))
+Object::Object(int id, std::string name, int type, Cost cost, int (*scoreFunc)(const PlayerState&), void (*effectFunc)(PlayerState&))
     : Object(id, name, type, cost, 0, scoreFunc, effectFunc, nullptr)
 {}
 
