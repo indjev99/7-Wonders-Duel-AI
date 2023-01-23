@@ -6,7 +6,7 @@
 
 #define NUM_AGES 3
 #define PYRAMID_SIZE 20
-#define NUM_AGE_3_GUILDS 3
+#define NUM_LAST_AGE_GUILDS 3
 
 struct PyramidSlotScheme
 {

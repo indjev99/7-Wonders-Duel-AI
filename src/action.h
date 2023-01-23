@@ -1,0 +1,28 @@
+#pragma once
+
+#define ACT_MOVE_PYRAMID_CARD 0
+#define ACT_MOVE_BUILD_PYRAMID_CARD 1
+#define ACT_MOVE_DISCARD_PYRAMID_CARD 2
+#define ACT_MOVE_BUILD_WONDER_WITH_PYRAMID_CARD 3
+#define ACT_MOVE_BUILD_GAME_TOKEN 4
+#define ACT_MOVE_BUILD_BOX_TOKEN 5
+#define ACT_MOVE_BUILD_DISCARDED 6
+#define ACT_MOVE_SELECT_WONDER 7
+
+#define ACT_REVEAL_GUILD -1
+#define ACT_REVEAL_PYRAMID_CARD -2
+#define ACT_REVEAL_GAME_TOKEN -3
+#define ACT_REVEAL_BOX_TOKEN -4
+#define ACT_REVEAL_WONDER -5
+
+#define ACT_INVALID -100
+#define ACT_ARG_EMPTY -1
+
+struct Action
+{
+    int type;
+    int arg1;
+    int arg2;
+
+    Action(int type = ACT_INVALID, int arg1 = ACT_ARG_EMPTY, int arg2 = ACT_ARG_EMPTY);
+};

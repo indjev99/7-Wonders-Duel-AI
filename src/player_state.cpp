@@ -20,6 +20,7 @@ void PlayerState::buildObject(const Object& object)
 
     if (object.effectFunc != nullptr) object.effectFunc(*this);
 
+    if (object.type == OT_RED && objectsBuilt[O_TOKEN_STRATEGY]) military += STRATEGY_EXTRA_MILITARY;
     if (object.type == OT_WONDER && objectsBuilt[O_TOKEN_THEOLOGY]) shouldPlayAgain = true;
 
     int mLead = militaryLead();

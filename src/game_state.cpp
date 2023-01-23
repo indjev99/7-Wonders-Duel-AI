@@ -51,7 +51,7 @@ void GameState::buildMiscObject(int id, int fromDeck)
     const ObjectLocation& loc = objectLocations[id];
     if (loc.deck != fromDeck) throw EXC_OBJECT_NOT_AVALIABLE;
     playerStates[currPlayer].buildObject(objects[id]);
-    objectLocations[id] = ObjectLocation(DECK_BUILT, currPlayer);
+    objectLocations[id] = ObjectLocation(DECK_USED, POS_NONE);
 }
 
 void GameState::startPlayPyramidCard(int id)
@@ -67,11 +67,11 @@ void GameState::endPlayPyramidCard(int id)
     for (int pos : pyramidSchemes[currAge][loc.pos].covering)
     {
         cardPyramid[pos].coveredBy--;
-        if (cardPyramid[pos].coveredBy == 0) shouldReveal.push(ObjectLocation(DECK_CARD_PYRAMID, pos));
+        if (cardPyramid[pos].coveredBy == 0) expectedActions.push(Action(ACT_REVEAL_PYRAMID_CARD, pos));
     }
 }
 
-void GameState::setGuild(int pos)
+void GameState::revealGuild(int pos)
 {
     if (cardPyramid[pos].deck == DECK_GUILDS) throw EXC_ALREADY_A_GUILD;
     cardPyramid[pos].deck = DECK_GUILDS;
@@ -98,7 +98,7 @@ void GameState::buildPyramidCard(int id)
     playerStates[currPlayer].payForAndBuildObject(objects[id]);
     endPlayPyramidCard(id);
 
-    objectLocations[id] = ObjectLocation(DECK_BUILT, currPlayer);
+    objectLocations[id] = ObjectLocation(DECK_USED, POS_NONE);
 }
 
 void GameState::discardPyramidCard(int id)
@@ -114,14 +114,14 @@ void GameState::buildWonderWithPyramidCard(int id, int cardId)
     if (wondersBuilt >= MAX_WONDERS_BUILT) throw EXC_MAX_WONDERS_BUILT;
 
     const ObjectLocation& loc = objectLocations[id];
-    if (loc.deck != DECK_SELECTED_WONDERS || loc.pos != currPlayer) throw EXC_OBJECT_NOT_AVALIABLE;
+    if (loc.deck != DECK_SELECTED_WONDERS + currPlayer) throw EXC_OBJECT_NOT_AVALIABLE;
 
     startPlayPyramidCard(cardId);
     playerStates[currPlayer].payForAndBuildObject(objects[id]);
     endPlayPyramidCard(cardId);
 
-    objectLocations[id] = ObjectLocation(DECK_BUILT, currPlayer);
-    objectLocations[cardId] = ObjectLocation(DECK_UNDER_WONDER, POS_NONE);
+    objectLocations[id] = ObjectLocation(DECK_USED, POS_NONE);
+    objectLocations[cardId] = ObjectLocation(DECK_USED, POS_NONE);
     wondersBuilt++;
 }
 
@@ -144,17 +144,96 @@ void GameState::selectWonder(int id)
 {
     const ObjectLocation& loc = objectLocations[id];
     if (loc.deck != DECK_REVEALED_WONDERS) throw EXC_OBJECT_NOT_AVALIABLE;
-    objectLocations[id] = ObjectLocation(DECK_SELECTED_WONDERS, currPlayer);
+    objectLocations[id] = ObjectLocation(DECK_SELECTED_WONDERS + currPlayer, POS_NONE);
+}
+
+void GameState::doAction(const Action& action)
+{
+    if (expectedActions.empty()) throw EXC_GAME_ENDED;
+
+    const Action& expected = expectedActions.front();
+
+    bool typeMatch =
+        (expected.type != ACT_MOVE_PYRAMID_CARD && expected.type == action.type) ||
+        (expected.type == ACT_MOVE_PYRAMID_CARD && (
+            action.type == ACT_MOVE_BUILD_PYRAMID_CARD ||
+            action.type == ACT_MOVE_DISCARD_PYRAMID_CARD ||
+            action.type == ACT_MOVE_BUILD_WONDER_WITH_PYRAMID_CARD));
+
+    if (!typeMatch || (expected.type == ACT_REVEAL_PYRAMID_CARD && expected.arg1 != action.arg1))
+    {
+        if (expected.type >= 0) throw EXC_UNEXPECTED_MOVE;
+        else throw EXC_UNEXPECTED_REVEAL;
+    }
+
+    switch (action.type)
+    {
+    case ACT_MOVE_BUILD_PYRAMID_CARD:
+        buildPyramidCard(action.arg1);
+        break;
+
+    case ACT_MOVE_DISCARD_PYRAMID_CARD:
+        discardPyramidCard(action.arg1);
+        break;
+
+    case ACT_MOVE_BUILD_WONDER_WITH_PYRAMID_CARD:
+        buildWonderWithPyramidCard(action.arg1, action.arg2);
+        break;
+
+    case ACT_MOVE_BUILD_GAME_TOKEN:
+        buildGameToken(action.arg1);
+        break;
+
+    case ACT_MOVE_BUILD_BOX_TOKEN:
+        buildBoxToken(action.arg1);
+        break;
+
+    case ACT_MOVE_BUILD_DISCARDED:
+        buildDiscarded(action.arg1);
+        break;
+
+    case ACT_MOVE_SELECT_WONDER:
+        selectWonder(action.arg1);
+        break;
+
+    case ACT_REVEAL_GUILD:
+        revealGuild(action.arg1);
+        break;
+
+    case ACT_REVEAL_PYRAMID_CARD:
+        revealPyramidCard(action.arg1, action.arg2);
+        break;
+
+    case ACT_REVEAL_GAME_TOKEN:
+        revealGameToken(action.arg1);
+        break;
+
+    case ACT_REVEAL_BOX_TOKEN:
+        revealBoxToken(action.arg1);
+        break;
+
+    case ACT_REVEAL_WONDER:
+        revealWonder(action.arg1);
+        break;
+    }
 }
 
 void GameState::advanceAge()
 {
     currAge++;
 
+    if (currAge == NUM_AGES - 1)
+    {
+        for (int i = 0; i < NUM_LAST_AGE_GUILDS; ++i)
+        {
+            expectedActions.push(Action(ACT_REVEAL_GUILD));
+        }
+    }
+
     for (int pos = 0; pos < PYRAMID_SIZE; ++pos)
     {
         cardPyramid[pos] = PyramidSlot(currAge, SLOT_UNREVEALED, 0);
-        if (pyramidSchemes[currAge][pos].revealed) shouldReveal.push(ObjectLocation(DECK_CARD_PYRAMID, pos));
+        if (pyramidSchemes[currAge][pos].revealed) expectedActions.push(Action(ACT_REVEAL_PYRAMID_CARD, pos));
         for (int other : pyramidSchemes[currAge][pos].covering)
         {
             cardPyramid[other].coveredBy++;
@@ -194,10 +273,8 @@ GameState::GameState()
         objectLocations[id] = ObjectLocation();
     }
 
-    shouldSetGuilds = 0;
-
     for (int i = 0; i < NUM_GAME_TOKENS; ++i)
     {
-        shouldReveal.push(ObjectLocation(DECK_GAME_TOKENS, POS_NONE));
+        expectedActions.push(Action(ACT_REVEAL_GAME_TOKEN));
     }
 }
