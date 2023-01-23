@@ -307,5 +307,4 @@ std::array<Object, NUM_OBJECTS> initObjects()
     return objects;
 }
 
-
 const std::array<Object, NUM_OBJECTS> objects = initObjects();
