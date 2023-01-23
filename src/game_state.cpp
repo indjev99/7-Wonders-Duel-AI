@@ -64,7 +64,17 @@ void GameState::endPlayPyramidCard(int id)
 {
     const ObjectLocation& loc = objectLocations[id];
     cardPyramid[loc.pos].objectId = SLOT_EMPTY;
-    // TODO: reveal below
+    for (int pos : pyramidSchemes[currAge][loc.pos].covering)
+    {
+        cardPyramid[pos].coveredBy--;
+        if (cardPyramid[pos].coveredBy == 0) shouldReveal.push(ObjectLocation(DECK_CARD_PYRAMID, pos));
+    }
+}
+
+void GameState::setGuild(int pos)
+{
+    if (cardPyramid[pos].deck == DECK_GUILDS) throw EXC_ALREADY_A_GUILD;
+    cardPyramid[pos].deck = DECK_GUILDS;
 }
 
 void GameState::revealGameToken(int id)
@@ -72,9 +82,14 @@ void GameState::revealGameToken(int id)
     revealMiscObject(id, DECK_TOKENS, DECK_GAME_TOKENS);
 }
 
-void GameState::revealBoxToken(int pos, int id)
+void GameState::revealBoxToken(int id)
 {
     revealMiscObject(id, DECK_TOKENS, DECK_BOX_TOKENS);
+}
+
+void GameState::revealWonder(int id)
+{
+    revealMiscObject(id, DECK_WONDERS, DECK_REVEALED_WONDERS);
 }
 
 void GameState::buildPyramidCard(int id)
@@ -91,7 +106,7 @@ void GameState::discardPyramidCard(int id)
     startPlayPyramidCard(id);
     endPlayPyramidCard(id);
 
-    objectLocations[id] = ObjectLocation(DECK_DISCARDED, currPlayer);
+    objectLocations[id] = ObjectLocation(DECK_DISCARDED, POS_NONE);
 }
 
 void GameState::buildWonderWithPyramidCard(int id, int cardId)
@@ -106,7 +121,7 @@ void GameState::buildWonderWithPyramidCard(int id, int cardId)
     endPlayPyramidCard(cardId);
 
     objectLocations[id] = ObjectLocation(DECK_BUILT, currPlayer);
-    objectLocations[cardId] = ObjectLocation(DECK_UNDER_WONDER, currPlayer);
+    objectLocations[cardId] = ObjectLocation(DECK_UNDER_WONDER, POS_NONE);
     wondersBuilt++;
 }
 
@@ -125,23 +140,45 @@ void GameState::buildDiscarded(int id)
     buildMiscObject(id, DECK_DISCARDED);
 }
 
+void GameState::selectWonder(int id)
+{
+    const ObjectLocation& loc = objectLocations[id];
+    if (loc.deck != DECK_REVEALED_WONDERS) throw EXC_OBJECT_NOT_AVALIABLE;
+    objectLocations[id] = ObjectLocation(DECK_SELECTED_WONDERS, currPlayer);
+}
+
+void GameState::advanceAge()
+{
+    currAge++;
+
+    for (int pos = 0; pos < PYRAMID_SIZE; ++pos)
+    {
+        cardPyramid[pos] = PyramidSlot(currAge, SLOT_UNREVEALED, 0);
+        if (pyramidSchemes[currAge][pos].revealed) shouldReveal.push(ObjectLocation(DECK_CARD_PYRAMID, pos));
+        for (int other : pyramidSchemes[currAge][pos].covering)
+        {
+            cardPyramid[other].coveredBy++;
+        }
+    }
+}
+
 GameState::GameState()
 {
     currPlayer = 0;
-    currAge = 0;
+    currAge = WONDER_SELECTION_AGE;
     wondersBuilt = 0;
 
     deckStarts[DECK_AGE_1] = 0;
     deckStarts[DECK_AGE_2] = deckStarts[DECK_AGE_1] + NUM_AGE_1_CARDS;
     deckStarts[DECK_AGE_3] = deckStarts[DECK_AGE_1] + NUM_AGE_2_CARDS;
-    deckStarts[DECK_GUILD] = deckStarts[DECK_AGE_1] + NUM_AGE_3_CARDS;
+    deckStarts[DECK_GUILDS] = deckStarts[DECK_AGE_1] + NUM_AGE_3_CARDS;
     deckStarts[DECK_TOKENS] = deckStarts[DECK_AGE_1] + NUM_GUILD_CARDS;
     deckStarts[DECK_WONDERS] = deckStarts[DECK_AGE_1] + NUM_TOKENS;
 
     std::copy(age1Cards.begin(), age1Cards.end(), deckObjects.begin() + deckStarts[DECK_AGE_1]);
     std::copy(age2Cards.begin(), age2Cards.end(), deckObjects.begin() + deckStarts[DECK_AGE_2]);
     std::copy(age3Cards.begin(), age3Cards.end(), deckObjects.begin() + deckStarts[DECK_AGE_3]);
-    std::copy(guildCards.begin(), guildCards.end(), deckObjects.begin() + deckStarts[DECK_GUILD]);
+    std::copy(guildCards.begin(), guildCards.end(), deckObjects.begin() + deckStarts[DECK_GUILDS]);
     std::copy(tokens.begin(), tokens.end(), deckObjects.begin() + deckStarts[DECK_TOKENS]);
     std::copy(wonders.begin(), wonders.end(), deckObjects.begin() + deckStarts[DECK_WONDERS]);
 
@@ -155,5 +192,12 @@ GameState::GameState()
     for (int id : noDeckObjects)
     {
         objectLocations[id] = ObjectLocation();
+    }
+
+    shouldSetGuilds = 0;
+
+    for (int i = 0; i < NUM_GAME_TOKENS; ++i)
+    {
+        shouldReveal.push(ObjectLocation(DECK_GAME_TOKENS, POS_NONE));
     }
 }

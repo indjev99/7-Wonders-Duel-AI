@@ -5,13 +5,15 @@
 #include "object_decks.h"
 #include "object_location.h"
 #include "player_state.h"
+#include "pyramid_schemes.h"
 #include "pyramid_slot.h"
 
 #include <algorithm>
+#include <queue>
 
 #define NUM_DECK_LOCATIONS NUM_AGE_1_CARDS + NUM_AGE_2_CARDS + NUM_AGE_3_CARDS + NUM_GUILD_CARDS + NUM_TOKENS + NUM_WONDERS
 
-#define MAX_PYRAMID_LOCATIONS 20
+#define WONDER_SELECTION_AGE -1
 
 struct GameState
 {
@@ -24,14 +26,20 @@ struct GameState
 
     std::array<int, NUM_DECKS> deckStarts;
     std::array<int, NUM_DECK_LOCATIONS> deckObjects;
-    std::array<PyramidSlot, MAX_PYRAMID_LOCATIONS> cardPyramid;
+    std::array<PyramidSlot, PYRAMID_SIZE> cardPyramid;
     std::array<ObjectLocation, NUM_OBJECTS> objectLocations;
+
+    int shouldSetGuilds;
+    std::queue<ObjectLocation> shouldReveal;
 
     GameState();
 
+    void setGuild(int pos);
+
     void revealPyramidCard(int pos, int id);
     void revealGameToken(int id);
-    void revealBoxToken(int pos, int id);
+    void revealBoxToken(int id);
+    void revealWonder(int id);
 
     void buildPyramidCard(int id);
     void discardPyramidCard(int id);
@@ -40,6 +48,10 @@ struct GameState
     void buildGameToken(int id);
     void buildBoxToken(int id);
     void buildDiscarded(int id);
+
+    void selectWonder(int id);
+
+    void advanceAge();
 
 private:
 

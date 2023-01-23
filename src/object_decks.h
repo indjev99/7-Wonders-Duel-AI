@@ -19,4 +19,3 @@ extern const std::array<int, NUM_GUILD_CARDS> guildCards;
 extern const std::array<int, NUM_TOKENS> tokens;
 extern const std::array<int, NUM_WONDERS> wonders;
 extern const std::array<int, NUM_NO_DECK> noDeckObjects;
-
