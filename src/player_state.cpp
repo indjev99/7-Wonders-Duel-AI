@@ -11,6 +11,8 @@
 PlayerState::PlayerState()
 {
     std::memset(this, 0, sizeof(PlayerState));
+
+    coins = INITIAL_COINS;
 }
 
 void PlayerState::buildObject(const Object& object)

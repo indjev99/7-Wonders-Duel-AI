@@ -1,6 +1,5 @@
 #pragma once
 
-#define SLOT_EMPTY -2
 #define SLOT_UNREVEALED -1
 
 struct PyramidSlot

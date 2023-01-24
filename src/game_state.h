@@ -10,7 +10,7 @@
 #include "pyramid_slot.h"
 
 #include <algorithm>
-#include <queue>
+#include <deque>
 
 #define MAX_DISCARDED NUM_AGES * PYRAMID_SIZE
 
@@ -18,7 +18,7 @@
         NUM_GUILD_CARDS + NUM_TOKENS + NUM_WONDERS + NUM_GAME_TOKENS + NUM_BOX_TOKENS + \
         NUM_WONDERS_REVEALED + 2 * NUM_WONDERS_PER_PLAYER + MAX_DISCARDED
 
-#define WONDER_SELECTION_AGE -1
+#define AGE_WONDER_SELECTION -1
 
 struct GameState
 {
@@ -28,6 +28,7 @@ struct GameState
 
     int currAge;
     int wondersBuilt;
+    int cardsRemaining;
 
     static const std::array<int, NUM_DECKS + 1> deckStarts;
 
@@ -36,7 +37,7 @@ struct GameState
     std::array<PyramidSlot, PYRAMID_SIZE> cardPyramid;
     std::array<ObjectLocation, NUM_OBJECTS> objectLocations;
 
-    std::queue<Action> expectedActions;
+    std::deque<Action> scheduledActions;
 
     GameState();
 
@@ -44,6 +45,7 @@ struct GameState
 
 private:
 
+    void setupWonderSelection();
     void advanceAge();
 
     void revealGuild(int pos);
@@ -54,15 +56,17 @@ private:
 
     void buildPyramidCard(int id);
     void discardPyramidCard(int id);
-    void buildWonderWithPyramidCard(int id, int cardId);
+    void playForWonder(int id, int wonderId);
     void buildGameToken(int id);
     void buildBoxToken(int id);
     void buildDiscarded(int id);
     void selectWonder(int id);
 
-    void drawObject(int id, int deck);
+    void drawObject(int id, int deck, bool playerMove = false);
     void insertObject(int id, int deck);
 
     void buildDeckObject(int id, int deck);
     void playPyramidCard(int id);
+
+    void scheduleAction(const Action& action, int count = 1);
 };
