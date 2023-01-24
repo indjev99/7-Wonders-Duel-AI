@@ -10,28 +10,37 @@
 
 #include <algorithm>
 
-#define NUM_DECK_LOCATIONS NUM_AGE_1_CARDS + NUM_AGE_2_CARDS + NUM_AGE_3_CARDS + NUM_GUILD_CARDS + NUM_TOKENS + NUM_WONDERS
-
-#define MAX_PYRAMID_LOCATIONS 20
-
-void GameState::drawObject(int deck, int id)
+void GameState::drawObject(int id, int deck)
 {
     if (objectLocations[id].deck != deck) throw EXC_INCORRECT_DECK;
+    if (deckEnds[deck] <= deckStarts[deck]) throw EXC_DECK_EMPTY;
 
     int pos = objectLocations[id].pos;
-    int startPos = deckStarts[deck];
-    int startId = deckObjects[startPos];
 
-    std::swap(objectLocations[id], objectLocations[startId]);
-    std::swap(deckObjects[pos], deckObjects[startPos]);
+    if (deckObjects[pos] != id) throw EXC_NOT_IN_DECK_POS;
 
-    deckStarts[deck]++;
+    int otherPos = deckEnds[deck] - 1;
+    int otherId = deckObjects[otherPos];
+
+    deckObjects[pos] = id;
+    objectLocations[otherId].pos = pos;
+
+    deckObjects[otherPos] = OBJ_NONE;
+    objectLocations[otherId] = ObjectLocation();
+
+    deckEnds[deck]--;
 }
 
-void GameState::revealMiscObject(int id, int fromDeck, int toDeck)
+void GameState::insertObject(int id, int deck)
 {
-    drawObject(fromDeck, id);
-    objectLocations[id] = ObjectLocation(DECK_GAME_TOKENS, POS_NONE);
+    if (deckEnds[deck] >= deckStarts[deck + 1]) throw EXC_DECK_FULL;
+    if (objectLocations[id].deck != DECK_NONE) throw EXC_OBJ_ALREADY_IN_DECK;
+    if (deckObjects[id] != OBJ_NONE) throw EXC_OBJ_ALREADY_IN_DECK;
+
+    deckObjects[deckEnds[deck]] = id;
+    objectLocations[id] = ObjectLocation(deck, deckEnds[deck]);
+
+    deckEnds[deck]++;
 }
 
 void GameState::revealPyramidCard(int pos, int id)
@@ -40,35 +49,10 @@ void GameState::revealPyramidCard(int pos, int id)
 
     if (slot.objectId != SLOT_UNREVEALED) throw EXC_INVALID_REVEAL;
 
-    drawObject(slot.deck, id);
+    drawObject(id, slot.deck);
 
     slot.objectId = id;
     objectLocations[id] = ObjectLocation(DECK_CARD_PYRAMID, pos);
-}
-
-void GameState::buildMiscObject(int id, int fromDeck)
-{
-    const ObjectLocation& loc = objectLocations[id];
-    if (loc.deck != fromDeck) throw EXC_OBJECT_NOT_AVALIABLE;
-    playerStates[currPlayer].buildObject(objects[id]);
-    objectLocations[id] = ObjectLocation(DECK_USED, POS_NONE);
-}
-
-void GameState::startPlayPyramidCard(int id)
-{
-    const ObjectLocation& loc = objectLocations[id];
-    if (loc.deck != DECK_CARD_PYRAMID || cardPyramid[loc.pos].coveredBy > 0) throw EXC_OBJECT_NOT_AVALIABLE;
-}
-
-void GameState::endPlayPyramidCard(int id)
-{
-    const ObjectLocation& loc = objectLocations[id];
-    cardPyramid[loc.pos].objectId = SLOT_EMPTY;
-    for (int pos : pyramidSchemes[currAge][loc.pos].covering)
-    {
-        cardPyramid[pos].coveredBy--;
-        if (cardPyramid[pos].coveredBy == 0) expectedActions.push(Action(ACT_REVEAL_PYRAMID_CARD, pos));
-    }
 }
 
 void GameState::revealGuild(int pos)
@@ -79,72 +63,86 @@ void GameState::revealGuild(int pos)
 
 void GameState::revealGameToken(int id)
 {
-    revealMiscObject(id, DECK_TOKENS, DECK_GAME_TOKENS);
+    drawObject(id, DECK_TOKENS);
+    insertObject(id, DECK_GAME_TOKENS);
 }
 
 void GameState::revealBoxToken(int id)
 {
-    revealMiscObject(id, DECK_TOKENS, DECK_BOX_TOKENS);
+    drawObject(id, DECK_TOKENS);
+    insertObject(id, DECK_BOX_TOKENS);
 }
 
 void GameState::revealWonder(int id)
 {
-    revealMiscObject(id, DECK_WONDERS, DECK_REVEALED_WONDERS);
+    drawObject(id, DECK_WONDERS);
+    insertObject(id, DECK_REVEALED_WONDERS);
+}
+
+void GameState::buildDeckObject(int id, int deck)
+{
+    drawObject(id, deck);
+    playerStates[currPlayer].payForAndBuildObject(objects[id]);
+    objectLocations[id] = ObjectLocation(DECK_USED, POS_NONE);
+}
+
+void GameState::playPyramidCard(int id)
+{
+    const ObjectLocation& loc = objectLocations[id];
+    if (loc.deck != DECK_CARD_PYRAMID || cardPyramid[loc.pos].coveredBy > 0) throw EXC_OBJECT_NOT_AVALIABLE;
+    cardPyramid[loc.pos].objectId = SLOT_EMPTY;
+    for (int pos : pyramidSchemes[currAge][loc.pos].covering)
+    {
+        cardPyramid[pos].coveredBy--;
+        if (cardPyramid[pos].coveredBy == 0) expectedActions.push(Action(ACT_REVEAL_PYRAMID_CARD, pos));
+    }
+    objectLocations[id] = ObjectLocation();
 }
 
 void GameState::buildPyramidCard(int id)
 {
-    startPlayPyramidCard(id);
+    playPyramidCard(id);
     playerStates[currPlayer].payForAndBuildObject(objects[id]);
-    endPlayPyramidCard(id);
-
     objectLocations[id] = ObjectLocation(DECK_USED, POS_NONE);
 }
 
 void GameState::discardPyramidCard(int id)
 {
-    startPlayPyramidCard(id);
-    endPlayPyramidCard(id);
-
-    objectLocations[id] = ObjectLocation(DECK_DISCARDED, POS_NONE);
+    playPyramidCard(id);
+    insertObject(id, DECK_DISCARDED);
 }
 
 void GameState::buildWonderWithPyramidCard(int id, int cardId)
 {
     if (wondersBuilt >= MAX_WONDERS_BUILT) throw EXC_MAX_WONDERS_BUILT;
 
-    const ObjectLocation& loc = objectLocations[id];
-    if (loc.deck != DECK_SELECTED_WONDERS + currPlayer) throw EXC_OBJECT_NOT_AVALIABLE;
-
-    startPlayPyramidCard(cardId);
-    playerStates[currPlayer].payForAndBuildObject(objects[id]);
-    endPlayPyramidCard(cardId);
-
-    objectLocations[id] = ObjectLocation(DECK_USED, POS_NONE);
+    playPyramidCard(cardId);
     objectLocations[cardId] = ObjectLocation(DECK_USED, POS_NONE);
+
+    buildDeckObject(id, DECK_SELECTED_WONDERS + currPlayer);
+
     wondersBuilt++;
 }
 
 void GameState::buildGameToken(int id)
 {
-    buildMiscObject(id, DECK_GAME_TOKENS);
+    buildDeckObject(id, DECK_GAME_TOKENS);
 }
 
 void GameState::buildBoxToken(int id)
 {
-    buildMiscObject(id, DECK_BOX_TOKENS);
+    buildDeckObject(id, DECK_BOX_TOKENS);
 }
 
 void GameState::buildDiscarded(int id)
 {
-    buildMiscObject(id, DECK_DISCARDED);
+    buildDeckObject(id, DECK_DISCARDED);
 }
 
 void GameState::selectWonder(int id)
 {
-    const ObjectLocation& loc = objectLocations[id];
-    if (loc.deck != DECK_REVEALED_WONDERS) throw EXC_OBJECT_NOT_AVALIABLE;
-    objectLocations[id] = ObjectLocation(DECK_SELECTED_WONDERS + currPlayer, POS_NONE);
+    drawObject(id, DECK_REVEALED_WONDERS);
+    insertObject(id, DECK_SELECTED_WONDERS + currPlayer);
 }
 
 void GameState::doAction(const Action& action)
@@ -247,34 +245,45 @@ GameState::GameState()
     currAge = WONDER_SELECTION_AGE;
     wondersBuilt = 0;
 
-    deckStarts[DECK_AGE_1] = 0;
-    deckStarts[DECK_AGE_2] = deckStarts[DECK_AGE_1] + NUM_AGE_1_CARDS;
-    deckStarts[DECK_AGE_3] = deckStarts[DECK_AGE_1] + NUM_AGE_2_CARDS;
-    deckStarts[DECK_GUILDS] = deckStarts[DECK_AGE_1] + NUM_AGE_3_CARDS;
-    deckStarts[DECK_TOKENS] = deckStarts[DECK_AGE_1] + NUM_GUILD_CARDS;
-    deckStarts[DECK_WONDERS] = deckStarts[DECK_AGE_1] + NUM_TOKENS;
-
-    std::copy(age1Cards.begin(), age1Cards.end(), deckObjects.begin() + deckStarts[DECK_AGE_1]);
-    std::copy(age2Cards.begin(), age2Cards.end(), deckObjects.begin() + deckStarts[DECK_AGE_2]);
-    std::copy(age3Cards.begin(), age3Cards.end(), deckObjects.begin() + deckStarts[DECK_AGE_3]);
-    std::copy(guildCards.begin(), guildCards.end(), deckObjects.begin() + deckStarts[DECK_GUILDS]);
-    std::copy(tokens.begin(), tokens.end(), deckObjects.begin() + deckStarts[DECK_TOKENS]);
-    std::copy(wonders.begin(), wonders.end(), deckObjects.begin() + deckStarts[DECK_WONDERS]);
-
-    int deck = 0;
-    for (int i = 0; i < NUM_DECK_LOCATIONS; i++)
+    for (int i = 0; i < NUM_DECKS; ++i)
     {
-        while (deck < NUM_DECKS && deck >= deckStarts[deck + 1]) deck++;
-        objectLocations[deckObjects[i]] = ObjectLocation(deck, i);
+        deckEnds[i] = deckStarts[i];
     }
 
-    for (int id : noDeckObjects)
-    {
-        objectLocations[id] = ObjectLocation();
-    }
+    std::fill(deckObjects.begin(), deckObjects.end(), OBJ_NONE);
+
+    for (int id : age1Cards) insertObject(id, DECK_AGE_1);
+    for (int id : age2Cards) insertObject(id, DECK_AGE_2);
+    for (int id : age3Cards) insertObject(id, DECK_AGE_3);
+    for (int id : guildCards) insertObject(id, DECK_GUILDS);
+    for (int id : tokens) insertObject(id, DECK_TOKENS);
+    for (int id : wonders) insertObject(id, DECK_WONDERS);
 
     for (int i = 0; i < NUM_GAME_TOKENS; ++i)
     {
         expectedActions.push(Action(ACT_REVEAL_GAME_TOKEN));
     }
 }
+
+std::array<int, NUM_DECKS + 1> findDeckStarts()
+{
+    std::array<int, NUM_DECKS + 1> deckStarts;
+
+    deckStarts[DECK_AGE_1] = 0;
+    deckStarts[DECK_AGE_2] = deckStarts[DECK_AGE_1] + NUM_AGE_1_CARDS;
+    deckStarts[DECK_AGE_3] = deckStarts[DECK_AGE_2] + NUM_AGE_2_CARDS;
+    deckStarts[DECK_GUILDS] = deckStarts[DECK_AGE_3] + NUM_AGE_3_CARDS;
+    deckStarts[DECK_TOKENS] = deckStarts[DECK_GUILDS] + NUM_GUILD_CARDS;
+    deckStarts[DECK_WONDERS] = deckStarts[DECK_TOKENS] + NUM_TOKENS;
+    deckStarts[DECK_GAME_TOKENS] = deckStarts[DECK_WONDERS] + NUM_WONDERS;
+    deckStarts[DECK_BOX_TOKENS] = deckStarts[DECK_GAME_TOKENS] + NUM_GAME_TOKENS;
+    deckStarts[DECK_REVEALED_WONDERS] = deckStarts[DECK_BOX_TOKENS] + NUM_BOX_TOKENS;
+    deckStarts[DECK_SELECTED_WONDERS_0] = deckStarts[DECK_REVEALED_WONDERS] + NUM_WONDERS_REVEALED;
+    deckStarts[DECK_SELECTED_WONDERS_1] = deckStarts[DECK_SELECTED_WONDERS_0] + NUM_WONDERS_PER_PLAYER;
+    deckStarts[DECK_DISCARDED] = deckStarts[DECK_SELECTED_WONDERS_1] + NUM_WONDERS_PER_PLAYER;
+    deckStarts[NUM_DECKS] = deckStarts[DECK_DISCARDED] + 3 * PYRAMID_SIZE;
+
+    return deckStarts;
+}
+
+const std::array<int, NUM_DECKS + 1> GameState::deckStarts = findDeckStarts();

@@ -5,7 +5,7 @@
 #include <array>
 #include <initializer_list>
 
-#define NO_CHAIN -1
+#define NO_CHAIN -100
 
 struct Cost
 {

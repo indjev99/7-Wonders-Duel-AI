@@ -41,5 +41,5 @@ Object::Object(int id, std::string name, int type, Cost cost, void (*effectFunc)
 {}
 
 Object::Object()
-    : Object(-1, "INVALID", -1, Cost(0), 0)
+    : Object(OBJ_NONE, "INVALID", OT_NONE , Cost(0), 0)
 {}

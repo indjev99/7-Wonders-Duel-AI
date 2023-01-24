@@ -6,6 +6,8 @@
 
 struct PlayerState;
 
+#define OBJ_NONE -100
+
 struct Object
 {
     int id;

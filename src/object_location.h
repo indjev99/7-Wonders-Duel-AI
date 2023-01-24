@@ -1,6 +1,6 @@
 #pragma once
 
-#define NUM_DECKS 6
+#define NUM_DECKS 12
 
 #define DECK_AGE_1 0
 #define DECK_AGE_2 1
@@ -15,14 +15,16 @@
 #define DECK_SELECTED_WONDERS_0 DECK_SELECTED_WONDERS + 0
 #define DECK_SELECTED_WONDERS_1 DECK_SELECTED_WONDERS + 1
 
-#define DECK_CARD_PYRAMID -1
-#define DECK_GAME_TOKENS -2
-#define DECK_BOX_TOKENS -3
-#define DECK_DISCARDED -4
-#define DECK_USED -5
-#define DECK_INVALID -100
+#define DECK_GAME_TOKENS 9
+#define DECK_BOX_TOKENS 10
 
-#define POS_NONE -1
+#define DECK_DISCARDED 11
+
+#define DECK_CARD_PYRAMID -1
+#define DECK_USED -2
+
+#define DECK_NONE -100
+#define POS_NONE -100
 
 struct ObjectLocation
 {

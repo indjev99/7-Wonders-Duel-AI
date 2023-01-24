@@ -9,5 +9,5 @@ PyramidSlot::PyramidSlot(int deck, int objectId, int coveredBy)
 {}
 
 PyramidSlot::PyramidSlot()
-    : PyramidSlot(DECK_INVALID, SLOT_EMPTY, 0)
+    : PyramidSlot(DECK_NONE, SLOT_EMPTY, 0)
 {}

@@ -16,7 +16,7 @@
 #define ACT_REVEAL_WONDER -5
 
 #define ACT_INVALID -100
-#define ACT_ARG_EMPTY -1
+#define ACT_ARG_EMPTY -100
 
 struct Action
 {

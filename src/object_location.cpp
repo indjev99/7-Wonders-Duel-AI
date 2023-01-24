@@ -7,5 +7,5 @@ ObjectLocation::ObjectLocation(int deck, int pos)
 {}
 
 ObjectLocation::ObjectLocation()
-    : ObjectLocation(DECK_INVALID, POS_NONE)
+    : ObjectLocation(DECK_NONE, POS_NONE)
 {}

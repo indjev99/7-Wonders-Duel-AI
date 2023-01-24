@@ -12,3 +12,5 @@
 #define OT_TOKEN 7
 #define OT_WONDER 8
 #define OT_LOOTING 9
+
+#define OT_NONE -100
