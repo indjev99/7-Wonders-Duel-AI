@@ -1,7 +1,7 @@
 #include "game_state.h"
 
 #include "constants.h"
-#include "exceptions.h"
+#include "game_exception.h"
 #include "objects.h"
 #include "object_decks.h"
 #include "object_location.h"
@@ -10,18 +10,39 @@
 
 #include <algorithm>
 
-void GameState::drawObject(int id, int deck, bool playerMove)
+#include <iostream>
+
+void GameState::verifyPos(int pos, int deck)
 {
+    int start = deck == DECK_CARD_PYRAMID ? 0 : deckStarts[deck];
+    int end = deck == DECK_CARD_PYRAMID ? PYRAMID_SIZE : deckEnds[deck];
+
+    if (pos < start || pos >= end)
+        throw GameException("Position not in deck.", {{"pos", pos}, {"deck", deck}, {"deckStart", start}, {"deckEnd", end}});
+}
+
+void GameState::verifyObj(int id)
+{
+    if (id < 0 || id >= NUM_OBJECTS)
+        throw GameException("Invalid object id.", {{"objectId", id}});
+}
+
+void GameState::drawObject(int id, int deck)
+{
+    verifyObj(id);
+
     if (objectLocations[id].deck != deck)
-    {
-        if (!playerMove) throw EXC_INCORRECT_DECK;
-        else throw EXC_OBJECT_NOT_AVALIABLE;
-    }
-    if (deckEnds[deck] <= deckStarts[deck]) throw EXC_DECK_EMPTY;
+        throw GameException("Object not in correct deck.", {{"objectId", id}, {"objectDeck", objectLocations[id].deck}, {"deck", deck}});
+
+    if (deckEnds[deck] <= deckStarts[deck])
+        throw GameException("Drawing from empty deck.", {{"deck", deck}, {"deckStart", deckStarts[deck]}, {"deckEnd", deckEnds[deck]}});
 
     int pos = objectLocations[id].pos;
 
-    if (deckObjects[pos] != id) throw EXC_NOT_IN_DECK_POS;
+    verifyPos(pos, deck);
+
+    if (deckObjects[pos] != id)
+        throw GameException("Object not in its position.", {{"objectId", id}, {"objectPos", pos}, {"objectInObjectPos", deckObjects[pos]}});
 
     int otherPos = deckEnds[deck] - 1;
     int otherId = deckObjects[otherPos];
@@ -37,9 +58,16 @@ void GameState::drawObject(int id, int deck, bool playerMove)
 
 void GameState::insertObject(int id, int deck)
 {
-    if (deckEnds[deck] >= deckStarts[deck + 1]) throw EXC_DECK_FULL;
-    if (objectLocations[id].deck != DECK_NONE) throw EXC_OBJ_ALREADY_IN_DECK;
-    if (deckObjects[id] != OBJ_NONE) throw EXC_OBJ_ALREADY_IN_DECK;
+    verifyObj(id);
+
+    if (deckEnds[deck] >= deckStarts[deck + 1])
+        throw GameException("Inserting into full deck.", {{"deck", deck}, {"deckEnd", deckEnds[deck]}, {"maxDeckEnd", deckStarts[deck + 1]}});
+
+    if (objectLocations[id].deck != DECK_NONE)
+        throw GameException("Object already in a deck.", {{"objectId", id}, {"objectDeck", objectLocations[id].deck}});
+
+    if (deckObjects[deckEnds[deck]] != OBJ_NONE)
+        throw GameException("Deck end already has object.", {{"deck", deck}, {"deckEnd", deckEnds[deck]}, {"deckEndObject", deckObjects[deckEnds[deck]]}});
 
     deckObjects[deckEnds[deck]] = id;
     objectLocations[id] = ObjectLocation(deck, deckEnds[deck]);
@@ -49,9 +77,13 @@ void GameState::insertObject(int id, int deck)
 
 void GameState::revealPyramidCard(int pos, int id)
 {
+    verifyObj(id);
+    verifyPos(pos, DECK_CARD_PYRAMID);
+
     PyramidSlot& slot = cardPyramid[pos];
 
-    if (slot.objectId != SLOT_UNREVEALED) throw EXC_ALREADY_REVEALED;
+    if (slot.objectId != SLOT_UNREVEALED)
+        throw GameException("Pyramid slot not unrevealed.", {{"pos", pos}, {"posObjectId", slot.objectId}});
 
     drawObject(id, slot.deck);
 
@@ -61,7 +93,11 @@ void GameState::revealPyramidCard(int pos, int id)
 
 void GameState::revealGuild(int pos)
 {
-    if (cardPyramid[pos].deck == DECK_GUILDS) throw EXC_ALREADY_A_GUILD;
+    verifyPos(pos, DECK_CARD_PYRAMID);
+
+    if (cardPyramid[pos].deck == DECK_GUILDS)
+        throw GameException("Pyramid slot already has guild.", {{"pos", pos}});
+
     cardPyramid[pos].deck = DECK_GUILDS;
 }
 
@@ -85,20 +121,30 @@ void GameState::revealWonder(int id)
 
 void GameState::buildDeckObject(int id, int deck)
 {
-    drawObject(id, deck, true);
+    drawObject(id, deck);
     playerStates[currPlayer].payForAndBuildObject(objects[id]);
     objectLocations[id] = ObjectLocation(DECK_USED, POS_NONE);
 }
 
 void GameState::playPyramidCard(int id)
 {
+    verifyObj(id);
+
     const ObjectLocation& loc = objectLocations[id];
-    if (loc.deck != DECK_CARD_PYRAMID || cardPyramid[loc.pos].coveredBy > 0) throw EXC_OBJECT_NOT_AVALIABLE;
+
+    verifyPos(loc.pos, DECK_CARD_PYRAMID);
+
+    if (loc.deck != DECK_CARD_PYRAMID)
+        throw GameException("Object not in pyramid.", {{"objectId", id}, {"objectDeck", loc.deck}});
+
+    if (cardPyramid[loc.pos].coveredBy > 0)
+        throw GameException("Pyramid slot is covered.", {{"pos", loc.pos}, {"coveredBy", cardPyramid[loc.pos].coveredBy}});
+
     cardPyramid[loc.pos].objectId = OBJ_NONE;
     for (int pos : pyramidSchemes[currAge][loc.pos].covering)
     {
         cardPyramid[pos].coveredBy--;
-        if (cardPyramid[pos].coveredBy == 0) scheduleAction(Action(ACT_REVEAL_PYRAMID_CARD, pos));
+        if (cardPyramid[pos].coveredBy == 0) queueAction(Action(ACT_REVEAL_PYRAMID_CARD, pos));
     }
     objectLocations[id] = ObjectLocation();
 }
@@ -118,7 +164,8 @@ void GameState::discardPyramidCard(int id)
 
 void GameState::playForWonder(int id, int wonderId)
 {
-    if (wondersBuilt >= MAX_WONDERS_BUILT) throw EXC_MAX_WONDERS_BUILT;
+    if (wondersBuilt >= MAX_WONDERS_BUILT)
+        throw GameException("Max wonders built already.", {});
 
     playPyramidCard(id);
     objectLocations[id] = ObjectLocation(DECK_USED, POS_NONE);
@@ -144,25 +191,28 @@ void GameState::buildDiscarded(int id)
 
 void GameState::selectWonder(int id)
 {
-    drawObject(id, DECK_REVEALED_WONDERS, true);
+    drawObject(id, DECK_REVEALED_WONDERS);
     insertObject(id, DECK_SELECTED_WONDERS + currPlayer);
 }
 
 void GameState::doAction(const Action& action)
 {
-    if (scheduledActions.empty()) throw EXC_GAME_ENDED;
+    if (queuedActions.empty())
+        throw GameException("Game already ended.", {});
 
-    const Action& scheduled = scheduledActions.front();
+    const Action& queued = queuedActions.front();
 
-    if (scheduled.type != action.type || (scheduled.type == ACT_REVEAL_PYRAMID_CARD && scheduled.arg1 != action.arg1))
+    if (action.type != queued.type || (queued.type == ACT_REVEAL_PYRAMID_CARD && action.arg1 != queued.arg1))
     {
-        if (scheduled.type >= 0) throw EXC_UNEXPECTED_MOVE;
-        else throw EXC_UNEXPECTED_REVEAL;
+        if (queued.type == ACT_REVEAL_PYRAMID_CARD && queued.arg1 != action.arg1)
+            throw GameException("Unexpected pyramid reveal position.", {{"actionPos", action.arg1}, {"queuedPos", queued.arg1}});
+        else
+            throw GameException("Unexpected action.", {{"actionType", action.type}, {"queuedType", queued.type}});
     }
 
-    scheduledActions.pop_front();
+    queuedActions.pop();
 
-    bool haveNextActions = !scheduledActions.empty();
+    bool haveNextActions = !queuedActions.empty();
 
     switch (action.type)
     {
@@ -220,10 +270,16 @@ void GameState::doAction(const Action& action)
     case ACT_REVEAL_WONDER:
         revealWonder(action.arg1);
         break;
+
+    default:
+        throw GameException("Unknown action type.", {{"actionType", action.type}});
     }
 
-    if (action.isPlayerMove() && haveNextActions) throw EXC_UNEXPECTED_SCHEDULED;
-    if (!action.isPlayerMove() && !haveNextActions) throw EXC_EXPECTED_SCHEDULED;
+    if (action.isPlayerMove() && haveNextActions)
+            throw GameException("Actions were queued after player move.", {{"actionType", action.type}});
+
+    if (!action.isPlayerMove() && !haveNextActions)
+            throw GameException("No actions were queued after game reveal.", {{"actionType", action.type}});
 
     if (!action.isPlayerMove()) return;
 
@@ -236,8 +292,8 @@ void GameState::doAction(const Action& action)
         }
 
         if (deckEnds[DECK_REVEALED_WONDERS] == deckStarts[DECK_REVEALED_WONDERS])
-            scheduleAction(Action(ACT_REVEAL_WONDER), NUM_WONDERS_REVEALED);
-        scheduleAction(Action(ACT_MOVE_SELECT_WONDER));
+            queueAction(Action(ACT_REVEAL_WONDER), NUM_WONDERS_REVEALED);
+        queueAction(Action(ACT_MOVE_SELECT_WONDER));
 
         currPlayer = (currPlayer + 1) % NUM_PLAYERS; // TODO
 
@@ -249,15 +305,15 @@ void GameState::doAction(const Action& action)
     if (state.shouldBuildGameToken)
     {
         state.shouldBuildGameToken = false;
-        scheduleAction(Action(ACT_MOVE_BUILD_GAME_TOKEN));
+        queueAction(Action(ACT_MOVE_BUILD_GAME_TOKEN));
         return;
     }
 
     if (state.shouldBuildBoxToken)
     {
         state.shouldBuildBoxToken = false;
-        scheduleAction(Action(ACT_REVEAL_BOX_TOKEN), NUM_BOX_TOKENS);
-        scheduleAction(Action(ACT_MOVE_BUILD_BOX_TOKEN));
+        queueAction(Action(ACT_REVEAL_BOX_TOKEN), NUM_BOX_TOKENS);
+        queueAction(Action(ACT_MOVE_BUILD_BOX_TOKEN));
         return;
     }
 
@@ -278,7 +334,7 @@ void GameState::doAction(const Action& action)
         state.shouldPlayAgain = false;
         if (cardsRemaining > 0)
         {
-            scheduleAction(Action(ACT_MOVE_PLAY_PYRAMID_CARD));
+            queueAction(Action(ACT_MOVE_PLAY_PYRAMID_CARD));
             return;
         }
     }
@@ -289,7 +345,7 @@ void GameState::doAction(const Action& action)
         return;
     }
 
-    scheduleAction(Action(ACT_MOVE_PLAY_PYRAMID_CARD));
+    queueAction(Action(ACT_MOVE_PLAY_PYRAMID_CARD));
     currPlayer = (currPlayer + 1) % NUM_PLAYERS;
 }
 
@@ -297,19 +353,19 @@ void GameState::advanceAge()
 {
     currAge++;
 
-    if (currAge == NUM_AGES - 1) scheduleAction(Action(ACT_REVEAL_GUILD), NUM_LAST_AGE_GUILDS);
+    if (currAge == NUM_AGES - 1) queueAction(Action(ACT_REVEAL_GUILD), NUM_LAST_AGE_GUILDS);
 
     for (int pos = 0; pos < PYRAMID_SIZE; ++pos)
     {
         cardPyramid[pos] = PyramidSlot(currAge, SLOT_UNREVEALED, 0);
-        if (pyramidSchemes[currAge][pos].revealed) scheduleAction(Action(ACT_REVEAL_PYRAMID_CARD, pos));
+        if (pyramidSchemes[currAge][pos].revealed) queueAction(Action(ACT_REVEAL_PYRAMID_CARD, pos));
         for (int other : pyramidSchemes[currAge][pos].covering)
         {
             cardPyramid[other].coveredBy++;
         }
     }
 
-    scheduleAction(Action(ACT_MOVE_PLAY_PYRAMID_CARD)); // TODO
+    queueAction(Action(ACT_MOVE_PLAY_PYRAMID_CARD)); // TODO
 }
 
 void GameState::setupWonderSelection()
@@ -318,15 +374,15 @@ void GameState::setupWonderSelection()
     currAge = AGE_WONDER_SELECTION;
     cardsRemaining = NUM_PLAYERS * NUM_WONDERS_PER_PLAYER;
 
-    scheduleAction(Action(ACT_REVEAL_WONDER), NUM_WONDERS_REVEALED);
-    scheduleAction(Action(ACT_MOVE_SELECT_WONDER));
+    queueAction(Action(ACT_REVEAL_WONDER), NUM_WONDERS_REVEALED);
+    queueAction(Action(ACT_MOVE_SELECT_WONDER));
 }
 
-void GameState::scheduleAction(const Action& action, int count)
+void GameState::queueAction(const Action& action, int count)
 {
     for (int i = 0; i < count; ++i)
     {
-        scheduledActions.push_front(action);
+        queuedActions.push(action);
     }
 }
 
@@ -351,7 +407,7 @@ GameState::GameState()
     for (int id : tokens) insertObject(id, DECK_TOKENS);
     for (int id : wonders) insertObject(id, DECK_WONDERS);
 
-    scheduleAction(Action(ACT_REVEAL_GAME_TOKEN), NUM_GAME_TOKENS);
+    queueAction(Action(ACT_REVEAL_GAME_TOKEN), NUM_GAME_TOKENS);
 
     setupWonderSelection();
 }
@@ -369,9 +425,9 @@ std::array<int, NUM_DECKS + 1> findDeckStarts()
     deckStarts[DECK_GAME_TOKENS] = deckStarts[DECK_WONDERS] + NUM_WONDERS;
     deckStarts[DECK_BOX_TOKENS] = deckStarts[DECK_GAME_TOKENS] + NUM_GAME_TOKENS;
     deckStarts[DECK_REVEALED_WONDERS] = deckStarts[DECK_BOX_TOKENS] + NUM_BOX_TOKENS;
-    deckStarts[DECK_SELECTED_WONDERS_0] = deckStarts[DECK_REVEALED_WONDERS] + NUM_WONDERS_REVEALED;
-    deckStarts[DECK_SELECTED_WONDERS_1] = deckStarts[DECK_SELECTED_WONDERS_0] + NUM_WONDERS_PER_PLAYER;
-    deckStarts[DECK_DISCARDED] = deckStarts[DECK_SELECTED_WONDERS_1] + NUM_WONDERS_PER_PLAYER;
+    deckStarts[DECK_SELECTED_WONDERS + 0] = deckStarts[DECK_REVEALED_WONDERS] + NUM_WONDERS_REVEALED;
+    deckStarts[DECK_SELECTED_WONDERS + 1] = deckStarts[DECK_SELECTED_WONDERS + 0] + NUM_WONDERS_PER_PLAYER;
+    deckStarts[DECK_DISCARDED] = deckStarts[DECK_SELECTED_WONDERS + 1] + NUM_WONDERS_PER_PLAYER;
     deckStarts[NUM_DECKS] = deckStarts[DECK_DISCARDED] + 3 * PYRAMID_SIZE;
 
     return deckStarts;

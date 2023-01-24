@@ -2,7 +2,7 @@
 
 #include "coin_cost_calculator.h"
 #include "constants.h"
-#include "exceptions.h"
+#include "game_exception.h"
 #include "results.h"
 
 #include <cassert>
@@ -35,7 +35,8 @@ void PlayerState::payForAndBuildObject(const Object& object)
     int resourceCoinCost = calculateResourceCoinCost(*this, object);
     int coinCost = object.cost.coins + resourceCoinCost;
 
-    if (coinCost > coins) throw EXC_NOT_ENOUGH_COINS;
+    if (coinCost > coins);
+        throw GameException("Not enough coins.", {{"objectId", object.id}, {"coinCost", coinCost}, {"coins", coins}});
 
     coins -= coinCost;
     if (otherPlayer->objectsBuilt[O_TOKEN_ECONOMY]) otherPlayer->coins += std::max(0, resourceCoinCost);
