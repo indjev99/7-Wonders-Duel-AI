@@ -23,6 +23,28 @@ void printSummary(const GameState& state, int player)
     std::cout << "Coins: " << state.getCoins(player) << " " << state.getCoins(1 - player) << std::endl;
 }
 
+void benchmarkPlayRandom()
+{
+    GameState state;
+    while (!state.isTerminal())
+    {
+        std::vector<Action> possible = state.possibleActions();
+        Action action = possible[uniformInt(0, possible.size())];
+        state.doAction(action);
+    }
+}
+
+void benchmark()
+{
+    int cnt = 0;
+    while (true)
+    {
+        if (cnt % 100 == 0) std::cerr << cnt << std::endl;
+        benchmarkPlayRandom();
+        cnt++;
+    }
+}
+
 int playRandom(int povPlayer = 0)
 {
     std::cout << "PoV: " << actorToString(povPlayer) << std::endl;
