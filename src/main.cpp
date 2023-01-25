@@ -42,7 +42,7 @@ void benchmark()
     int cnt = 0;
     while (true)
     {
-        if (cnt % 100 == 0) std::cerr << cnt << std::endl;
+        if (cnt % 2000 == 0) std::cerr << cnt << std::endl;
         benchmarkPlayRandom();
         cnt++;
     }
