@@ -1,6 +1,7 @@
 #include "lang.h"
 
 #include "game_exception.h"
+#include "game_state.h"
 #include "objects.h"
 
 #include <algorithm>
@@ -16,18 +17,18 @@ const std::string S_GAME = "Game";
 
 const std::string S_NONE = "???";
 
-const std::string S_MOVE_PLAY_PYRAMID_CARD = "Play pyramid card";
-const std::string S_MOVE_BUILD_PYRAMID_CARD = "Build pyramid card";
-const std::string S_MOVE_DISCARD_PYRAMID_CARD = "Discard pyramid card";
-const std::string S_MOVE_USE_PYRAMID_CARD_FOR_WONDER = "Use pyramid card to build wonder";
-const std::string S_MOVE_BUILD_GAME_TOKEN = "Build game token";
+const std::string S_MOVE_PLAY_PYRAMID_CARD = "Play card";
+const std::string S_MOVE_BUILD_PYRAMID_CARD = "Build card";
+const std::string S_MOVE_DISCARD_PYRAMID_CARD = "Discard card";
+const std::string S_MOVE_USE_PYRAMID_CARD_FOR_WONDER = "Build wonder";
+const std::string S_MOVE_BUILD_GAME_TOKEN = "Build token";
 const std::string S_MOVE_BUILD_BOX_TOKEN = "Build box token";
 const std::string S_MOVE_BUILD_DISCARDED = "Build discarded";
 const std::string S_MOVE_SELECT_WONDER = "Select wonder";
 
-const std::string S_REVEAL_GUILD = "Reveal guild position";
-const std::string S_REVEAL_PYRAMID_CARD = "Reveal pyramid card";
-const std::string S_REVEAL_GAME_TOKEN = "Reveal game token";
+const std::string S_REVEAL_GUILD = "Reveal guild";
+const std::string S_REVEAL_PYRAMID_CARD = "Reveal card";
+const std::string S_REVEAL_GAME_TOKEN = "Reveal token";
 const std::string S_REVEAL_BOX_TOKEN = "Reveal box token";
 const std::string S_REVEAL_WONDER = "Reveal wonder";
 
@@ -82,6 +83,12 @@ int objectFromString(const std::string& name)
         if (sanitized == sanitizeName(object.name)) return object.id;
     }
     throw GameException("Unknown object name.", {});
+}
+
+std::string actorToString(int actor)
+{
+    if (actor == ACTOR_GAME) return S_GAME;
+    else return S_PLAYER_SP + std::to_string(actor);
 }
 
 std::string actionToString(const Action& action)

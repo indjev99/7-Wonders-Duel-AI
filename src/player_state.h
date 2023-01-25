@@ -40,7 +40,9 @@ struct PlayerState
     void payForAndBuildObject(const Object& object);
     void discardCard();
 
+    bool canPayFor(const Object& object) const;
+
     int militaryLead() const;
     int getScore(bool onlyBlue = false) const;
-    int getResult(bool ended = false) const;
+    int getResult(bool terminal) const;
 };

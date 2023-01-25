@@ -20,6 +20,8 @@
 
 #define AGE_WONDER_SELECTION -1
 
+#define ACTOR_GAME -1
+
 struct GameState
 {
     int currPlayer;
@@ -40,6 +42,13 @@ struct GameState
     std::queue<Action> queuedActions;
 
     GameState();
+
+    bool isTerminal() const;
+    int getScore(int povPlayer) const;
+    int getResult(int povPlayer) const;
+    int currActor() const;
+    Action expectedAction() const;
+    std::vector<Action> possibleActions() const;
 
     void doAction(const Action& action);
 
@@ -68,8 +77,9 @@ private:
     void buildDeckObject(int id, int deck);
     void playPyramidCard(int id);
 
-    void verifyPos(int pos, int deck);
-    void verifyObj(int id);
+    void verifyPlayer(int player) const;
+    void verifyPos(int pos, int deck) const;
+    void verifyObj(int id) const;
 
     void queueAction(const Action& action, int count = 1);
 };

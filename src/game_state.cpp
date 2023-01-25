@@ -7,12 +7,17 @@
 #include "object_location.h"
 #include "player_state.h"
 #include "pyramid_slot.h"
+#include "results.h"
 
 #include <algorithm>
 
-#include <iostream>
+void GameState::verifyPlayer(int player) const
+{
+    if (player < 0 || player >= NUM_PLAYERS)
+        throw GameException("Invalid player.", {{"player", player}});
+}
 
-void GameState::verifyPos(int pos, int deck)
+void GameState::verifyPos(int pos, int deck) const
 {
     int start = deck == DECK_CARD_PYRAMID ? 0 : deckStarts[deck];
     int end = deck == DECK_CARD_PYRAMID ? PYRAMID_SIZE : deckEnds[deck];
@@ -21,7 +26,7 @@ void GameState::verifyPos(int pos, int deck)
         throw GameException("Position not in deck.", {{"pos", pos}, {"deck", deck}, {"deckStart", start}, {"deckEnd", end}});
 }
 
-void GameState::verifyObj(int id)
+void GameState::verifyObj(int id) const
 {
     if (id < 0 || id >= NUM_OBJECTS)
         throw GameException("Invalid object id.", {{"objectId", id}});
@@ -302,6 +307,12 @@ void GameState::doAction(const Action& action)
 
     PlayerState& state = playerStates[currPlayer];
 
+    if (state.getResult(false) != RESULT_DRAW)
+    {
+        while (!queuedActions.empty()) queuedActions.pop();
+        return;
+    }
+
     if (state.shouldBuildGameToken)
     {
         state.shouldBuildGameToken = false;
@@ -341,6 +352,9 @@ void GameState::doAction(const Action& action)
 
     if (cardsRemaining == 0)
     {
+        if (!queuedActions.empty())
+            throw GameException("No cards remaining but queued actions.", {{"queuedType", queuedActions.front().type}});
+
         advanceAge();
         return;
     }
@@ -412,6 +426,50 @@ GameState::GameState()
     setupWonderSelection();
 }
 
+bool GameState::isTerminal() const
+{
+    return queuedActions.empty();
+}
+
+int GameState::getScore(int povPlayer) const
+{
+    verifyPlayer(povPlayer);
+
+    return playerStates[povPlayer].getScore();
+}
+
+int GameState::getResult(int povPlayer) const
+{
+    verifyPlayer(povPlayer);
+
+    if (!isTerminal())
+        throw GameException("Game has not ended yet.", {});
+
+    return playerStates[povPlayer].getResult(true);
+}
+
+int GameState::currActor() const
+{
+    if (isTerminal())
+        throw GameException("Game has already ended.", {});
+
+    if (expectedAction().isPlayerMove()) return currPlayer;
+    else return ACTOR_GAME;
+}
+
+Action GameState::expectedAction() const
+{
+    if (isTerminal())
+        throw GameException("Game has already ended.", {});
+
+    return queuedActions.front();
+}
+
+std::vector<Action> GameState::possibleActions() const
+{
+    if (isTerminal()) return std::vector<Action>();
+}
+
 std::array<int, NUM_DECKS + 1> findDeckStarts()
 {
     std::array<int, NUM_DECKS + 1> deckStarts;
@@ -428,7 +486,7 @@ std::array<int, NUM_DECKS + 1> findDeckStarts()
     deckStarts[DECK_SELECTED_WONDERS + 0] = deckStarts[DECK_REVEALED_WONDERS] + NUM_WONDERS_REVEALED;
     deckStarts[DECK_SELECTED_WONDERS + 1] = deckStarts[DECK_SELECTED_WONDERS + 0] + NUM_WONDERS_PER_PLAYER;
     deckStarts[DECK_DISCARDED] = deckStarts[DECK_SELECTED_WONDERS + 1] + NUM_WONDERS_PER_PLAYER;
-    deckStarts[NUM_DECKS] = deckStarts[DECK_DISCARDED] + 3 * PYRAMID_SIZE;
+    deckStarts[NUM_DECKS] = deckStarts[DECK_DISCARDED] + MAX_DISCARDED;
 
     return deckStarts;
 }

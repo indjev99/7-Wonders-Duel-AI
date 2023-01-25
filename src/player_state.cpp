@@ -44,6 +44,11 @@ void PlayerState::payForAndBuildObject(const Object& object)
     buildObject(object);
 }
 
+bool PlayerState::canPayFor(const Object& object) const
+{
+    return calculateResourceCoinCost(*this, object) + object.cost.coins <= coins;
+}
+
 void PlayerState::discardCard()
 {
     coins += BASE_DISCARD_COINS + typeCounts[OT_YELLOW];
@@ -81,7 +86,7 @@ int PlayerState::getScore(bool onlyBlue) const
     return score;
 }
 
-int PlayerState::getResult(bool ended) const
+int PlayerState::getResult(bool terminal) const
 {
     if (distincSciences >= SCIENCE_THRESHOLD_WIN) return RESULT_WIN_SCIENCE;
     if (otherPlayer->distincSciences >= SCIENCE_THRESHOLD_WIN) return - RESULT_WIN_SCIENCE;
@@ -90,7 +95,7 @@ int PlayerState::getResult(bool ended) const
     if (mLead >= MILITARY_THRESHOLD_WIN) return RESULT_WIN_MILITARY;
     if (mLead <= -MILITARY_THRESHOLD_WIN) return - RESULT_WIN_MILITARY;
 
-    if (!ended) return RESULT_DRAW;
+    if (!terminal) return RESULT_DRAW;
 
     int score = getScore();
     int otherScore = otherPlayer->getScore();
