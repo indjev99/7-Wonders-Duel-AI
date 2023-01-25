@@ -43,6 +43,8 @@ struct GameState
 
     GameState();
 
+    void doAction(const Action& action);
+
     bool isTerminal() const;
     int getScore(int povPlayer) const;
     int getResult(int povPlayer) const;
@@ -50,18 +52,25 @@ struct GameState
     Action expectedAction() const;
     std::vector<Action> possibleActions() const;
 
-    void doAction(const Action& action);
-
 private:
 
-    void setupWonderSelection();
-    void advanceAge();
+    void verifyPlayer(int player) const;
+    void verifyPos(int pos, int deck) const;
+    void verifyObj(int id) const;
+
+    void queueAction(const Action& action, int count = 1);
+
+    void drawObject(int id, int deck);
+    void insertObject(int id, int deck);
 
     void revealGuild(int pos);
     void revealPyramidCard(int pos, int id);
     void revealGameToken(int id);
     void revealBoxToken(int id);
     void revealWonder(int id);
+
+    void buildDeckObject(int id, int deck);
+    void playPyramidCard(int id);
 
     void buildPyramidCard(int id);
     void discardPyramidCard(int id);
@@ -71,15 +80,17 @@ private:
     void buildDiscarded(int id);
     void selectWonder(int id);
 
-    void drawObject(int id, int deck);
-    void insertObject(int id, int deck);
+    void setupWonderSelection();
+    void advanceAge();
 
-    void buildDeckObject(int id, int deck);
-    void playPyramidCard(int id);
-
-    void verifyPlayer(int player) const;
-    void verifyPos(int pos, int deck) const;
-    void verifyObj(int id) const;
-
-    void queueAction(const Action& action, int count = 1);
+    std::vector<Action> GameState::possiblePlayPyramidCardActions() const;
+    std::vector<Action> GameState::possibleBuildGameTokenActions() const;
+    std::vector<Action> GameState::possibleBuildBoxTokenActions() const;
+    std::vector<Action> GameState::possibleBuildDiscardedActions() const;
+    std::vector<Action> GameState::possibleSelectWonderActions() const;
+    std::vector<Action> GameState::possibleRevealGuildActions() const;
+    std::vector<Action> GameState::possibleRevealPyramidCardActions() const;
+    std::vector<Action> GameState::possibleRevealGameTokenActions() const;
+    std::vector<Action> GameState::possibleRevealBoxTokenActions() const;
+    std::vector<Action> GameState::possibleRevealWonderActions() const;
 };

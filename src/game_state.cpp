@@ -32,6 +32,14 @@ void GameState::verifyObj(int id) const
         throw GameException("Invalid object id.", {{"objectId", id}});
 }
 
+void GameState::queueAction(const Action& action, int count)
+{
+    for (int i = 0; i < count; ++i)
+    {
+        queuedActions.push(action);
+    }
+}
+
 void GameState::drawObject(int id, int deck)
 {
     verifyObj(id);
@@ -80,6 +88,16 @@ void GameState::insertObject(int id, int deck)
     deckEnds[deck]++;
 }
 
+void GameState::revealGuild(int pos)
+{
+    verifyPos(pos, DECK_CARD_PYRAMID);
+
+    if (cardPyramid[pos].deck == DECK_GUILDS)
+        throw GameException("Pyramid slot already has guild.", {{"pos", pos}});
+
+    cardPyramid[pos].deck = DECK_GUILDS;
+}
+
 void GameState::revealPyramidCard(int pos, int id)
 {
     verifyObj(id);
@@ -94,16 +112,6 @@ void GameState::revealPyramidCard(int pos, int id)
 
     slot.objectId = id;
     objectLocations[id] = ObjectLocation(DECK_CARD_PYRAMID, pos);
-}
-
-void GameState::revealGuild(int pos)
-{
-    verifyPos(pos, DECK_CARD_PYRAMID);
-
-    if (cardPyramid[pos].deck == DECK_GUILDS)
-        throw GameException("Pyramid slot already has guild.", {{"pos", pos}});
-
-    cardPyramid[pos].deck = DECK_GUILDS;
 }
 
 void GameState::revealGameToken(int id)
@@ -363,6 +371,16 @@ void GameState::doAction(const Action& action)
     currPlayer = (currPlayer + 1) % NUM_PLAYERS;
 }
 
+void GameState::setupWonderSelection()
+{
+    currPlayer = 0;
+    currAge = AGE_WONDER_SELECTION;
+    cardsRemaining = NUM_PLAYERS * NUM_WONDERS_PER_PLAYER;
+
+    queueAction(Action(ACT_REVEAL_WONDER), NUM_WONDERS_REVEALED);
+    queueAction(Action(ACT_MOVE_SELECT_WONDER));
+}
+
 void GameState::advanceAge()
 {
     currAge++;
@@ -380,24 +398,6 @@ void GameState::advanceAge()
     }
 
     queueAction(Action(ACT_MOVE_PLAY_PYRAMID_CARD)); // TODO
-}
-
-void GameState::setupWonderSelection()
-{
-    currPlayer = 0;
-    currAge = AGE_WONDER_SELECTION;
-    cardsRemaining = NUM_PLAYERS * NUM_WONDERS_PER_PLAYER;
-
-    queueAction(Action(ACT_REVEAL_WONDER), NUM_WONDERS_REVEALED);
-    queueAction(Action(ACT_MOVE_SELECT_WONDER));
-}
-
-void GameState::queueAction(const Action& action, int count)
-{
-    for (int i = 0; i < count; ++i)
-    {
-        queuedActions.push(action);
-    }
 }
 
 GameState::GameState()
@@ -465,9 +465,135 @@ Action GameState::expectedAction() const
     return queuedActions.front();
 }
 
+std::vector<Action> GameState::possiblePlayPyramidCardActions() const
+{
+    std::vector<Action> possible;
+
+
+
+    return possible;
+}
+
+std::vector<Action> GameState::possibleBuildGameTokenActions() const
+{
+    std::vector<Action> possible;
+
+
+
+    return possible;
+}
+
+std::vector<Action> GameState::possibleBuildBoxTokenActions() const
+{
+    std::vector<Action> possible;
+
+
+
+    return possible;
+}
+
+std::vector<Action> GameState::possibleBuildDiscardedActions() const
+{
+    std::vector<Action> possible;
+
+
+
+    return possible;
+}
+
+std::vector<Action> GameState::possibleSelectWonderActions() const
+{
+    std::vector<Action> possible;
+
+
+
+    return possible;
+}
+
+std::vector<Action> GameState::possibleRevealGuildActions() const
+{
+    std::vector<Action> possible;
+
+
+
+    return possible;
+}
+
+std::vector<Action> GameState::possibleRevealPyramidCardActions() const
+{
+    std::vector<Action> possible;
+
+
+
+    return possible;
+}
+
+std::vector<Action> GameState::possibleRevealGameTokenActions() const
+{
+    std::vector<Action> possible;
+
+
+
+    return possible;
+}
+
+std::vector<Action> GameState::possibleRevealBoxTokenActions() const
+{
+    std::vector<Action> possible;
+
+
+
+    return possible;
+}
+
+std::vector<Action> GameState::possibleRevealWonderActions() const
+{
+    std::vector<Action> possible;
+
+
+
+    return possible;
+}
+
 std::vector<Action> GameState::possibleActions() const
 {
     if (isTerminal()) return std::vector<Action>();
+
+    switch (expectedAction().type)
+    {
+    case ACT_MOVE_PLAY_PYRAMID_CARD:
+        return possiblePlayPyramidCardActions();
+
+    case ACT_MOVE_BUILD_GAME_TOKEN:
+        return possibleBuildGameTokenActions();
+
+    case ACT_MOVE_BUILD_BOX_TOKEN:
+        return possibleBuildBoxTokenActions();
+
+    case ACT_MOVE_BUILD_DISCARDED:
+        return possibleBuildDiscardedActions();
+
+    case ACT_MOVE_SELECT_WONDER:
+        return possibleSelectWonderActions();
+
+    case ACT_REVEAL_GUILD:
+        return possibleRevealGuildActions();
+
+    case ACT_REVEAL_PYRAMID_CARD:
+        return possibleRevealPyramidCardActions();
+
+    case ACT_REVEAL_GAME_TOKEN:
+        return possibleRevealGameTokenActions();
+
+    case ACT_REVEAL_BOX_TOKEN:
+        return possibleRevealBoxTokenActions();
+
+    case ACT_REVEAL_WONDER:
+        return possibleRevealWonderActions();
+
+    default:
+        throw GameException("Unknown action type.", {{"actionType", expectedAction().type}});
+    }
 }
 
 std::array<int, NUM_DECKS + 1> findDeckStarts()
