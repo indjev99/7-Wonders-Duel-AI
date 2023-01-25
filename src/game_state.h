@@ -67,8 +67,12 @@ private:
     void verifyPos(int pos, int deck) const;
     void verifyObject(int id) const;
 
+    int nextPlayer() const;
+    void advancePlayer();
+
     void queueAction(const Action& action, int count = 1);
 
+    int deckSize(int deck) const;
     bool isDeckEmpty(int deck) const;
 
     void drawObject(int id, int deck);
@@ -89,13 +93,17 @@ private:
     void buildGameToken(int id);
     void buildBoxToken(int id);
     void buildDiscarded(int id);
+    void destroyObject(int id, int type);
     void selectWonder(int id);
+    void chooseStartPlayer(int player);
 
     void setupWonderSelection();
     void advanceAge();
 
     std::vector<Action> possibleFromDeck(const Action& expected, int deck) const;
     std::vector<Action> possiblePlayPyramidCardActions() const;
+    std::vector<Action> possibleDestroyObjectActions(int type) const;
+    std::vector<Action> possibleChooseStartPlayerActions() const;
     std::vector<Action> possibleRevealGuildActions() const;
 
     std::vector<Action> possibleActionsUnchecked() const;

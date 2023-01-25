@@ -2,7 +2,6 @@
 
 #include "constants.h"
 #include "game_exception.h"
-#include "object_types.h"
 #include "player_state.h"
 
 template <int RES, int N>
@@ -140,7 +139,7 @@ void effTheAppianWay(PlayerState& state)
 
 void effCircusMaximus(PlayerState& state)
 {
-    state.shouldDestroyGray = true;
+    state.shouldDestroyType = OT_GRAY;
     effMilirary<1>(state);
 }
 
@@ -186,7 +185,7 @@ void effTheSphinx(PlayerState& state)
 
 void effTheStatueOfZeus(PlayerState& state)
 {
-    state.shouldDestroyBrown = true;
+    state.shouldDestroyType = OT_BROWN;
     effMilirary<1>(state);
 }
 
@@ -315,4 +314,32 @@ std::array<Object, NUM_OBJECTS> initObjects()
     return objects;
 }
 
+std::array<int, NUM_OBJECT_TYPES + 1> initObjectTypeStarts()
+{
+    std::array<int, NUM_OBJECT_TYPES + 1> objectTypeStarts;
+
+    int currType = -1;
+    for (int id = 0; id < NUM_OBJECTS; ++id)
+    {
+        if (objects[id].type < currType)
+            throw GameException("Objects not sorted by type.", {{"objectId", id}, {"objectType", objects[id].type}, {"currType", currType}});
+
+        while (currType < objects[id].type)
+        {
+            currType++;
+            objectTypeStarts[currType] = id;
+        }
+    }
+
+    while (currType < NUM_OBJECT_TYPES)
+    {
+        currType++;
+        objectTypeStarts[currType] = NUM_OBJECTS;
+    }
+
+    return objectTypeStarts;
+}
+
 const std::array<Object, NUM_OBJECTS> objects = initObjects();
+
+const std::array<int, NUM_OBJECT_TYPES + 1> objectTypeStarts = initObjectTypeStarts();

@@ -5,6 +5,7 @@
 Object::Object(int id, std::string name, int type, Cost cost, int score, int (*scoreFunc)(const PlayerState&), void (*effectFunc)(PlayerState&), void (*revEffectFunc)(PlayerState&))
     : id(id)
     , name(name)
+    , type(type)
     , cost(cost)
     , score(score)
     , scoreFunc(scoreFunc)

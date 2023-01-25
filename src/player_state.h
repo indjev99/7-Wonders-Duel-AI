@@ -30,8 +30,7 @@ struct PlayerState
     bool shouldBuildGameToken;
     bool shouldBuildBoxToken;
     bool shouldBuildDiscarded;
-    bool shouldDestroyBrown;
-    bool shouldDestroyGray;
+    int shouldDestroyType;
     bool shouldPlayAgain;
 
     PlayerState();
@@ -39,6 +38,7 @@ struct PlayerState
     void buildObject(const Object& object);
     void payForAndBuildObject(const Object& object);
     void discardCard();
+    void destroyObject(const Object& object);
 
     bool canPayFor(const Object& object) const;
 

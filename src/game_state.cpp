@@ -32,6 +32,16 @@ void GameState::verifyObject(int id) const
         throw GameException("Invalid object id.", {{"objectId", id}});
 }
 
+int GameState::nextPlayer() const
+{
+    return (currPlayer + 1) % NUM_PLAYERS;
+}
+
+void GameState::advancePlayer()
+{
+    currPlayer = nextPlayer();
+}
+
 void GameState::queueAction(const Action& action, int count)
 {
     for (int i = 0; i < count; ++i)
@@ -40,9 +50,14 @@ void GameState::queueAction(const Action& action, int count)
     }
 }
 
+int GameState::deckSize(int deck) const
+{
+    return deckEnds[deck] - deckStarts[deck];
+}
+
 bool GameState::isDeckEmpty(int deck) const
 {
-    return deckEnds[deck] <= deckStarts[deck];
+    return deckSize(deck) <= 0;
 }
 
 void GameState::drawObject(int id, int deck)
@@ -216,25 +231,45 @@ void GameState::buildDiscarded(int id)
     buildDeckObject(id, DECK_DISCARDED);
 }
 
+void GameState::destroyObject(int id, int type)
+{
+    verifyObject(id);
+
+    if (objects[id].type != type)
+        throw GameException("Object not of correct type.", {{"objectId", id}, {"objectType", type}, {"type", type}});
+
+    playerStates[nextPlayer()].destroyObject(objects[id]);
+}
+
 void GameState::selectWonder(int id)
 {
     drawObject(id, DECK_REVEALED_WONDERS);
     insertObject(id, DECK_SELECTED_WONDERS + currPlayer);
 }
 
+void GameState::chooseStartPlayer(int player)
+{
+    verifyPlayer(player);
+    currPlayer = player;
+}
+
 void GameState::doAction(const Action& action)
 {
-    if (queuedActions.empty())
+    if (isTerminal())
         throw GameException("Game already ended.", {});
 
-    const Action& queued = queuedActions.front();
+    const Action& expected = expectedAction();
 
-    if (action.type != queued.type || (queued.type == ACT_REVEAL_PYRAMID_CARD && action.arg2 != queued.arg2))
+    if (action.type != expected.type ||
+        (action.type == ACT_REVEAL_PYRAMID_CARD && action.arg2 != expected.arg2) ||
+        (action.type == ACT_MOVE_DESTROY_OBJECT && action.arg2 != expected.arg2))
     {
-        if (queued.type == ACT_REVEAL_PYRAMID_CARD && queued.arg2 != action.arg2)
-            throw GameException("Unexpected pyramid reveal position.", {{"actionPos", action.arg2}, {"queuedPos", queued.arg2}});
+        if (action.type == ACT_REVEAL_PYRAMID_CARD && action.arg2 != expected.arg2)
+            throw GameException("Unexpected pyramid reveal position.", {{"actionPos", action.arg2}, {"expectedPos", expected.arg2}});
+        if (action.type == ACT_MOVE_DESTROY_OBJECT && action.arg2 != expected.arg2)
+            throw GameException("Unexpected object type.", {{"actionObjectType", action.arg2}, {"expectedObjectType", expected.arg2}});
         else
-            throw GameException("Unexpected action.", {{"actionType", action.type}, {"queuedType", queued.type}});
+            throw GameException("Unexpected action.", {{"actionType", action.type}, {"expectedType", expected.type}});
     }
 
     queuedActions.pop();
@@ -273,9 +308,17 @@ void GameState::doAction(const Action& action)
         buildDiscarded(action.arg1);
         break;
 
+    case ACT_MOVE_DESTROY_OBJECT:
+        destroyObject(action.arg1, action.arg2);
+        break;
+
     case ACT_MOVE_SELECT_WONDER:
         selectWonder(action.arg1);
         --cardsRemaining;
+        break;
+
+    case ACT_MOVE_CHOOSE_START_PLAYER:
+        chooseStartPlayer(action.arg1);
         break;
 
     case ACT_REVEAL_GUILD:
@@ -318,11 +361,11 @@ void GameState::doAction(const Action& action)
             return;
         }
 
-        if (deckEnds[DECK_REVEALED_WONDERS] == deckStarts[DECK_REVEALED_WONDERS])
+        if (isDeckEmpty(DECK_REVEALED_WONDERS))
             queueAction(Action(ACT_REVEAL_WONDER), NUM_WONDERS_REVEALED);
+    
+        if (deckSize(DECK_REVEALED_WONDERS) != NUM_WONDERS_REVEALED / 2) advancePlayer();
         queueAction(Action(ACT_MOVE_SELECT_WONDER));
-
-        currPlayer = (currPlayer + 1) % NUM_PLAYERS; // TODO
 
         return;
     }
@@ -331,7 +374,7 @@ void GameState::doAction(const Action& action)
 
     if (state.getResult(false) != RESULT_DRAW)
     {
-        while (!queuedActions.empty()) queuedActions.pop();
+        queuedActions = std::queue<Action>();
         return;
     }
 
@@ -350,23 +393,21 @@ void GameState::doAction(const Action& action)
         state.shouldBuildBoxToken = false;
         if (!isDeckEmpty(DECK_TOKENS))
         {
-            int numTokens = deckEnds[DECK_TOKENS] - deckStarts[DECK_TOKENS];
-            queueAction(Action(ACT_REVEAL_BOX_TOKEN), std::min(NUM_BOX_TOKENS, numTokens));
+            queueAction(Action(ACT_REVEAL_BOX_TOKEN), std::min(NUM_BOX_TOKENS, deckSize(DECK_TOKENS)));
             queueAction(Action(ACT_MOVE_BUILD_BOX_TOKEN));
             return;
         }
     }
 
-    if (state.shouldDestroyBrown)
+    if (state.shouldDestroyType != OT_NONE)
     {
-        state.shouldDestroyBrown = false;
-        // TODO
-    }
-
-    if (state.shouldDestroyGray)
-    {
-        state.shouldDestroyGray = false;
-        // TODO
+        int type = state.shouldDestroyType;
+        state.shouldDestroyType = OT_NONE;
+        if (playerStates[nextPlayer()].typeCounts[type] > 0)
+        {
+            queueAction(Action(ACT_MOVE_DESTROY_OBJECT, OBJ_NONE, type));
+            return;
+        }
     }
 
     if (state.shouldPlayAgain)
@@ -381,15 +422,15 @@ void GameState::doAction(const Action& action)
 
     if (cardsRemaining == 0)
     {
-        if (!queuedActions.empty())
-            throw GameException("No cards remaining but queued actions.", {{"queuedType", queuedActions.front().type}});
+        if (!isTerminal())
+            throw GameException("No cards remaining but actions queued.", {{"queuedType", expectedAction().type}});
 
         if (currAge < NUM_AGES - 1) advanceAge();
         return;
     }
 
+    advancePlayer();
     queueAction(Action(ACT_MOVE_PLAY_PYRAMID_CARD));
-    currPlayer = (currPlayer + 1) % NUM_PLAYERS;
 }
 
 void GameState::setupWonderSelection()
@@ -419,7 +460,16 @@ void GameState::advanceAge()
         }
     }
 
-    queueAction(Action(ACT_MOVE_PLAY_PYRAMID_CARD)); // TODO
+    if (currAge == 0)
+    {
+        currPlayer = 0;
+        queueAction(Action(ACT_MOVE_PLAY_PYRAMID_CARD));
+    }
+    else
+    {
+        if (playerStates[currPlayer].militaryLead() > 0) advancePlayer();
+        queueAction(Action(ACT_MOVE_CHOOSE_START_PLAYER));
+    }
 }
 
 GameState::GameState()
@@ -556,6 +606,7 @@ int GameState::getMilitaryLead(int player) const
 std::vector<Action> GameState::possibleFromDeck(const Action& expected, int deck) const
 {
     std::vector<Action> possible;
+    // possible.reserve(deckSize(deck));
 
     Action action = expected;
 
@@ -568,18 +619,56 @@ std::vector<Action> GameState::possibleFromDeck(const Action& expected, int deck
     return possible;
 }
 
+std::vector<Action> GameState::possibleChooseStartPlayerActions() const
+{
+    std::vector<Action> possible;
+    // possible.reserve(NUM_PLAYERS);
+
+    for (int player = 0; player < NUM_PLAYERS; player++)
+    {
+        possible.push_back(Action(ACT_MOVE_CHOOSE_START_PLAYER, player));
+    }
+
+    return possible;
+}
+
+std::vector<Action> GameState::possibleDestroyObjectActions(int type) const
+{
+    std::vector<Action> possible;
+
+    const PlayerState& other = playerStates[nextPlayer()];
+
+    // possible.reserve(other.typeCounts[type]);
+
+    for (int id = objectTypeStarts[type]; id < objectTypeStarts[type + 1]; id++)
+    {
+        if (!other.objectsBuilt[id]) continue;
+        possible.push_back(Action(ACT_MOVE_DESTROY_OBJECT, id, type));
+    }
+
+    return possible;
+}
+
 std::vector<Action> GameState::possiblePlayPyramidCardActions() const
 {
     std::vector<Action> possible;
 
-    std::vector<int> possibleWonders;
     const PlayerState& state = playerStates[currPlayer];
 
-    for (int pos = deckStarts[DECK_SELECTED_WONDERS + currPlayer]; pos < deckStarts[DECK_SELECTED_WONDERS + currPlayer]; pos++)
+    std::vector<int> possibleWonders;
+
+    if (wondersBuilt < MAX_WONDERS_BUILT)
     {
-        int id = deckObjects[pos];
-        if (state.canPayFor(objects[id])) possibleWonders.push_back(id);
+        // possibleWonders.reserve(deckSize(deckStarts[DECK_SELECTED_WONDERS + currPlayer]));
+
+        for (int pos = deckStarts[DECK_SELECTED_WONDERS + currPlayer]; pos < deckEnds[DECK_SELECTED_WONDERS + currPlayer]; pos++)
+        {
+            int id = deckObjects[pos];
+            if (state.canPayFor(objects[id])) possibleWonders.push_back(id);
+        }
     }
+
+    // possible.reserve((2 + possibleWonders.size()) *  cardsRemaining);
 
     for (int pos = 0; pos < PYRAMID_SIZE; ++pos)
     {
@@ -604,6 +693,7 @@ std::vector<Action> GameState::possiblePlayPyramidCardActions() const
 std::vector<Action> GameState::possibleRevealGuildActions() const
 {
     std::vector<Action> possible;
+    // possible.reserve(PYRAMID_SIZE);
 
     for (int pos = 0; pos < PYRAMID_SIZE; pos++)
     {
@@ -633,8 +723,14 @@ std::vector<Action> GameState::possibleActionsUnchecked() const
     case ACT_MOVE_BUILD_DISCARDED:
         return possibleFromDeck(expected, DECK_DISCARDED);
 
+    case ACT_MOVE_DESTROY_OBJECT:
+        return possibleDestroyObjectActions(expected.arg2);
+
     case ACT_MOVE_SELECT_WONDER:
         return possibleFromDeck(expected, DECK_REVEALED_WONDERS);
+
+    case ACT_MOVE_CHOOSE_START_PLAYER:
+        return possibleChooseStartPlayerActions();
 
     case ACT_REVEAL_GUILD:
         return possibleRevealGuildActions();

@@ -17,13 +17,14 @@ int uniformInt(int from, int to)
 
 void printSummary(const GameState& state, int player)
 {
+    std::cout << std::endl;
+    std::cout << "Coins: " << state.getCoins(player) << " " << state.getCoins(1 - player) << std::endl;
     std::cout << "Scores: " << state.getScore(player) << " " << state.getScore(1 - player) << std::endl;
     std::cout << "Sciences: " << state.getDistinctSciences(player) << " " << state.getDistinctSciences(1 - player) << std::endl;
     std::cout << "Militaries: " << state.getMilitary(player) << " " << state.getMilitary(1 - player) << std::endl;
-    std::cout << "Coins: " << state.getCoins(player) << " " << state.getCoins(1 - player) << std::endl;
 }
 
-void benchmarkPlayRandom()
+int benchmarkPlayRandom()
 {
     GameState state;
     while (!state.isTerminal())
@@ -32,6 +33,7 @@ void benchmarkPlayRandom()
         Action action = possible[uniformInt(0, possible.size())];
         state.doAction(action);
     }
+    return state.getResult(0);
 }
 
 void benchmark()
@@ -51,6 +53,8 @@ int playRandom(int povPlayer = 0)
 
     GameState state;
 
+    printSummary(state, povPlayer);
+
     while (!state.isTerminal())
     {
         std::cout << std::endl;
@@ -60,8 +64,7 @@ int playRandom(int povPlayer = 0)
         std::cout << "Action: " << actionToString(action) << std::endl;
         state.doAction(action);
 
-        std::cout << std::endl;
-        printSummary(state, povPlayer);
+        if (action.isPlayerMove()) printSummary(state, povPlayer);
     }
 
     int result = state.getResult(povPlayer);
@@ -81,6 +84,8 @@ int playInteractive(int povPlayer = 0)
     GameState state;
     history.push(state);
 
+    printSummary(state, povPlayer);
+
     while (!state.isTerminal())
     {
         try
@@ -88,7 +93,7 @@ int playInteractive(int povPlayer = 0)
             std::cout << std::endl;
             std::cout << "Actor: " << actorToString(state.currActor()) << std::endl;
             std::cout << "Expected: " << actionToString(state.expectedAction()) << std::endl;
-            std::cout << "Possible: ";
+            std::cout << "Possible: " << std::endl;
             for (const Action& action : state.possibleActions())
             {
                 std::cout << "    " << actionToString(action) << std::endl;
@@ -107,7 +112,6 @@ int playInteractive(int povPlayer = 0)
                 history.pop();
                 state = history.top();
 
-                std::cout << std::endl;
                 printSummary(state, povPlayer);
     
                 continue;
@@ -116,8 +120,7 @@ int playInteractive(int povPlayer = 0)
             state.doAction(action);
             history.push(state);
 
-            std::cout << std::endl;
-            printSummary(state, povPlayer);
+            if (action.isPlayerMove()) printSummary(state, povPlayer);
         }
         catch (const GameException& e)
         {

@@ -17,6 +17,9 @@ PlayerState::PlayerState()
 
 void PlayerState::buildObject(const Object& object)
 {
+    if (objectsBuilt[object.id])
+        throw GameException("Object already built.", {{"objectId", object.id}});
+
     objectsBuilt[object.id] = true;
     typeCounts[object.type]++;
 
@@ -44,14 +47,29 @@ void PlayerState::payForAndBuildObject(const Object& object)
     buildObject(object);
 }
 
-bool PlayerState::canPayFor(const Object& object) const
-{
-    return calculateResourceCoinCost(*this, object) + object.cost.coins <= coins;
-}
-
 void PlayerState::discardCard()
 {
     coins += BASE_DISCARD_COINS + typeCounts[OT_YELLOW];
+}
+
+void PlayerState::destroyObject(const Object& object)
+{
+    if (!objectsBuilt[object.id])
+        throw GameException("Object not built.", {{"objectId", object.id}});
+
+    objectsBuilt[object.id] = false;
+    typeCounts[object.type]--;
+
+    if (object.effectFunc != nullptr) object.effectFunc(*this);
+
+    int mLead = militaryLead();
+    if (mLead <= - MILITARY_THRESHOLD_2 && !otherPlayer->objectsBuilt[O_LOOTING_LOOTING_1]) otherPlayer->buildObject(objects[O_LOOTING_LOOTING_1]);
+    if (mLead <= - MILITARY_THRESHOLD_3 && !otherPlayer->objectsBuilt[O_LOOTING_LOOTING_2]) otherPlayer->buildObject(objects[O_LOOTING_LOOTING_2]);
+}
+
+bool PlayerState::canPayFor(const Object& object) const
+{
+    return calculateResourceCoinCost(*this, object) + object.cost.coins <= coins;
 }
 
 int PlayerState::militaryLead() const

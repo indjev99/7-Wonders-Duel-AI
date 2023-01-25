@@ -1,6 +1,7 @@
 #pragma once
 
 #include "object.h"
+#include "object_types.h"
 
 #include <array>
 
@@ -114,3 +115,4 @@
 #define O_LOOTING_LOOTING_2 96
 
 extern const std::array<Object, NUM_OBJECTS> objects;
+extern const std::array<int, NUM_OBJECT_TYPES + 1> objectTypeStarts;
