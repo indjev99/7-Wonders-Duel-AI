@@ -108,4 +108,6 @@ private:
     void possibleRevealGuildActions(std::vector<Action>& possible) const;
 
     void possibleActionsUnchecked(std::vector<Action>&) const;
+
+    std::vector<int> possibleWonders;
 };

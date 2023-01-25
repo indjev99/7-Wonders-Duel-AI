@@ -644,9 +644,9 @@ void GameState::possibleDestroyObjectActions(std::vector<Action>& possible, int 
 
 void GameState::possiblePlayPyramidCardActions(std::vector<Action>& possible) const
 {
-    const PlayerState& state = playerStates[currPlayer];
+    std::vector<int>& possibleWonders = const_cast<std::vector<int>&>(this->possibleWonders);
 
-    std::vector<int> possibleWonders;
+    const PlayerState& state = playerStates[currPlayer];
 
     if (wondersBuilt < MAX_WONDERS_BUILT)
     {
@@ -677,6 +677,8 @@ void GameState::possiblePlayPyramidCardActions(std::vector<Action>& possible) co
             possible.push_back(Action(ACT_MOVE_PLAY_PYRAMID_CARD, id, wonderId));
         }
     }
+
+    possibleWonders.clear();
 }
 
 void GameState::possibleRevealGuildActions(std::vector<Action>& possible) const
