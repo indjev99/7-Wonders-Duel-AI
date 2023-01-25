@@ -2,6 +2,8 @@
 
 #include "constants.h"
 
+#include <initializer_list>
+
 void chooseMostExpensive(std::array<int, NUM_RESOURCES>& remaining, const std::array<int, NUM_RESOURCES>& costs, const std::initializer_list<int>& possible)
 {
     int argmax = -1;

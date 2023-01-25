@@ -1,6 +1,6 @@
 # Compiler settings - Can be customized.
 CC = g++
-CXXFLAGS = -std=c++17 -Wall -O3
+CXXFLAGS = -std=c++17 -Wall -O0
 LDFLAGS = -static -static-libgcc -static-libstdc++
 
 # Makefile settings - Can be customized.

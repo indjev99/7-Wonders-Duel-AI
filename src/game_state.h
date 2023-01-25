@@ -56,7 +56,7 @@ private:
 
     void buildPyramidCard(int id);
     void discardPyramidCard(int id);
-    void playForWonder(int id, int wonderId);
+    void usePyramidCardForWonder(int id, int wonderId);
     void buildGameToken(int id);
     void buildBoxToken(int id);
     void buildDiscarded(int id);

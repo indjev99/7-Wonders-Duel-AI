@@ -35,7 +35,7 @@ void PlayerState::payForAndBuildObject(const Object& object)
     int resourceCoinCost = calculateResourceCoinCost(*this, object);
     int coinCost = object.cost.coins + resourceCoinCost;
 
-    if (coinCost > coins);
+    if (coinCost > coins)
         throw GameException("Not enough coins.", {{"objectId", object.id}, {"coinCost", coinCost}, {"coins", coins}});
 
     coins -= coinCost;

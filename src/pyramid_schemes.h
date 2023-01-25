@@ -1,7 +1,6 @@
 #pragma once
 
 #include <array>
-#include <initializer_list>
 #include <vector>
 
 #define NUM_AGES 3

@@ -162,7 +162,7 @@ void GameState::discardPyramidCard(int id)
     insertObject(id, DECK_DISCARDED);
 }
 
-void GameState::playForWonder(int id, int wonderId)
+void GameState::usePyramidCardForWonder(int id, int wonderId)
 {
     if (wondersBuilt >= MAX_WONDERS_BUILT)
         throw GameException("Max wonders built already.", {});
@@ -228,7 +228,7 @@ void GameState::doAction(const Action& action)
             break;
 
         default:
-            playForWonder(action.arg1, action.arg2);
+            usePyramidCardForWonder(action.arg1, action.arg2);
             break;
         }
         --cardsRemaining;
