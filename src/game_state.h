@@ -52,6 +52,7 @@ struct GameState
     int currActor() const;
     Action expectedAction() const;
     std::vector<Action> possibleActions() const;
+    void possibleActions(std::vector<Action>& possible) const;
 
     int getCoins(int player) const;
     int getScore(int player) const;
@@ -100,11 +101,11 @@ private:
     void setupWonderSelection();
     void advanceAge();
 
-    std::vector<Action> possibleFromDeck(const Action& expected, int deck) const;
-    std::vector<Action> possiblePlayPyramidCardActions() const;
-    std::vector<Action> possibleDestroyObjectActions(int type) const;
-    std::vector<Action> possibleChooseStartPlayerActions() const;
-    std::vector<Action> possibleRevealGuildActions() const;
+    void possibleFromDeck(std::vector<Action>& possible, const Action& expected, int deck) const;
+    void possiblePlayPyramidCardActions(std::vector<Action>& possible) const;
+    void possibleDestroyObjectActions(std::vector<Action>& possible, int type) const;
+    void possibleChooseStartPlayerActions(std::vector<Action>& possible) const;
+    void possibleRevealGuildActions(std::vector<Action>& possible) const;
 
-    std::vector<Action> possibleActionsUnchecked() const;
+    void possibleActionsUnchecked(std::vector<Action>&) const;
 };

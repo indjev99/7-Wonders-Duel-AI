@@ -560,14 +560,17 @@ Action GameState::expectedAction() const
 
 std::vector<Action> GameState::possibleActions() const
 {
-    if (isTerminal()) return std::vector<Action>();
+    std::vector<Action> possible;
+    possibleActions(possible);
+    return possible;
+}
 
-    std::vector<Action> possible = possibleActionsUnchecked();
+void GameState::possibleActions(std::vector<Action>& possible) const
+{
+    possibleActionsUnchecked(possible);
 
     if (possible.empty())
         throw GameException("No possible actions.", {{"expectedType", expectedAction().type}});
-
-    return possible;
 }
 
 int GameState::getCoins(int player) const
@@ -603,9 +606,8 @@ int GameState::getMilitaryLead(int player) const
     return playerStates[player].militaryLead();
 }
 
-std::vector<Action> GameState::possibleFromDeck(const Action& expected, int deck) const
+void GameState::possibleFromDeck(std::vector<Action>& possible, const Action& expected, int deck) const
 {
-    std::vector<Action> possible;
     possible.reserve(deckSize(deck));
 
     Action action = expected;
@@ -615,27 +617,20 @@ std::vector<Action> GameState::possibleFromDeck(const Action& expected, int deck
         action.arg1 = deckObjects[pos];
         possible.push_back(action);
     }
-
-    return possible;
 }
 
-std::vector<Action> GameState::possibleChooseStartPlayerActions() const
+void GameState::possibleChooseStartPlayerActions(std::vector<Action>& possible) const
 {
-    std::vector<Action> possible;
     possible.reserve(NUM_PLAYERS);
 
     for (int player = 0; player < NUM_PLAYERS; player++)
     {
         possible.push_back(Action(ACT_MOVE_CHOOSE_START_PLAYER, player));
     }
-
-    return possible;
 }
 
-std::vector<Action> GameState::possibleDestroyObjectActions(int type) const
+void GameState::possibleDestroyObjectActions(std::vector<Action>& possible, int type) const
 {
-    std::vector<Action> possible;
-
     const PlayerState& other = playerStates[nextPlayer()];
 
     possible.reserve(other.typeCounts[type]);
@@ -645,14 +640,10 @@ std::vector<Action> GameState::possibleDestroyObjectActions(int type) const
         if (!other.objectsBuilt[id]) continue;
         possible.push_back(Action(ACT_MOVE_DESTROY_OBJECT, id, type));
     }
-
-    return possible;
 }
 
-std::vector<Action> GameState::possiblePlayPyramidCardActions() const
+void GameState::possiblePlayPyramidCardActions(std::vector<Action>& possible) const
 {
-    std::vector<Action> possible;
-
     const PlayerState& state = playerStates[currPlayer];
 
     std::vector<int> possibleWonders;
@@ -686,67 +677,62 @@ std::vector<Action> GameState::possiblePlayPyramidCardActions() const
             possible.push_back(Action(ACT_MOVE_PLAY_PYRAMID_CARD, id, wonderId));
         }
     }
-
-    return possible;
 }
 
-std::vector<Action> GameState::possibleRevealGuildActions() const
+void GameState::possibleRevealGuildActions(std::vector<Action>& possible) const
 {
-    std::vector<Action> possible;
     possible.reserve(PYRAMID_SIZE);
 
     for (int pos = 0; pos < PYRAMID_SIZE; pos++)
     {
         if (cardPyramid[pos].deck != DECK_GUILDS) possible.push_back(Action(ACT_REVEAL_GUILD, pos));
     }
-
-    return possible;
 }
 
-std::vector<Action> GameState::possibleActionsUnchecked() const
+void GameState::possibleActionsUnchecked(std::vector<Action>& possible) const
 {
-    if (isTerminal()) return std::vector<Action>();
+    possible.clear();
 
     const Action& expected = expectedAction();
 
     switch (expected.type)
     {
     case ACT_MOVE_PLAY_PYRAMID_CARD:
-        return possiblePlayPyramidCardActions();
+        return possiblePlayPyramidCardActions(possible);
 
     case ACT_MOVE_BUILD_GAME_TOKEN:
-        return possibleFromDeck(expected, DECK_GAME_TOKENS);
+        return possibleFromDeck(possible, expected, DECK_GAME_TOKENS);
 
     case ACT_MOVE_BUILD_BOX_TOKEN:
-        return possibleFromDeck(expected, DECK_BOX_TOKENS);
+        return possibleFromDeck(possible, expected, DECK_BOX_TOKENS);
 
     case ACT_MOVE_BUILD_DISCARDED:
-        return possibleFromDeck(expected, DECK_DISCARDED);
+        return possibleFromDeck(possible, expected, DECK_DISCARDED);
 
     case ACT_MOVE_DESTROY_OBJECT:
-        return possibleDestroyObjectActions(expected.arg2);
+        return possibleDestroyObjectActions(possible, expected.arg2);
 
     case ACT_MOVE_SELECT_WONDER:
-        return possibleFromDeck(expected, DECK_REVEALED_WONDERS);
+        return possibleFromDeck(possible, expected, DECK_REVEALED_WONDERS);
 
     case ACT_MOVE_CHOOSE_START_PLAYER:
-        return possibleChooseStartPlayerActions();
+        return possibleChooseStartPlayerActions(possible);
 
     case ACT_REVEAL_GUILD:
-        return possibleRevealGuildActions();
+        return possibleRevealGuildActions(possible);
 
     case ACT_REVEAL_PYRAMID_CARD:
         verifyPos(expected.arg2, DECK_CARD_PYRAMID);
-        return possibleFromDeck(expected, cardPyramid[expected.arg2].deck);
+        return possibleFromDeck(possible, expected, cardPyramid[expected.arg2].deck);
 
     case ACT_REVEAL_GAME_TOKEN:
-        return possibleFromDeck(expected, DECK_TOKENS);
+        return possibleFromDeck(possible, expected, DECK_TOKENS);
 
     case ACT_REVEAL_BOX_TOKEN:
-        return possibleFromDeck(expected, DECK_TOKENS);
+        return possibleFromDeck(possible, expected, DECK_TOKENS);
 
     case ACT_REVEAL_WONDER:
-        return possibleFromDeck(expected, DECK_WONDERS);
+        return possibleFromDeck(possible, expected, DECK_WONDERS);
 
     default:
         throw GameException("Unknown action type.", {{"actionType", expected.type}});

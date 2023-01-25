@@ -27,9 +27,10 @@ void printSummary(const GameState& state, int player)
 int benchmarkPlayRandom()
 {
     GameState state;
+    std::vector<Action> possible;
     while (!state.isTerminal())
     {
-        std::vector<Action> possible = state.possibleActions();
+        state.possibleActions(possible);
         Action action = possible[uniformInt(0, possible.size())];
         state.doAction(action);
     }
@@ -52,6 +53,7 @@ int playRandom(int povPlayer = 0)
     std::cout << "PoV: " << actorToString(povPlayer) << std::endl;
 
     GameState state;
+    std::vector<Action> possible;
 
     printSummary(state, povPlayer);
 
@@ -59,7 +61,7 @@ int playRandom(int povPlayer = 0)
     {
         std::cout << std::endl;
         std::cout << "Actor: " << actorToString(state.currActor()) << std::endl;
-        std::vector<Action> possible = state.possibleActions();
+        state.possibleActions(possible);
         Action action = possible[uniformInt(0, possible.size())];
         std::cout << "Action: " << actionToString(action) << std::endl;
         state.doAction(action);
@@ -79,9 +81,10 @@ int playInteractive(int povPlayer = 0)
 {
     std::cout << "PoV: " << actorToString(povPlayer) << std::endl;
 
+    GameState state;
+    std::string actionStr;
     std::stack<GameState> history;
 
-    GameState state;
     history.push(state);
 
     printSummary(state, povPlayer);
@@ -100,7 +103,6 @@ int playInteractive(int povPlayer = 0)
             }
 
             std::cout << "Action: ";
-            std::string actionStr;
             std::getline(std::cin, actionStr);
             Action action = actionFromString(actionStr);
 
@@ -142,7 +144,7 @@ int main()
 {
     generator.seed(time(nullptr));
 
-    playRandom();
+    benchmark();
 
     return 0;
 }
