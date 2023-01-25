@@ -606,7 +606,7 @@ int GameState::getMilitaryLead(int player) const
 std::vector<Action> GameState::possibleFromDeck(const Action& expected, int deck) const
 {
     std::vector<Action> possible;
-    // possible.reserve(deckSize(deck));
+    possible.reserve(deckSize(deck));
 
     Action action = expected;
 
@@ -622,7 +622,7 @@ std::vector<Action> GameState::possibleFromDeck(const Action& expected, int deck
 std::vector<Action> GameState::possibleChooseStartPlayerActions() const
 {
     std::vector<Action> possible;
-    // possible.reserve(NUM_PLAYERS);
+    possible.reserve(NUM_PLAYERS);
 
     for (int player = 0; player < NUM_PLAYERS; player++)
     {
@@ -638,7 +638,7 @@ std::vector<Action> GameState::possibleDestroyObjectActions(int type) const
 
     const PlayerState& other = playerStates[nextPlayer()];
 
-    // possible.reserve(other.typeCounts[type]);
+    possible.reserve(other.typeCounts[type]);
 
     for (int id = objectTypeStarts[type]; id < objectTypeStarts[type + 1]; id++)
     {
@@ -659,7 +659,7 @@ std::vector<Action> GameState::possiblePlayPyramidCardActions() const
 
     if (wondersBuilt < MAX_WONDERS_BUILT)
     {
-        // possibleWonders.reserve(deckSize(deckStarts[DECK_SELECTED_WONDERS + currPlayer]));
+        possibleWonders.reserve(deckSize(DECK_SELECTED_WONDERS + currPlayer));
 
         for (int pos = deckStarts[DECK_SELECTED_WONDERS + currPlayer]; pos < deckEnds[DECK_SELECTED_WONDERS + currPlayer]; pos++)
         {
@@ -668,7 +668,7 @@ std::vector<Action> GameState::possiblePlayPyramidCardActions() const
         }
     }
 
-    // possible.reserve((2 + possibleWonders.size()) *  cardsRemaining);
+    possible.reserve((2 + possibleWonders.size()) *  cardsRemaining);
 
     for (int pos = 0; pos < PYRAMID_SIZE; ++pos)
     {
@@ -693,7 +693,7 @@ std::vector<Action> GameState::possiblePlayPyramidCardActions() const
 std::vector<Action> GameState::possibleRevealGuildActions() const
 {
     std::vector<Action> possible;
-    // possible.reserve(PYRAMID_SIZE);
+    possible.reserve(PYRAMID_SIZE);
 
     for (int pos = 0; pos < PYRAMID_SIZE; pos++)
     {
