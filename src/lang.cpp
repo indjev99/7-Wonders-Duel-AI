@@ -3,6 +3,7 @@
 #include "game_exception.h"
 #include "game_state.h"
 #include "objects.h"
+#include "results.h"
 
 #include <algorithm>
 #include <iterator>
@@ -16,6 +17,8 @@ const std::string S_PLAYER_SP = "Player ";
 const std::string S_GAME = "Game";
 
 const std::string S_NONE = "???";
+
+const std::string S_UNDO = "Undo";
 
 const std::string S_MOVE_PLAY_PYRAMID_CARD = "Play card";
 const std::string S_MOVE_BUILD_PYRAMID_CARD = "Build card";
@@ -31,6 +34,15 @@ const std::string S_REVEAL_PYRAMID_CARD = "Reveal card";
 const std::string S_REVEAL_GAME_TOKEN = "Reveal token";
 const std::string S_REVEAL_BOX_TOKEN = "Reveal box token";
 const std::string S_REVEAL_WONDER = "Reveal wonder";
+
+const std::string S_RESULT_DRAW = "Draw";
+const std::string S_RESULT_WIN = "Victory";
+const std::string S_RESULT_LOSS = "Defeat";
+
+const std::string S_RESULT_CIVILIAN = "Civilian";
+const std::string S_RESULT_SCIENCE = "Scientific";
+const std::string S_RESULT_MILITARY = "Military";
+const std::string S_RESULT_TIEBREAK = "Tiebreak";
 
 std::string sanitizeName(const std::string& name)
 {
@@ -127,7 +139,7 @@ std::string actionToString(const Action& action)
         return joinActionStr({S_REVEAL_GUILD, posToString(action.arg1)});
 
     case ACT_REVEAL_PYRAMID_CARD:
-        return joinActionStr({S_REVEAL_PYRAMID_CARD, posToString(action.arg1), objectToString(action.arg2)});
+        return joinActionStr({S_REVEAL_PYRAMID_CARD, objectToString(action.arg1), posToString(action.arg2)});
 
     case ACT_REVEAL_GAME_TOKEN:
         return joinActionStr({S_REVEAL_GAME_TOKEN, objectToString(action.arg1)});
@@ -145,7 +157,10 @@ std::string actionToString(const Action& action)
 
 Action actionFromString(const std::string& actionStr)
 {
-    Action action;
+    if (sanitizeName(actionStr) == sanitizeName(S_UNDO))
+    {
+        return Action(ACT_UNDO);
+    }
 
     std::vector<std::string> tokens = splitActionStr(actionStr);
 
@@ -158,76 +173,110 @@ Action actionFromString(const std::string& actionStr)
     {
         if (tokens.size() != 3)
             throw GameException("Incorrect number of tokens in action string.", {});
-        action = Action(ACT_MOVE_PLAY_PYRAMID_CARD, objectFromString(tokens[1]), ACT_ARG2_BUILD);
+        return Action(ACT_MOVE_PLAY_PYRAMID_CARD, objectFromString(tokens[1]), ACT_ARG2_BUILD);
     }
-    else if (name == sanitizeName(S_MOVE_DISCARD_PYRAMID_CARD))
+    if (name == sanitizeName(S_MOVE_DISCARD_PYRAMID_CARD))
     {
         if (tokens.size() != 3)
             throw GameException("Incorrect number of tokens in action string.", {});
-        action = Action(ACT_MOVE_PLAY_PYRAMID_CARD, objectFromString(tokens[1]), ACT_ARG2_DISCARD);
+        return Action(ACT_MOVE_PLAY_PYRAMID_CARD, objectFromString(tokens[1]), ACT_ARG2_DISCARD);
     }
-    else if (name == sanitizeName(S_MOVE_USE_PYRAMID_CARD_FOR_WONDER))
+    if (name == sanitizeName(S_MOVE_USE_PYRAMID_CARD_FOR_WONDER))
     {
         if (tokens.size() != 3)
             throw GameException("Incorrect number of tokens in action string.", {});
-        action = Action(ACT_MOVE_PLAY_PYRAMID_CARD, objectFromString(tokens[1]), objectFromString(tokens[2]));
+        return Action(ACT_MOVE_PLAY_PYRAMID_CARD, objectFromString(tokens[1]), objectFromString(tokens[2]));
     }
-    else if (name == sanitizeName(S_MOVE_BUILD_GAME_TOKEN))
+    if (name == sanitizeName(S_MOVE_BUILD_GAME_TOKEN))
     {
         if (tokens.size() != 2)
             throw GameException("Incorrect number of tokens in action string.", {});
-        action = Action(ACT_MOVE_BUILD_GAME_TOKEN, objectFromString(tokens[1]));
+        return Action(ACT_MOVE_BUILD_GAME_TOKEN, objectFromString(tokens[1]));
     }
-    else if (name == sanitizeName(S_MOVE_BUILD_BOX_TOKEN))
+    if (name == sanitizeName(S_MOVE_BUILD_BOX_TOKEN))
     {
         if (tokens.size() != 2)
             throw GameException("Incorrect number of tokens in action string.", {});
-        action = Action(ACT_MOVE_BUILD_BOX_TOKEN, objectFromString(tokens[1]));
+        return Action(ACT_MOVE_BUILD_BOX_TOKEN, objectFromString(tokens[1]));
     }
-    else if (name == sanitizeName(S_MOVE_BUILD_DISCARDED))
+    if (name == sanitizeName(S_MOVE_BUILD_DISCARDED))
     {
         if (tokens.size() != 2)
             throw GameException("Incorrect number of tokens in action string.", {});
-        action = Action(ACT_MOVE_BUILD_DISCARDED, objectFromString(tokens[1]));
+        return Action(ACT_MOVE_BUILD_DISCARDED, objectFromString(tokens[1]));
     }
-    else if (name == sanitizeName(S_MOVE_SELECT_WONDER))
+    if (name == sanitizeName(S_MOVE_SELECT_WONDER))
     {
         if (tokens.size() != 2)
             throw GameException("Incorrect number of tokens in action string.", {});
-        action = Action(ACT_MOVE_SELECT_WONDER, objectFromString(tokens[1]));
+        return Action(ACT_MOVE_SELECT_WONDER, objectFromString(tokens[1]));
     }
-    else if (name == sanitizeName(S_REVEAL_GUILD))
+    if (name == sanitizeName(S_REVEAL_GUILD))
     {
         if (tokens.size() != 2)
             throw GameException("Incorrect number of tokens in action string.", {});
-        action = Action(ACT_REVEAL_GUILD, std::stoi(tokens[1]));
+        return Action(ACT_REVEAL_GUILD, std::stoi(tokens[1]));
     }
-    else if (name == sanitizeName(S_REVEAL_PYRAMID_CARD))
+    if (name == sanitizeName(S_REVEAL_PYRAMID_CARD))
     {
         if (tokens.size() != 3)
             throw GameException("Incorrect number of tokens in action string.", {});
-        action = Action(ACT_REVEAL_PYRAMID_CARD, std::stoi(tokens[1]), objectFromString(tokens[2]));
+        return Action(ACT_REVEAL_PYRAMID_CARD, objectFromString(tokens[1]), std::stoi(tokens[2]));
     }
-    else if (name == sanitizeName(S_REVEAL_GAME_TOKEN))
+    if (name == sanitizeName(S_REVEAL_GAME_TOKEN))
     {
         if (tokens.size() != 2)
             throw GameException("Incorrect number of tokens in action string.", {});
-        action = Action(ACT_REVEAL_GAME_TOKEN, objectFromString(tokens[1]));
+        return Action(ACT_REVEAL_GAME_TOKEN, objectFromString(tokens[1]));
     }
-    else if (name == sanitizeName(S_REVEAL_BOX_TOKEN))
+    if (name == sanitizeName(S_REVEAL_BOX_TOKEN))
     {
         if (tokens.size() != 2)
             throw GameException("Incorrect number of tokens in action string.", {});
-        action = Action(ACT_REVEAL_BOX_TOKEN, objectFromString(tokens[1]));
+        return Action(ACT_REVEAL_BOX_TOKEN, objectFromString(tokens[1]));
     }
-    else if (name == sanitizeName(S_REVEAL_WONDER))
+    if (name == sanitizeName(S_REVEAL_WONDER))
     {
         if (tokens.size() != 2)
             throw GameException("Incorrect number of tokens in action string.", {});
-        action = Action(ACT_REVEAL_WONDER, objectFromString(tokens[1]));
+        return Action(ACT_REVEAL_WONDER, objectFromString(tokens[1]));
     }
-    else
-        throw GameException("Unknown action name.", {});
 
-    return action;
+    throw GameException("Unknown action name.", {});
+}
+
+std::string resultToString(int res)
+{
+    std::string resStr;
+
+    switch (std::abs(res))
+    {
+    case RESULT_DRAW:
+        resStr = S_RESULT_DRAW;
+        break;
+
+    case RESULT_WIN_CIVILIAN:
+        resStr = S_RESULT_CIVILIAN;
+        break;
+
+    case RESULT_WIN_SCIENCE:
+        resStr = S_RESULT_SCIENCE;
+        break;
+
+    case RESULT_WIN_MILITARY:
+        resStr = S_RESULT_MILITARY;
+        break;
+
+    case RESULT_WIN_TIEBREAK:
+        resStr = S_RESULT_TIEBREAK;
+        break;
+
+    default:
+        throw GameException("Unknown result.", {{"result", res}});
+    }
+
+    if (res > 0) resStr += " " + S_RESULT_WIN;
+    else if (res < 0) resStr += " " + S_RESULT_LOSS;
+
+    return resStr;
 }

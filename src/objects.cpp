@@ -1,6 +1,7 @@
 #include "objects.h"
 
 #include "constants.h"
+#include "game_exception.h"
 #include "object_types.h"
 #include "player_state.h"
 
@@ -200,7 +201,7 @@ std::array<Object, NUM_OBJECTS> initObjects()
     std::array<Object, NUM_OBJECTS> objects;
 
     objects[O_BROWN_LUMBER_YARD] = Object(O_BROWN_LUMBER_YARD, "Lumber Yard", OT_BROWN, Cost(), effResource<R_WOOD, 1>, revEffResource<R_WOOD, 1>);
-    objects[O_BROWN_LOGGING_CAMP] = Object(O_BROWN_LOGGING_CAMP, "Logging Capp", OT_BROWN, Cost(1), effResource<R_WOOD, 1>, revEffResource<R_WOOD, 1>);
+    objects[O_BROWN_LOGGING_CAMP] = Object(O_BROWN_LOGGING_CAMP, "Logging Camp", OT_BROWN, Cost(1), effResource<R_WOOD, 1>, revEffResource<R_WOOD, 1>);
     objects[O_BROWN_CLAY_POOL] = Object(O_BROWN_CLAY_POOL, "Clay Pool", OT_BROWN, Cost(), effResource<R_CLAY, 1>, revEffResource<R_CLAY, 1>);
     objects[O_BROWN_CLAY_PIT] = Object(O_BROWN_CLAY_PIT, "Clay Pit", OT_BROWN, Cost(1), effResource<R_CLAY, 1>, revEffResource<R_CLAY, 1>);
     objects[O_BROWN_QUARRY] = Object(O_BROWN_QUARRY, "Quarry", OT_BROWN, Cost(), effResource<R_STONE, 1>, revEffResource<R_STONE, 1>);
@@ -215,6 +216,7 @@ std::array<Object, NUM_OBJECTS> initObjects()
 
     objects[O_BLUE_THEATER] = Object(O_BLUE_THEATER, "Theater", OT_BLUE, Cost(), 3);
     objects[O_BLUE_ALTAR] = Object(O_BLUE_ALTAR, "Altar", OT_BLUE, Cost(), 3);
+    objects[O_BLUE_BATHS] = Object(O_BLUE_BATHS, "Baths", OT_BLUE, Cost({R_STONE}), 3);
     objects[O_BLUE_STATUE] = Object(O_BLUE_STATUE, "Statue", OT_BLUE, Cost({R_CLAY, R_CLAY}, O_BLUE_THEATER), 4);
     objects[O_BLUE_TEMPLE] = Object(O_BLUE_TEMPLE, "Temple", OT_BLUE, Cost({R_WOOD, R_PAPER}, O_BLUE_ALTAR), 4);
     objects[O_BLUE_AQUEDUCT] = Object(O_BLUE_AQUEDUCT, "Aqueduct", OT_BLUE, Cost({R_STONE, R_STONE, R_STONE}, O_BLUE_STATUE), 5);
@@ -303,6 +305,12 @@ std::array<Object, NUM_OBJECTS> initObjects()
 
     objects[O_LOOTING_LOOTING_1] = Object(O_LOOTING_LOOTING_1, "Looting 1", OT_LOOTING, Cost(), effLooting<2>);
     objects[O_LOOTING_LOOTING_2] = Object(O_LOOTING_LOOTING_2, "Looting 2", OT_LOOTING, Cost(), effLooting<5>);
+
+    for (int id = 0; id < NUM_OBJECTS; ++id)
+    {
+        if (objects[id].id != id)
+            throw GameException("Object id does not match its index.", {{"objectIndex", id}, {"objectId", objects[id].id}});
+    }
 
     return objects;
 }

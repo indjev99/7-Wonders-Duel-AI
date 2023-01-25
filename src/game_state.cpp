@@ -26,7 +26,7 @@ void GameState::verifyPos(int pos, int deck) const
         throw GameException("Position not in deck.", {{"pos", pos}, {"deck", deck}, {"deckStart", start}, {"deckEnd", end}});
 }
 
-void GameState::verifyObj(int id) const
+void GameState::verifyObject(int id) const
 {
     if (id < 0 || id >= NUM_OBJECTS)
         throw GameException("Invalid object id.", {{"objectId", id}});
@@ -40,14 +40,19 @@ void GameState::queueAction(const Action& action, int count)
     }
 }
 
+bool GameState::isDeckEmpty(int deck) const
+{
+    return deckEnds[deck] <= deckStarts[deck];
+}
+
 void GameState::drawObject(int id, int deck)
 {
-    verifyObj(id);
+    verifyObject(id);
 
     if (objectLocations[id].deck != deck)
         throw GameException("Object not in correct deck.", {{"objectId", id}, {"objectDeck", objectLocations[id].deck}, {"deck", deck}});
 
-    if (deckEnds[deck] <= deckStarts[deck])
+    if (isDeckEmpty(deck))
         throw GameException("Drawing from empty deck.", {{"deck", deck}, {"deckStart", deckStarts[deck]}, {"deckEnd", deckEnds[deck]}});
 
     int pos = objectLocations[id].pos;
@@ -71,7 +76,7 @@ void GameState::drawObject(int id, int deck)
 
 void GameState::insertObject(int id, int deck)
 {
-    verifyObj(id);
+    verifyObject(id);
 
     if (deckEnds[deck] >= deckStarts[deck + 1])
         throw GameException("Inserting into full deck.", {{"deck", deck}, {"deckEnd", deckEnds[deck]}, {"maxDeckEnd", deckStarts[deck + 1]}});
@@ -98,9 +103,9 @@ void GameState::revealGuild(int pos)
     cardPyramid[pos].deck = DECK_GUILDS;
 }
 
-void GameState::revealPyramidCard(int pos, int id)
+void GameState::revealPyramidCard(int id, int pos)
 {
-    verifyObj(id);
+    verifyObject(id);
     verifyPos(pos, DECK_CARD_PYRAMID);
 
     PyramidSlot& slot = cardPyramid[pos];
@@ -141,7 +146,7 @@ void GameState::buildDeckObject(int id, int deck)
 
 void GameState::playPyramidCard(int id)
 {
-    verifyObj(id);
+    verifyObject(id);
 
     const ObjectLocation& loc = objectLocations[id];
 
@@ -156,8 +161,9 @@ void GameState::playPyramidCard(int id)
     cardPyramid[loc.pos].objectId = OBJ_NONE;
     for (int pos : pyramidSchemes[currAge][loc.pos].covering)
     {
-        cardPyramid[pos].coveredBy--;
-        if (cardPyramid[pos].coveredBy == 0) queueAction(Action(ACT_REVEAL_PYRAMID_CARD, pos));
+        PyramidSlot& other = cardPyramid[pos];
+        other.coveredBy--;
+        if (other.objectId == SLOT_UNREVEALED && other.coveredBy == 0) queueAction(Action(ACT_REVEAL_PYRAMID_CARD, ACT_ARG_EMPTY, pos));
     }
     objectLocations[id] = ObjectLocation();
 }
@@ -172,6 +178,7 @@ void GameState::buildPyramidCard(int id)
 void GameState::discardPyramidCard(int id)
 {
     playPyramidCard(id);
+    playerStates[currPlayer].discardCard();
     insertObject(id, DECK_DISCARDED);
 }
 
@@ -195,6 +202,13 @@ void GameState::buildGameToken(int id)
 void GameState::buildBoxToken(int id)
 {
     buildDeckObject(id, DECK_BOX_TOKENS);
+
+    while (!isDeckEmpty(DECK_BOX_TOKENS))
+    {
+        int id2 = deckObjects[deckStarts[DECK_BOX_TOKENS]];
+        drawObject(id2, DECK_BOX_TOKENS);
+        insertObject(id2, DECK_TOKENS);
+    }
 }
 
 void GameState::buildDiscarded(int id)
@@ -215,10 +229,10 @@ void GameState::doAction(const Action& action)
 
     const Action& queued = queuedActions.front();
 
-    if (action.type != queued.type || (queued.type == ACT_REVEAL_PYRAMID_CARD && action.arg1 != queued.arg1))
+    if (action.type != queued.type || (queued.type == ACT_REVEAL_PYRAMID_CARD && action.arg2 != queued.arg2))
     {
-        if (queued.type == ACT_REVEAL_PYRAMID_CARD && queued.arg1 != action.arg1)
-            throw GameException("Unexpected pyramid reveal position.", {{"actionPos", action.arg1}, {"queuedPos", queued.arg1}});
+        if (queued.type == ACT_REVEAL_PYRAMID_CARD && queued.arg2 != action.arg2)
+            throw GameException("Unexpected pyramid reveal position.", {{"actionPos", action.arg2}, {"queuedPos", queued.arg2}});
         else
             throw GameException("Unexpected action.", {{"actionType", action.type}, {"queuedType", queued.type}});
     }
@@ -324,16 +338,23 @@ void GameState::doAction(const Action& action)
     if (state.shouldBuildGameToken)
     {
         state.shouldBuildGameToken = false;
-        queueAction(Action(ACT_MOVE_BUILD_GAME_TOKEN));
-        return;
+        if (!isDeckEmpty(DECK_GAME_TOKENS))
+        {
+            queueAction(Action(ACT_MOVE_BUILD_GAME_TOKEN));
+            return;
+        }
     }
 
     if (state.shouldBuildBoxToken)
     {
         state.shouldBuildBoxToken = false;
-        queueAction(Action(ACT_REVEAL_BOX_TOKEN), NUM_BOX_TOKENS);
-        queueAction(Action(ACT_MOVE_BUILD_BOX_TOKEN));
-        return;
+        if (!isDeckEmpty(DECK_TOKENS))
+        {
+            int numTokens = deckEnds[DECK_TOKENS] - deckStarts[DECK_TOKENS];
+            queueAction(Action(ACT_REVEAL_BOX_TOKEN), std::min(NUM_BOX_TOKENS, numTokens));
+            queueAction(Action(ACT_MOVE_BUILD_BOX_TOKEN));
+            return;
+        }
     }
 
     if (state.shouldDestroyBrown)
@@ -363,7 +384,7 @@ void GameState::doAction(const Action& action)
         if (!queuedActions.empty())
             throw GameException("No cards remaining but queued actions.", {{"queuedType", queuedActions.front().type}});
 
-        advanceAge();
+        if (currAge < NUM_AGES - 1) advanceAge();
         return;
     }
 
@@ -384,13 +405,14 @@ void GameState::setupWonderSelection()
 void GameState::advanceAge()
 {
     currAge++;
+    cardsRemaining = PYRAMID_SIZE;
 
     if (currAge == NUM_AGES - 1) queueAction(Action(ACT_REVEAL_GUILD), NUM_LAST_AGE_GUILDS);
 
-    for (int pos = 0; pos < PYRAMID_SIZE; ++pos)
+    for (int pos = 0; pos < PYRAMID_SIZE; pos++)
     {
         cardPyramid[pos] = PyramidSlot(currAge, SLOT_UNREVEALED, 0);
-        if (pyramidSchemes[currAge][pos].revealed) queueAction(Action(ACT_REVEAL_PYRAMID_CARD, pos));
+        if (pyramidSchemes[currAge][pos].revealed) queueAction(Action(ACT_REVEAL_PYRAMID_CARD, ACT_ARG_EMPTY, pos));
         for (int other : pyramidSchemes[currAge][pos].covering)
         {
             cardPyramid[other].coveredBy++;
@@ -402,8 +424,7 @@ void GameState::advanceAge()
 
 GameState::GameState()
 {
-    playerStates[0].otherPlayer = &playerStates[1];
-    playerStates[1].otherPlayer = &playerStates[0];
+    linkPlayers();
 
     wondersBuilt = 0;
 
@@ -426,26 +447,48 @@ GameState::GameState()
     setupWonderSelection();
 }
 
+GameState::GameState(const GameState& other)
+{
+    *this = other;
+}
+
+GameState& GameState::operator=(const GameState& other)
+{
+    currPlayer = other.currPlayer;
+    playerStates = other.playerStates;
+    currAge = other.currAge;
+    wondersBuilt = other.wondersBuilt;
+    cardsRemaining = other.cardsRemaining;
+    deckEnds = other.deckEnds;
+    deckObjects = other.deckObjects;
+    cardPyramid = other.cardPyramid;
+    objectLocations = other.objectLocations;
+    queuedActions = other.queuedActions;
+
+    linkPlayers();
+
+    return *this;
+}
+
+void GameState::linkPlayers()
+{ 
+    playerStates[0].otherPlayer = &playerStates[1];
+    playerStates[1].otherPlayer = &playerStates[0];
+}
+
 bool GameState::isTerminal() const
 {
     return queuedActions.empty();
 }
 
-int GameState::getScore(int povPlayer) const
+int GameState::getResult(int player) const
 {
-    verifyPlayer(povPlayer);
-
-    return playerStates[povPlayer].getScore();
-}
-
-int GameState::getResult(int povPlayer) const
-{
-    verifyPlayer(povPlayer);
+    verifyPlayer(player);
 
     if (!isTerminal())
         throw GameException("Game has not ended yet.", {});
 
-    return playerStates[povPlayer].getResult(true);
+    return playerStates[player].getResult(true);
 }
 
 int GameState::currActor() const
@@ -465,47 +508,95 @@ Action GameState::expectedAction() const
     return queuedActions.front();
 }
 
+std::vector<Action> GameState::possibleActions() const
+{
+    if (isTerminal()) return std::vector<Action>();
+
+    std::vector<Action> possible = possibleActionsUnchecked();
+
+    if (possible.empty())
+        throw GameException("No possible actions.", {{"expectedType", expectedAction().type}});
+
+    return possible;
+}
+
+int GameState::getCoins(int player) const
+{
+    return playerStates[player].coins;
+}
+
+int GameState::getScore(int player) const
+{
+    verifyPlayer(player);
+
+    return playerStates[player].getScore();
+}
+
+int GameState::getDistinctSciences(int player) const
+{
+    verifyPlayer(player);
+
+    return playerStates[player].distincSciences;
+}
+
+int GameState::getMilitary(int player) const
+{
+    verifyPlayer(player);
+
+    return playerStates[player].military;
+}
+
+int GameState::getMilitaryLead(int player) const
+{
+    verifyPlayer(player);
+
+    return playerStates[player].militaryLead();
+}
+
+std::vector<Action> GameState::possibleFromDeck(const Action& expected, int deck) const
+{
+    std::vector<Action> possible;
+
+    Action action = expected;
+
+    for (int pos = deckStarts[deck]; pos < deckEnds[deck]; pos++)
+    {
+        action.arg1 = deckObjects[pos];
+        possible.push_back(action);
+    }
+
+    return possible;
+}
+
 std::vector<Action> GameState::possiblePlayPyramidCardActions() const
 {
     std::vector<Action> possible;
 
+    std::vector<int> possibleWonders;
+    const PlayerState& state = playerStates[currPlayer];
 
+    for (int pos = deckStarts[DECK_SELECTED_WONDERS + currPlayer]; pos < deckStarts[DECK_SELECTED_WONDERS + currPlayer]; pos++)
+    {
+        int id = deckObjects[pos];
+        if (state.canPayFor(objects[id])) possibleWonders.push_back(id);
+    }
 
-    return possible;
-}
+    for (int pos = 0; pos < PYRAMID_SIZE; ++pos)
+    {
+        if (cardPyramid[pos].coveredBy > 0 || cardPyramid[pos].objectId < 0) continue;
 
-std::vector<Action> GameState::possibleBuildGameTokenActions() const
-{
-    std::vector<Action> possible;
+        int id = cardPyramid[pos].objectId;
 
+        verifyObject(id);
 
+        if (state.canPayFor(objects[id])) possible.push_back(Action(ACT_MOVE_PLAY_PYRAMID_CARD, id, ACT_ARG2_BUILD));
+        possible.push_back(Action(ACT_MOVE_PLAY_PYRAMID_CARD, id, ACT_ARG2_DISCARD));
 
-    return possible;
-}
-
-std::vector<Action> GameState::possibleBuildBoxTokenActions() const
-{
-    std::vector<Action> possible;
-
-
-
-    return possible;
-}
-
-std::vector<Action> GameState::possibleBuildDiscardedActions() const
-{
-    std::vector<Action> possible;
-
-
-
-    return possible;
-}
-
-std::vector<Action> GameState::possibleSelectWonderActions() const
-{
-    std::vector<Action> possible;
-
-
+        for (int wonderId : possibleWonders)
+        {
+            possible.push_back(Action(ACT_MOVE_PLAY_PYRAMID_CARD, id, wonderId));
+        }
+    }
 
     return possible;
 }
@@ -514,85 +605,55 @@ std::vector<Action> GameState::possibleRevealGuildActions() const
 {
     std::vector<Action> possible;
 
-
-
-    return possible;
-}
-
-std::vector<Action> GameState::possibleRevealPyramidCardActions() const
-{
-    std::vector<Action> possible;
-
-
+    for (int pos = 0; pos < PYRAMID_SIZE; pos++)
+    {
+        if (cardPyramid[pos].deck != DECK_GUILDS) possible.push_back(Action(ACT_REVEAL_GUILD, pos));
+    }
 
     return possible;
 }
 
-std::vector<Action> GameState::possibleRevealGameTokenActions() const
-{
-    std::vector<Action> possible;
-
-
-
-    return possible;
-}
-
-std::vector<Action> GameState::possibleRevealBoxTokenActions() const
-{
-    std::vector<Action> possible;
-
-
-
-    return possible;
-}
-
-std::vector<Action> GameState::possibleRevealWonderActions() const
-{
-    std::vector<Action> possible;
-
-
-
-    return possible;
-}
-
-std::vector<Action> GameState::possibleActions() const
+std::vector<Action> GameState::possibleActionsUnchecked() const
 {
     if (isTerminal()) return std::vector<Action>();
 
-    switch (expectedAction().type)
+    const Action& expected = expectedAction();
+
+    switch (expected.type)
     {
     case ACT_MOVE_PLAY_PYRAMID_CARD:
         return possiblePlayPyramidCardActions();
 
     case ACT_MOVE_BUILD_GAME_TOKEN:
-        return possibleBuildGameTokenActions();
+        return possibleFromDeck(expected, DECK_GAME_TOKENS);
 
     case ACT_MOVE_BUILD_BOX_TOKEN:
-        return possibleBuildBoxTokenActions();
+        return possibleFromDeck(expected, DECK_BOX_TOKENS);
 
     case ACT_MOVE_BUILD_DISCARDED:
-        return possibleBuildDiscardedActions();
+        return possibleFromDeck(expected, DECK_DISCARDED);
 
     case ACT_MOVE_SELECT_WONDER:
-        return possibleSelectWonderActions();
+        return possibleFromDeck(expected, DECK_REVEALED_WONDERS);
 
     case ACT_REVEAL_GUILD:
         return possibleRevealGuildActions();
 
     case ACT_REVEAL_PYRAMID_CARD:
-        return possibleRevealPyramidCardActions();
+        verifyPos(expected.arg2, DECK_CARD_PYRAMID);
+        return possibleFromDeck(expected, cardPyramid[expected.arg2].deck);
 
     case ACT_REVEAL_GAME_TOKEN:
-        return possibleRevealGameTokenActions();
+        return possibleFromDeck(expected, DECK_TOKENS);
 
     case ACT_REVEAL_BOX_TOKEN:
-        return possibleRevealBoxTokenActions();
+        return possibleFromDeck(expected, DECK_TOKENS);
 
     case ACT_REVEAL_WONDER:
-        return possibleRevealWonderActions();
+        return possibleFromDeck(expected, DECK_WONDERS);
 
     default:
-        throw GameException("Unknown action type.", {{"actionType", expectedAction().type}});
+        throw GameException("Unknown action type.", {{"actionType", expected.type}});
     }
 }
 
