@@ -24,6 +24,28 @@
 
 struct GameState
 {
+    GameState();
+    GameState(const GameState& other);
+    GameState& operator=(const GameState& other);
+
+    void doAction(const Action& action);
+
+    bool isTerminal() const;
+    int getResult(int player) const;
+    int getCurrAge() const;
+    int getCurrActor() const;
+    Action getExpectedAction() const;
+    std::vector<Action> getPossibleActions() const;
+    void getPossibleActions(std::vector<Action>& possible) const;
+
+    int getCoins(int player) const;
+    int getScore(int player) const;
+    int getDistinctSciences(int player) const;
+    int getMilitary(int player) const;
+    int getMilitaryLead(int player) const;
+
+private:
+
     int currPlayer;
 
     std::array<PlayerState, NUM_PLAYERS> playerStates;
@@ -41,34 +63,13 @@ struct GameState
 
     std::queue<Action> queuedActions;
 
-    GameState();
-    GameState(const GameState& other);
-    GameState& operator=(const GameState& other);
-
-    void doAction(const Action& action);
-
-    bool isTerminal() const;
-    int getResult(int player) const;
-    int currActor() const;
-    Action expectedAction() const;
-    std::vector<Action> possibleActions() const;
-    void possibleActions(std::vector<Action>& possible) const;
-
-    int getCoins(int player) const;
-    int getScore(int player) const;
-    int getDistinctSciences(int player) const;
-    int getMilitary(int player) const;
-    int getMilitaryLead(int player) const;
-
-private:
-
     void linkPlayers();
 
     void verifyPlayer(int player) const;
     void verifyPos(int pos, int deck) const;
     void verifyObject(int id) const;
 
-    int nextPlayer() const;
+    int otherPlayer() const;
     void advancePlayer();
 
     void queueAction(const Action& action, int count = 1);

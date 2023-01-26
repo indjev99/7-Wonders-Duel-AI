@@ -30,7 +30,7 @@ int benchmarkPlayRandom()
     std::vector<Action> possible;
     while (!state.isTerminal())
     {
-        state.possibleActions(possible);
+        state.getPossibleActions(possible);
         Action action = possible[uniformInt(0, possible.size())];
         state.doAction(action);
     }
@@ -60,8 +60,8 @@ int playRandom(int povPlayer = 0)
     while (!state.isTerminal())
     {
         std::cout << std::endl;
-        std::cout << "Actor: " << actorToString(state.currActor()) << std::endl;
-        state.possibleActions(possible);
+        std::cout << "Actor: " << actorToString(state.getCurrActor()) << std::endl;
+        state.getPossibleActions(possible);
         Action action = possible[uniformInt(0, possible.size())];
         std::cout << "Action: " << actionToString(action) << std::endl;
         state.doAction(action);
@@ -94,10 +94,10 @@ int playInteractive(int povPlayer = 0)
         try
         {
             std::cout << std::endl;
-            std::cout << "Actor: " << actorToString(state.currActor()) << std::endl;
-            std::cout << "Expected: " << actionToString(state.expectedAction()) << std::endl;
+            std::cout << "Actor: " << actorToString(state.getCurrActor()) << std::endl;
+            std::cout << "Expected: " << actionToString(state.getExpectedAction()) << std::endl;
             std::cout << "Possible: " << std::endl;
-            for (const Action& action : state.possibleActions())
+            for (const Action& action : state.getPossibleActions())
             {
                 std::cout << "    " << actionToString(action) << std::endl;
             }

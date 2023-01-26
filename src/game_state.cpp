@@ -32,14 +32,14 @@ void GameState::verifyObject(int id) const
         throw GameException("Invalid object id.", {{"objectId", id}});
 }
 
-int GameState::nextPlayer() const
+int GameState::otherPlayer() const
 {
-    return (currPlayer + 1) % NUM_PLAYERS;
+    return 1 - currPlayer;
 }
 
 void GameState::advancePlayer()
 {
-    currPlayer = nextPlayer();
+    currPlayer = otherPlayer();
 }
 
 void GameState::queueAction(const Action& action, int count)
@@ -238,7 +238,7 @@ void GameState::destroyObject(int id, int type)
     if (objects[id].type != type)
         throw GameException("Object not of correct type.", {{"objectId", id}, {"objectType", type}, {"type", type}});
 
-    playerStates[nextPlayer()].destroyObject(objects[id]);
+    playerStates[otherPlayer()].destroyObject(objects[id]);
 }
 
 void GameState::selectWonder(int id)
@@ -258,7 +258,7 @@ void GameState::doAction(const Action& action)
     if (isTerminal())
         throw GameException("Game already ended.", {});
 
-    const Action& expected = expectedAction();
+    const Action& expected = getExpectedAction();
 
     if (action.type != expected.type ||
         (action.type == ACT_REVEAL_PYRAMID_CARD && action.arg2 != expected.arg2) ||
@@ -403,7 +403,7 @@ void GameState::doAction(const Action& action)
     {
         int type = state.shouldDestroyType;
         state.shouldDestroyType = OT_NONE;
-        if (playerStates[nextPlayer()].typeCounts[type] > 0)
+        if (playerStates[otherPlayer()].typeCounts[type] > 0)
         {
             queueAction(Action(ACT_MOVE_DESTROY_OBJECT, OBJ_NONE, type));
             return;
@@ -423,7 +423,7 @@ void GameState::doAction(const Action& action)
     if (cardsRemaining == 0)
     {
         if (!isTerminal())
-            throw GameException("No cards remaining but actions queued.", {{"queuedType", expectedAction().type}});
+            throw GameException("No cards remaining but actions queued.", {{"queuedType", getExpectedAction().type}});
 
         if (currAge < NUM_AGES - 1) advanceAge();
         return;
@@ -541,16 +541,24 @@ int GameState::getResult(int player) const
     return playerStates[player].getResult(true);
 }
 
-int GameState::currActor() const
+int GameState::getCurrAge() const
 {
     if (isTerminal())
         throw GameException("Game has already ended.", {});
 
-    if (expectedAction().isPlayerMove()) return currPlayer;
+    return currAge;
+}
+
+int GameState::getCurrActor() const
+{
+    if (isTerminal())
+        throw GameException("Game has already ended.", {});
+
+    if (getExpectedAction().isPlayerMove()) return currPlayer;
     else return ACTOR_GAME;
 }
 
-Action GameState::expectedAction() const
+Action GameState::getExpectedAction() const
 {
     if (isTerminal())
         throw GameException("Game has already ended.", {});
@@ -558,19 +566,19 @@ Action GameState::expectedAction() const
     return queuedActions.front();
 }
 
-std::vector<Action> GameState::possibleActions() const
+std::vector<Action> GameState::getPossibleActions() const
 {
     std::vector<Action> possible;
-    possibleActions(possible);
+    getPossibleActions(possible);
     return possible;
 }
 
-void GameState::possibleActions(std::vector<Action>& possible) const
+void GameState::getPossibleActions(std::vector<Action>& possible) const
 {
     possibleActionsUnchecked(possible);
 
     if (possible.empty())
-        throw GameException("No possible actions.", {{"expectedType", expectedAction().type}});
+        throw GameException("No possible actions.", {{"expectedType", getExpectedAction().type}});
 }
 
 int GameState::getCoins(int player) const
@@ -631,7 +639,7 @@ void GameState::possibleChooseStartPlayerActions(std::vector<Action>& possible) 
 
 void GameState::possibleDestroyObjectActions(std::vector<Action>& possible, int type) const
 {
-    const PlayerState& other = playerStates[nextPlayer()];
+    const PlayerState& other = playerStates[otherPlayer()];
 
     possible.reserve(other.typeCounts[type]);
 
@@ -695,7 +703,7 @@ void GameState::possibleActionsUnchecked(std::vector<Action>& possible) const
 {
     possible.clear();
 
-    const Action& expected = expectedAction();
+    const Action& expected = getExpectedAction();
 
     switch (expected.type)
     {
