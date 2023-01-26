@@ -11,6 +11,8 @@
 
 #include <algorithm>
 
+#define NO_PLAYER -100
+
 void GameState::verifyPlayer(int player) const
 {
     if (player < 0 || player >= NUM_PLAYERS)
@@ -152,6 +154,12 @@ void GameState::revealWonder(int id)
     insertObject(id, DECK_REVEALED_WONDERS);
 }
 
+void GameState::revealFirstPlayer(int player)
+{
+    verifyPlayer(player);
+    firstPlayer = player;
+}
+
 void GameState::buildDeckObject(int id, int deck)
 {
     drawObject(id, deck);
@@ -258,6 +266,8 @@ void GameState::doAction(const Action& action)
     if (isTerminal())
         throw GameException("Game already ended.", {});
 
+    correctPossibleActions = false;
+
     const Action& expected = getExpectedAction();
 
     if (action.type != expected.type ||
@@ -341,8 +351,18 @@ void GameState::doAction(const Action& action)
         revealWonder(action.arg1);
         break;
 
+    case ACT_REVEAL_FIRST_PLAYER:
+        revealFirstPlayer(action.arg1);
+        break;
+
     default:
         throw GameException("Unknown action type.", {{"actionType", action.type}});
+    }
+
+    if (currAge == AGE_SETUP && queuedActions.empty())
+    {
+        startWonderSelection();
+        return;
     }
 
     if (action.isPlayerMove() && haveNextActions)
@@ -433,9 +453,9 @@ void GameState::doAction(const Action& action)
     queueAction(Action(ACT_MOVE_PLAY_PYRAMID_CARD));
 }
 
-void GameState::setupWonderSelection()
+void GameState::startWonderSelection()
 {
-    currPlayer = 0;
+    currPlayer = firstPlayer;
     currAge = AGE_WONDER_SELECTION;
     cardsRemaining = NUM_PLAYERS * NUM_WONDERS_PER_PLAYER;
 
@@ -462,7 +482,7 @@ void GameState::advanceAge()
 
     if (currAge == 0)
     {
-        currPlayer = 0;
+        currPlayer = firstPlayer;
         queueAction(Action(ACT_MOVE_PLAY_PYRAMID_CARD));
     }
     else
@@ -476,7 +496,11 @@ GameState::GameState()
 {
     linkPlayers();
 
+    firstPlayer = NO_PLAYER;
+    currAge = AGE_SETUP;
+    currPlayer = NO_PLAYER;
     wondersBuilt = 0;
+    correctPossibleActions = false;
 
     for (int i = 0; i < NUM_DECKS; ++i)
     {
@@ -492,9 +516,8 @@ GameState::GameState()
     for (int id : tokens) insertObject(id, DECK_TOKENS);
     for (int id : wonders) insertObject(id, DECK_WONDERS);
 
+    queueAction(Action(ACT_REVEAL_FIRST_PLAYER));
     queueAction(Action(ACT_REVEAL_GAME_TOKEN), NUM_GAME_TOKENS);
-
-    setupWonderSelection();
 }
 
 GameState::GameState(const GameState& other)
@@ -504,20 +527,27 @@ GameState::GameState(const GameState& other)
 
 GameState& GameState::operator=(const GameState& other)
 {
+    firstPlayer = other.firstPlayer;
     currPlayer = other.currPlayer;
-    playerStates = other.playerStates;
     currAge = other.currAge;
     wondersBuilt = other.wondersBuilt;
     cardsRemaining = other.cardsRemaining;
+    playerStates = other.playerStates;
     deckEnds = other.deckEnds;
     deckObjects = other.deckObjects;
     cardPyramid = other.cardPyramid;
     objectLocations = other.objectLocations;
     queuedActions = other.queuedActions;
+    correctPossibleActions = false;
 
     linkPlayers();
 
     return *this;
+}
+
+void GameState::reset()
+{
+    *this = GameState();
 }
 
 void GameState::linkPlayers()
@@ -539,6 +569,14 @@ int GameState::getResult(int player) const
         throw GameException("Game has not ended yet.", {});
 
     return playerStates[player].getResult(true);
+}
+
+int GameState::getFirstPlayer() const
+{
+    if (firstPlayer == NO_PLAYER)
+        throw GameException("First player has not been set yet.", {});
+
+    return firstPlayer;
 }
 
 int GameState::getCurrAge() const
@@ -566,11 +604,17 @@ Action GameState::getExpectedAction() const
     return queuedActions.front();
 }
 
-std::vector<Action> GameState::getPossibleActions() const
+const std::vector<Action>& GameState::getPossibleActions() const
 {
-    std::vector<Action> possible;
-    getPossibleActions(possible);
-    return possible;
+    GameState& thisMut = const_cast<GameState&>(*this);
+
+    if (!thisMut.correctPossibleActions)
+    {
+        getPossibleActions(thisMut.possibleActions);
+        thisMut.correctPossibleActions = true;
+    }
+
+    return thisMut.possibleActions;
 }
 
 void GameState::getPossibleActions(std::vector<Action>& possible) const
@@ -614,7 +658,7 @@ int GameState::getMilitaryLead(int player) const
     return playerStates[player].militaryLead();
 }
 
-void GameState::possibleFromDeck(std::vector<Action>& possible, const Action& expected, int deck) const
+void GameState::possibleFromDeckActions(std::vector<Action>& possible, const Action& expected, int deck) const
 {
     possible.reserve(deckSize(deck));
 
@@ -656,6 +700,8 @@ void GameState::possiblePlayPyramidCardActions(std::vector<Action>& possible) co
 
     const PlayerState& state = playerStates[currPlayer];
 
+    possibleWonders.clear();
+
     if (wondersBuilt < MAX_WONDERS_BUILT)
     {
         possibleWonders.reserve(deckSize(DECK_SELECTED_WONDERS + currPlayer));
@@ -685,8 +731,6 @@ void GameState::possiblePlayPyramidCardActions(std::vector<Action>& possible) co
             possible.push_back(Action(ACT_MOVE_PLAY_PYRAMID_CARD, id, wonderId));
         }
     }
-
-    possibleWonders.clear();
 }
 
 void GameState::possibleRevealGuildActions(std::vector<Action>& possible) const
@@ -696,6 +740,16 @@ void GameState::possibleRevealGuildActions(std::vector<Action>& possible) const
     for (int pos = 0; pos < PYRAMID_SIZE; pos++)
     {
         if (cardPyramid[pos].deck != DECK_GUILDS) possible.push_back(Action(ACT_REVEAL_GUILD, pos));
+    }
+}
+
+void GameState::possibleRevealFirstPlayerActions(std::vector<Action>& possible) const
+{
+    possible.reserve(NUM_PLAYERS);
+
+    for (int player = 0; player < NUM_PLAYERS; player++)
+    {
+        possible.push_back(Action(ACT_REVEAL_FIRST_PLAYER, player));
     }
 }
 
@@ -711,19 +765,19 @@ void GameState::possibleActionsUnchecked(std::vector<Action>& possible) const
         return possiblePlayPyramidCardActions(possible);
 
     case ACT_MOVE_BUILD_GAME_TOKEN:
-        return possibleFromDeck(possible, expected, DECK_GAME_TOKENS);
+        return possibleFromDeckActions(possible, expected, DECK_GAME_TOKENS);
 
     case ACT_MOVE_BUILD_BOX_TOKEN:
-        return possibleFromDeck(possible, expected, DECK_BOX_TOKENS);
+        return possibleFromDeckActions(possible, expected, DECK_BOX_TOKENS);
 
     case ACT_MOVE_BUILD_DISCARDED:
-        return possibleFromDeck(possible, expected, DECK_DISCARDED);
+        return possibleFromDeckActions(possible, expected, DECK_DISCARDED);
 
     case ACT_MOVE_DESTROY_OBJECT:
         return possibleDestroyObjectActions(possible, expected.arg2);
 
     case ACT_MOVE_SELECT_WONDER:
-        return possibleFromDeck(possible, expected, DECK_REVEALED_WONDERS);
+        return possibleFromDeckActions(possible, expected, DECK_REVEALED_WONDERS);
 
     case ACT_MOVE_CHOOSE_START_PLAYER:
         return possibleChooseStartPlayerActions(possible);
@@ -733,16 +787,19 @@ void GameState::possibleActionsUnchecked(std::vector<Action>& possible) const
 
     case ACT_REVEAL_PYRAMID_CARD:
         verifyPos(expected.arg2, DECK_CARD_PYRAMID);
-        return possibleFromDeck(possible, expected, cardPyramid[expected.arg2].deck);
+        return possibleFromDeckActions(possible, expected, cardPyramid[expected.arg2].deck);
 
     case ACT_REVEAL_GAME_TOKEN:
-        return possibleFromDeck(possible, expected, DECK_TOKENS);
+        return possibleFromDeckActions(possible, expected, DECK_TOKENS);
 
     case ACT_REVEAL_BOX_TOKEN:
-        return possibleFromDeck(possible, expected, DECK_TOKENS);
+        return possibleFromDeckActions(possible, expected, DECK_TOKENS);
 
     case ACT_REVEAL_WONDER:
-        return possibleFromDeck(possible, expected, DECK_WONDERS);
+        return possibleFromDeckActions(possible, expected, DECK_WONDERS);
+
+    case ACT_REVEAL_FIRST_PLAYER:
+        return possibleRevealFirstPlayerActions(possible);
 
     default:
         throw GameException("Unknown action type.", {{"actionType", expected.type}});

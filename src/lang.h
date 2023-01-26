@@ -4,8 +4,7 @@
 
 #include <string>
 
-#define ACT_UNDO -10
-
+std::string ageToString(int age);
 std::string actorToString(int actor);
 std::string actionToString(const Action& action);
 std::string resultToString(int res);

@@ -18,8 +18,6 @@ const std::string S_GAME = "Game";
 
 const std::string S_NONE = "???";
 
-const std::string S_UNDO = "Undo";
-
 const std::string S_MOVE_PLAY_PYRAMID_CARD = "Play card";
 const std::string S_MOVE_BUILD_PYRAMID_CARD = "Build card";
 const std::string S_MOVE_DISCARD_PYRAMID_CARD = "Discard card";
@@ -36,6 +34,7 @@ const std::string S_REVEAL_PYRAMID_CARD = "Reveal card";
 const std::string S_REVEAL_GAME_TOKEN = "Reveal token";
 const std::string S_REVEAL_BOX_TOKEN = "Reveal box token";
 const std::string S_REVEAL_WONDER = "Reveal wonder";
+const std::string S_REVEAL_FIRST_PLAYER = "Reveal first player";
 
 const std::string S_RESULT_DRAW = "Draw";
 const std::string S_RESULT_WIN = "victory";
@@ -45,6 +44,10 @@ const std::string S_RESULT_CIVILIAN = "Civilian";
 const std::string S_RESULT_SCIENCE = "Scientific";
 const std::string S_RESULT_MILITARY = "Military";
 const std::string S_RESULT_TIEBREAK = "Tiebreak";
+
+const std::string S_AGE_SETUP = "Setup";
+const std::string S_AGE_WONDER_SELECTION = "Wonder selection";
+const std::string S_AGE_SP = "Age ";
 
 const std::array<std::string, NUM_OBJECT_TYPES> S_TYPES = {{
     "brown",
@@ -112,11 +115,18 @@ int objectFromString(const std::string& name)
     throw GameException("Unknown object name.", {});
 }
 
+std::string ageToString(int age)
+{
+    if (age == AGE_SETUP) return S_AGE_SETUP;
+    if (age == AGE_WONDER_SELECTION) return S_AGE_WONDER_SELECTION;
+    return S_AGE_SP + std::to_string(age + 1);
+}
+
 std::string actorToString(int actor)
 {
     if (actor == ACT_ARG_EMPTY) return S_NONE;
     if (actor == ACTOR_GAME) return S_GAME;
-    return S_PLAYER_SP + std::to_string(actor);
+    return S_PLAYER_SP + std::to_string(actor + 1);
 }
 
 int actorFromString(const std::string& actiorStr)
@@ -183,6 +193,9 @@ std::string actionToString(const Action& action)
     case ACT_REVEAL_WONDER:
         return joinActionStr({S_REVEAL_WONDER, objectToString(action.arg1)});
 
+    case ACT_REVEAL_FIRST_PLAYER:
+        return joinActionStr({S_REVEAL_FIRST_PLAYER, actorToString(action.arg1)});
+
     default:
         throw GameException("Unknown action type.", {{"actionType", action.type}});
     }
@@ -190,11 +203,6 @@ std::string actionToString(const Action& action)
 
 Action actionFromString(const std::string& actionStr)
 {
-    if (sanitizeName(actionStr) == sanitizeName(S_UNDO))
-    {
-        return Action(ACT_UNDO);
-    }
-
     std::vector<std::string> tokens = splitActionStr(actionStr);
 
     if (tokens.empty())
@@ -288,6 +296,12 @@ Action actionFromString(const std::string& actionStr)
         if (tokens.size() != 2)
             throw GameException("Incorrect number of tokens in action string.", {});
         return Action(ACT_REVEAL_WONDER, objectFromString(tokens[1]));
+    }
+    if (name == sanitizeName(S_REVEAL_FIRST_PLAYER))
+    {
+        if (tokens.size() != 2)
+            throw GameException("Incorrect number of tokens in action string.", {});
+        return Action(ACT_REVEAL_FIRST_PLAYER, actorFromString(tokens[1]));
     }
 
     throw GameException("Unknown action name.", {});
