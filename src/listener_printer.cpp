@@ -31,7 +31,7 @@ void ListenerPrinter::notifyAction(const Action& action)
         std::cout << std::endl;
     }
 
-    if (game->getCurrActor() != ACTOR_GAME)
+    if (game->getCurrActor() != ACTOR_GAME && game->getCurrAge() >= 0)
     {
         printSummary();
         std::cout << std::endl;

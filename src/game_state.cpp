@@ -46,7 +46,7 @@ void GameState::advancePlayer()
 
 void GameState::queueAction(const Action& action, int count)
 {
-    for (int i = 0; i < count; ++i)
+    for (int i = 0; i < count; i++)
     {
         queuedActions.push(action);
     }
@@ -502,7 +502,7 @@ GameState::GameState()
     wondersBuilt = 0;
     correctPossibleActions = false;
 
-    for (int i = 0; i < NUM_DECKS; ++i)
+    for (int i = 0; i < NUM_DECKS; i++)
     {
         deckEnds[i] = deckStarts[i];
     }

@@ -5,3 +5,5 @@
 #define RESULT_WIN_SCIENCE 2
 #define RESULT_WIN_MILITARY 3
 #define RESULT_WIN_TIEBREAK 4
+
+int resultSign(int res);

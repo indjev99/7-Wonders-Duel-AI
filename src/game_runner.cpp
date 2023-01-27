@@ -13,7 +13,7 @@ GameRunner::GameRunner(const std::array<PlayerAI*, NUM_PLAYERS>& playerAIs, cons
     {
         listener->setGame(game);
     }
-    for (int i = 0; i < NUM_PLAYERS; ++i)
+    for (int i = 0; i < NUM_PLAYERS; i++)
     {
         this->playerAIs[i]->setPlayer(i);
     }
@@ -22,7 +22,7 @@ GameRunner::GameRunner(const std::array<PlayerAI*, NUM_PLAYERS>& playerAIs, cons
 int GameRunner::playGame()
 {
     game = GameState();
-    for (auto listener : this->listeners)
+    for (auto listener : listeners)
     {
         listener->notifyStart();
     }
@@ -30,13 +30,13 @@ int GameRunner::playGame()
     {
         int actor = game.getCurrActor();
         Action action = actor == ACTOR_GAME ? uniformElem(game.getPossibleActions()) : playerAIs[actor]->getAction();
-        for (auto listener : this->listeners)
+        for (auto listener : listeners)
         {
             listener->notifyAction(action);
         }
         game.doAction(action);
     }
-    for (auto listener : this->listeners)
+    for (auto listener : listeners)
     {
         listener->notifyEnd();
     }

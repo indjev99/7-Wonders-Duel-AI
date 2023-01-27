@@ -2,7 +2,7 @@
 
 #include <random>
 
-std::default_random_engine generator;
+std::mt19937 generator;
 
 void setSeed(int seed)
 {

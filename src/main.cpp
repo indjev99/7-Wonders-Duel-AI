@@ -1,44 +1,57 @@
 #include "game_exception.h"
 #include "game_runner.h"
 #include "listener_printer.h"
+#include "player_mc.h"
 #include "player_uniform.h"
 #include "random.h"
+#include "results.h"
 
+#include <cmath>
 #include <ctime>
 #include <iostream>
 
-void benchmark()
+void playPrint(PlayerAI& ai1, PlayerAI& ai2)
 {
-    PlayerUniform ai0;
-    PlayerUniform ai1;
-
-    GameRunner runner({&ai0, &ai1});
-
-    int cnt = 0;
-    while (true)
-    {
-        if (cnt % 2000 == 0) std::cout << cnt << std::endl;
-        runner.playGame();
-        cnt++;
-    }
+    ListenerPrinter printer;
+    GameRunner runner({&ai1, &ai2}, {&printer});
+    runner.playGame();
 }
 
-void playRandom()
+void benchmark(PlayerAI& ai1, PlayerAI& ai2)
 {
-    PlayerUniform ai0;
-    PlayerUniform ai1;
-    ListenerPrinter printer;
+    GameRunner runner({&ai1, &ai2});
 
-    GameRunner runner({&ai0, &ai1}, {&printer});
+    int cnt = 0;
+    int sum = 0;
+    int sumSq = 0;
 
-    runner.playGame();
+    while (true)
+    {
+        int res = runner.playGame();
+        int resSign = resultSign(res);
+
+        cnt++;
+        sum += res;
+        sumSq += res * res;
+
+        double mean = (double) sum / cnt;
+        double meanStd = sqrt(((double) sumSq / cnt - mean * mean) / std::max(1, cnt - 1));
+
+        std::cout << cnt << ": " << mean << " +- " << meanStd << std::endl;
+    }
 }
 
 int main()
 {
     setSeed(time(nullptr));
 
-    playRandom();
+    PlayerUniform u1;
+    PlayerUniform u2;
+
+    PlayerMC mc1;
+    PlayerMC mc2;
+
+    playPrint(mc1, mc2);
 
     return 0;
 }
