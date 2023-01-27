@@ -1,17 +1,17 @@
 # Compiler settings - Can be customized.
 CC = g++
-CXXFLAGS = -std=c++17 -Wall -O3
-LDFLAGS = -static -static-libgcc -static-libstdc++
+CXXFLAGS = -std=c++17 -Wall -O3 -I GLFW/include -I .
+LDFLAGS = -static -static-libgcc -static-libstdc++ -L GLFW/lib -lglfw3 -lopengl32 -lglu32 -lgdi32
 
 # Makefile settings - Can be customized.
 APPNAME = 7wdai
 EXT = .cpp
-SRCDIR = src
+SRCDIR = .
 OBJDIR = obj
 DEPDIR = dep
 
 ############## Do not change anything from here downwards! #############
-SRC = $(wildcard $(SRCDIR)/*$(EXT))
+SRC = $(wildcard $(SRCDIR)/**/*$(EXT))
 OBJ = $(SRC:$(SRCDIR)/%$(EXT)=$(OBJDIR)/%.o)
 DEP = $(OBJ:$(OBJDIR)/%.o=$(DEPDIR)/%.d)
 # UNIX-based OS variables & settings
@@ -31,10 +31,12 @@ all: $(APPNAME)
 
 # Builds the app
 $(APPNAME): $(OBJ)
+	@mkdir -p $(@D)
 	$(CC) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 # Creates the dependecy rules
 $(DEPDIR)/%.d: $(SRCDIR)/%$(EXT)
+	@mkdir -p $(@D)
 	@$(CPP) $(CFLAGS) $< -MM -MT $(@:$(DEPDIR)/%.d=$(OBJDIR)/%.o) >$@
 
 # Includes all .h files
@@ -42,4 +44,6 @@ $(DEPDIR)/%.d: $(SRCDIR)/%$(EXT)
 
 # Building rule for .o files and its .c/.cpp in combination with all .h
 $(OBJDIR)/%.o: $(SRCDIR)/%$(EXT)
+	@echo $(@D)
+	@mkdir -p $(@D)
 	$(CC) $(CXXFLAGS) -o $@ -c $<
