@@ -43,6 +43,6 @@ struct PlayerState
     bool canPayFor(const Object& object) const;
 
     int militaryLead() const;
-    int getScore(bool onlyBlue = false) const;
+    int getScore(int onlyType = OT_NONE) const;
     int getResult(bool terminal) const;
 };

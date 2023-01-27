@@ -44,7 +44,7 @@ struct GameState
     void getPossibleActions(std::vector<Action>& possible) const;
 
     int getCoins(int player) const;
-    int getScore(int player) const;
+    int getScore(int player, int onlyType = OT_NONE) const;
     int getDistinctSciences(int player) const;
     int getMilitary(int player) const;
     int getMilitaryLead(int player) const;

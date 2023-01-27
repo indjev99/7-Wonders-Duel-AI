@@ -13,4 +13,6 @@
 #define OT_WONDER 8
 #define OT_LOOTING 9
 
+#define OT_COINS -1
+
 #define OT_NONE -100

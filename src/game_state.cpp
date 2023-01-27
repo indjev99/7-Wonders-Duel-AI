@@ -630,11 +630,11 @@ int GameState::getCoins(int player) const
     return playerStates[player].coins;
 }
 
-int GameState::getScore(int player) const
+int GameState::getScore(int player, int onlyType) const
 {
     verifyPlayer(player);
 
-    return playerStates[player].getScore();
+    return playerStates[player].getScore(onlyType);
 }
 
 int GameState::getDistinctSciences(int player) const

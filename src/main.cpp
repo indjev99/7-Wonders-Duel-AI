@@ -31,8 +31,8 @@ void benchmark(PlayerAI& ai1, PlayerAI& ai2)
         int resSign = resultSign(res);
 
         cnt++;
-        sum += res;
-        sumSq += res * res;
+        sum += resSign;
+        sumSq += resSign * resSign;
 
         double mean = (double) sum / cnt;
         double meanStd = sqrt(((double) sumSq / cnt - mean * mean) / std::max(1, cnt - 1));

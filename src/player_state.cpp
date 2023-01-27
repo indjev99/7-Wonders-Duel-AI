@@ -77,7 +77,7 @@ int PlayerState::militaryLead() const
     return military - otherPlayer->military;
 }
 
-int PlayerState::getScore(bool onlyBlue) const
+int PlayerState::getScore(int onlyType) const
 {
     int score = 0;
 
@@ -86,20 +86,22 @@ int PlayerState::getScore(bool onlyBlue) const
         if (objectsBuilt[id])
         {
             const Object& object = objects[id];
-            if (onlyBlue && object.type != OT_BLUE) continue;
+            if (onlyType != OT_NONE && object.type != onlyType) continue;
             score += object.score;
             if (object.scoreFunc != nullptr) score += object.scoreFunc(*this);
         }
     }
 
-    if (onlyBlue) return score;
+    if (onlyType == OT_NONE || onlyType == OT_RED)
+    {
+        int mLead = militaryLead();
+        if (mLead >= MILITARY_THRESHOLD_3) score += MILITARY_SCORE_3;
+        else if (mLead >= MILITARY_THRESHOLD_2) score += MILITARY_SCORE_2;
+        else if (mLead >= MILITARY_THRESHOLD_1) score += MILITARY_SCORE_1;        
+    }
 
-    int mLead = militaryLead();
-    if (mLead >= MILITARY_THRESHOLD_3) score += MILITARY_SCORE_3;
-    else if (mLead >= MILITARY_THRESHOLD_2) score += MILITARY_SCORE_2;
-    else if (mLead >= MILITARY_THRESHOLD_1) score += MILITARY_SCORE_1;
-
-    score += coins / COIN_PACKET_SIZE;
+    if (onlyType == OT_NONE || onlyType == OT_COINS)
+        score += coins / COIN_PACKET_SIZE;
 
     return score;
 }
@@ -121,8 +123,8 @@ int PlayerState::getResult(bool terminal) const
     if (score > otherScore) return RESULT_WIN_CIVILIAN;
     if (score < otherScore) return - RESULT_WIN_CIVILIAN;
 
-    int blueScore = getScore(true);
-    int otherBlueScore = getScore(true);
+    int blueScore = getScore(OT_BLUE);
+    int otherBlueScore = otherPlayer->getScore(OT_BLUE);
 
     if (blueScore > otherBlueScore) return RESULT_WIN_TIEBREAK;
     if (blueScore < otherBlueScore) return - RESULT_WIN_TIEBREAK;
