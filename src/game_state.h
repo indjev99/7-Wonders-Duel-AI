@@ -49,6 +49,13 @@ struct GameState
     int getMilitary(int player) const;
     int getMilitaryLead(int player) const;
 
+    int getDeckSize(int deck) const;
+    bool isDeckEmpty(int deck) const;
+    int getDeckElem(int deck, int pos) const;
+
+    const PyramidSlot& getPyramidSlot(int pos) const;
+    const PlayerState& getPlayerState(int player) const;
+
 private:
 
     int firstPlayer;
@@ -79,9 +86,6 @@ private:
     void advancePlayer();
 
     void queueAction(const Action& action, int count = 1);
-
-    int deckSize(int deck) const;
-    bool isDeckEmpty(int deck) const;
 
     void drawObject(int id, int deck);
     void insertObject(int id, int deck);

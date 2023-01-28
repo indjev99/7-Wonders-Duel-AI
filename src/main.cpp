@@ -1,5 +1,6 @@
 #include "game_exception.h"
 #include "game_runner.h"
+#include "listener_gui.h"
 #include "listener_printer.h"
 #include "player_mc.h"
 #include "player_uniform.h"
@@ -12,8 +13,9 @@
 
 void playPrint(PlayerAI& ai1, PlayerAI& ai2)
 {
+    ListenerGUI gui;
     ListenerPrinter printer;
-    GameRunner runner({&ai1, &ai2}, {&printer});
+    GameRunner runner({&ai1, &ai2}, {&printer, &gui});
     runner.playGame();
 }
 
@@ -41,17 +43,22 @@ void benchmark(PlayerAI& ai1, PlayerAI& ai2)
     }
 }
 
-int main()
+void run()
 {
     setSeed(time(nullptr));
 
     PlayerUniform u1;
     PlayerUniform u2;
 
-    PlayerMC mc1;
-    PlayerMC mc2;
+    PlayerMC mc1(2000);
+    PlayerMC mc2(2000);
 
     playPrint(mc1, mc2);
+}
+
+int main()
+{
+    run();
 
     return 0;
 }

@@ -52,16 +52,6 @@ void GameState::queueAction(const Action& action, int count)
     }
 }
 
-int GameState::deckSize(int deck) const
-{
-    return deckEnds[deck] - deckStarts[deck];
-}
-
-bool GameState::isDeckEmpty(int deck) const
-{
-    return deckSize(deck) <= 0;
-}
-
 void GameState::drawObject(int id, int deck)
 {
     verifyObject(id);
@@ -384,7 +374,7 @@ void GameState::doAction(const Action& action)
         if (isDeckEmpty(DECK_REVEALED_WONDERS))
             queueAction(Action(ACT_REVEAL_WONDER), NUM_WONDERS_REVEALED);
     
-        if (deckSize(DECK_REVEALED_WONDERS) != NUM_WONDERS_REVEALED / 2) advancePlayer();
+        if (getDeckSize(DECK_REVEALED_WONDERS) != NUM_WONDERS_REVEALED / 2) advancePlayer();
         queueAction(Action(ACT_MOVE_SELECT_WONDER));
 
         return;
@@ -413,7 +403,7 @@ void GameState::doAction(const Action& action)
         state.shouldBuildBoxToken = false;
         if (!isDeckEmpty(DECK_TOKENS))
         {
-            queueAction(Action(ACT_REVEAL_BOX_TOKEN), std::min(NUM_BOX_TOKENS, deckSize(DECK_TOKENS)));
+            queueAction(Action(ACT_REVEAL_BOX_TOKEN), std::min(NUM_BOX_TOKENS, getDeckSize(DECK_TOKENS)));
             queueAction(Action(ACT_MOVE_BUILD_BOX_TOKEN));
             return;
         }
@@ -581,17 +571,11 @@ int GameState::getFirstPlayer() const
 
 int GameState::getCurrAge() const
 {
-    if (isTerminal())
-        throw GameException("Game has already ended.", {});
-
     return currAge;
 }
 
 int GameState::getCurrActor() const
 {
-    if (isTerminal())
-        throw GameException("Game has already ended.", {});
-
     if (getExpectedAction().isPlayerMove()) return currPlayer;
     else return ACTOR_GAME;
 }
@@ -658,9 +642,42 @@ int GameState::getMilitaryLead(int player) const
     return playerStates[player].militaryLead();
 }
 
+int GameState::getDeckSize(int deck) const
+{
+    return deckEnds[deck] - deckStarts[deck];
+}
+
+bool GameState::isDeckEmpty(int deck) const
+{
+    return getDeckSize(deck) <= 0;
+}
+
+const PyramidSlot& GameState::getPyramidSlot(int pos) const
+{
+    verifyPos(pos, DECK_CARD_PYRAMID);
+
+    return cardPyramid[pos];
+}
+
+const PlayerState& GameState::getPlayerState(int player) const
+{
+    verifyPlayer(player);
+
+    return playerStates[player];
+}
+
+int GameState::getDeckElem(int deck, int pos) const
+{
+    pos += deckStarts[deck];
+
+    verifyPos(pos, deck);
+
+    return deckObjects[pos];
+}
+
 void GameState::possibleFromDeckActions(std::vector<Action>& possible, const Action& expected, int deck) const
 {
-    possible.reserve(deckSize(deck));
+    possible.reserve(getDeckSize(deck));
 
     Action action = expected;
 
@@ -704,7 +721,7 @@ void GameState::possiblePlayPyramidCardActions(std::vector<Action>& possible) co
 
     if (wondersBuilt < MAX_WONDERS_BUILT)
     {
-        possibleWonders.reserve(deckSize(DECK_SELECTED_WONDERS + currPlayer));
+        possibleWonders.reserve(getDeckSize(DECK_SELECTED_WONDERS + currPlayer));
 
         for (int pos = deckStarts[DECK_SELECTED_WONDERS + currPlayer]; pos < deckEnds[DECK_SELECTED_WONDERS + currPlayer]; pos++)
         {
