@@ -2,17 +2,13 @@
 
 #include <iostream>
 
-#include <imgui/imgui.h>
+#include <imgui/imgui_internal.h>
 #include <imgui/imgui_impl_glfw.h>
 #include <imgui/imgui_impl_opengl3.h>
 
-struct SlotRowCol
-{
-    int row;
-    int col;
-};
+#define NUM_CARD_DECKS 4
 
-const std::array<std::array<SlotRowCol, PYRAMID_SIZE>, NUM_AGES> slotRowCols = {{
+const std::array<std::array<ListenerGUI::SlotRowCol, PYRAMID_SIZE>, NUM_AGES> slotRowCols = {{
     {{
         {1, 4},
         {1, 6},
@@ -81,14 +77,14 @@ const std::array<std::array<SlotRowCol, PYRAMID_SIZE>, NUM_AGES> slotRowCols = {
     }},
 }};
 
-const std::array<SlotRowCol, NUM_WONDERS_REVEALED> wonderRowCols = {{
+const std::array<ListenerGUI::SlotRowCol, NUM_WONDERS_REVEALED> wonderRowCols = {{
     {0, 0},
     {0, 2},
     {1, 0},
     {1, 2}
 }};
 
-const std::array<SlotRowCol, NUM_TOKENS> gameTokenRowCols = {{
+const std::array<ListenerGUI::SlotRowCol, NUM_TOKENS> gameTokenRowCols = {{
     {0, 0},
     {1, 0},
     {2, 0},
@@ -96,7 +92,11 @@ const std::array<SlotRowCol, NUM_TOKENS> gameTokenRowCols = {{
     {4, 0}
 }};
 
-#define NUM_CARD_DECKS 4
+const std::array<ListenerGUI::SlotRowCol, NUM_TOKENS> boxTokenRowCols = {{
+    {0, 0},
+    {1, 0},
+    {2, 0}
+}};
 
 const std::array<ImVec4, NUM_CARD_DECKS> deckCols = {{
     ImVec4(0.74, 0.38, 0.18, 1.0),
@@ -118,37 +118,38 @@ const std::array<ImVec4, NUM_OBJECT_TYPES> typeCols = {{
     ImVec4(0.00, 0.00, 0.00, 1.0)
 }};
 
-struct PosConfig
-{
-    ImVec2 size;
-    ImVec2 sizegap;
-    ImVec2 offset;
-    double border;
-};
-
-const PosConfig cardConfig = {
+const ListenerGUI::SpaceConfig cardConfig = {
     ImVec2(44, 68),
     ImVec2(50, 40),
-    ImVec2(10, 10),
     1.5
 };
 
-const PosConfig wonderConfig = {
+const ListenerGUI::SpaceConfig wonderConfig = {
     ImVec2(100, 65),
     ImVec2(110, 75),
-    ImVec2(52, 95),
     2.5
 };
 
-const PosConfig tokenConfig = {
+const ListenerGUI::SpaceConfig tokenConfig = {
     ImVec2(35, 35),
     ImVec2(40, 40),
-    ImVec2(320, 65),
     1.0
 };
 
+const ImVec2 pyramidCardOffset(10, 165);
+
+const ImVec2 revealedWonderOffset(52, 249);
+
+const std::array<ImVec2, NUM_PLAYERS> selectedWondersOffset = {{
+    ImVec2(10, 10),
+    ImVec2(10, 488)
+}};
+
+const ImVec2 gameTokenOffset(320, 221.5);
+const ImVec2 boxTokenOffset(370, 261.5);
+
 const double TOP_OFFSET = 15;
-const double SIZE_MULT = 2;
+const double SIZE_MULT = 1.5;
 
 const double BORDER_DARK = 0.5;
 
@@ -157,22 +158,28 @@ ImVec4 borderCol(const ImVec4& col)
     return ImVec4(col.x * BORDER_DARK, col.y * BORDER_DARK, col.z * BORDER_DARK, col.w);
 }
 
-void drawObject(int objId, const SlotRowCol& rowCol, const PosConfig& posConfig, int deck = DECK_AGE_1)
+void ListenerGUI::drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, const ListenerGUI::SpaceConfig& spaceConfig, const ImVec2& offset, int deck)
 {
+    bool pressed = false;
+
     ImVec4 col = objId != OBJ_NONE ? typeCols[objects[objId].type] : deckCols[deck];
     std::string name = objId != OBJ_NONE ? objects[objId].name : "##";
 
-    double x = posConfig.sizegap.x * rowCol.col / 2 + posConfig.offset.x;
-    double y = posConfig.sizegap.y * rowCol.row + posConfig.offset.y;
+    double x = spaceConfig.sizegap.x * rowCol.col / 2 + offset.x;
+    double y = spaceConfig.sizegap.y * rowCol.row + offset.y;
 
     ImVec4 bCol = borderCol(col);
+
+    ImGui::PushID(rowCol.row);
+    ImGui::PushID(rowCol.col);
 
     ImGui::PushStyleColor(ImGuiCol_Button, bCol);
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, bCol);
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, bCol);
 
     ImGui::SetCursorPos(ImVec2(x * SIZE_MULT, y * SIZE_MULT + TOP_OFFSET));
-    ImGui::Button("##", ImVec2(posConfig.size.x * SIZE_MULT, posConfig.size.y * SIZE_MULT));
+    pressed = pressed || ImGui::ButtonEx(("## Border of " + name).c_str(), ImVec2(spaceConfig.size.x * SIZE_MULT, spaceConfig.size.y * SIZE_MULT), ImGuiButtonFlags_AllowItemOverlap);
+    ImGui::SetItemAllowOverlap();
 
     ImGui::PopStyleColor(3);
 
@@ -180,16 +187,66 @@ void drawObject(int objId, const SlotRowCol& rowCol, const PosConfig& posConfig,
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, col);
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, col);
 
-    x += posConfig.border;
-    y += posConfig.border;
+    x += spaceConfig.border;
+    y += spaceConfig.border;
 
-    double sizeX = posConfig.size.x - 2 * posConfig.border;
-    double sizeY = posConfig.size.y - 2 * posConfig.border;
+    double sizeX = spaceConfig.size.x - 2 * spaceConfig.border;
+    double sizeY = spaceConfig.size.y - 2 * spaceConfig.border;
 
     ImGui::SetCursorPos(ImVec2(x * SIZE_MULT, y * SIZE_MULT + TOP_OFFSET));
-    ImGui::Button(name.c_str(), ImVec2(sizeX * SIZE_MULT, sizeY * SIZE_MULT));
+    pressed = pressed || ImGui::ButtonEx(name.c_str(), ImVec2(sizeX * SIZE_MULT, sizeY * SIZE_MULT), ImGuiButtonFlags_AllowItemOverlap);
+    ImGui::SetItemAllowOverlap();
 
     ImGui::PopStyleColor(3);
+
+    ImGui::PopID();
+    ImGui::PopID();
+
+    if (objId >= 0 && pressed) pressedId = objId;
+}
+
+void ListenerGUI::drawDeck(int deck, const ListenerGUI::SpaceConfig& spaceConfig, const SlotRowCol* rowsCols, const ImVec2& offset, int maxSizeForCache)
+{
+    if (game->getDeckSize(deck) >= maxSizeForCache)
+    {
+        isDeckCached[deck] = true;
+        for (int i = 0; i < game->getDeckSize(deck); i++)
+        {
+            int objectId = game->getDeckElem(deck, i);
+            cachedRowCols[objectId] = rowsCols[i];
+        }
+    }
+
+    ImGui::PushID(deck);
+
+    for (int i = 0; i < game->getDeckSize(deck); i++)
+    {
+        int objectId = game->getDeckElem(deck, i);
+        SlotRowCol rowCol = isDeckCached[deck] ? cachedRowCols[objectId] : rowsCols[i];
+        drawObject(objectId, rowCol, spaceConfig, offset);
+    }
+
+    ImGui::PopID();
+}
+
+void ListenerGUI::drawPyramid()
+{
+    int age = game->getCurrAge();
+
+    if (age < 0) return;
+
+
+    ImGui::PushID(DECK_CARD_PYRAMID);
+
+    for (int i = 0; age >= 0 && i < PYRAMID_SIZE; i++)
+    {
+        const PyramidSlot& slot = game->getPyramidSlot(i);
+        if (slot.objectId == OBJ_NONE) continue;
+        int id = slot.objectId != SLOT_UNREVEALED ? slot.objectId : OBJ_NONE;
+        drawObject(id, slotRowCols[age][i], cardConfig, pyramidCardOffset, slot.deck);
+    }
+
+    ImGui::PopID();
 }
 
 void ListenerGUI::drawState()
@@ -215,29 +272,21 @@ void ListenerGUI::drawState()
         ImGui::NewFrame();
         ImGui::Begin("7wdai");
 
-        int age = game->getCurrAge();
+        pressedId = OBJ_NONE;
 
-        for (int i = 0; i < game->getDeckSize(DECK_REVEALED_WONDERS); i++)
+        drawDeck(DECK_GAME_TOKENS, tokenConfig, gameTokenRowCols.data(), gameTokenOffset, NUM_GAME_TOKENS);
+        drawDeck(DECK_BOX_TOKENS, tokenConfig, boxTokenRowCols.data(), boxTokenOffset, NUM_BOX_TOKENS);
+
+        drawDeck(DECK_REVEALED_WONDERS, wonderConfig, wonderRowCols.data(), revealedWonderOffset, NUM_WONDERS_REVEALED);
+
+        for (int i = 0; i < NUM_PLAYERS; ++i)
         {
-            int objectId = game->getDeckElem(DECK_REVEALED_WONDERS, i);
-            drawObject(objectId, wonderRowCols[i], wonderConfig);
+            drawDeck(DECK_SELECTED_WONDERS + i, wonderConfig, wonderRowCols.data(), selectedWondersOffset[i], NUM_WONDERS_PER_PLAYER);
         }
 
-        for (int i = 0; i < game->getDeckSize(DECK_GAME_TOKENS); i++)
-        {
-            int objectId = game->getDeckElem(DECK_GAME_TOKENS, i);
-            drawObject(objectId, gameTokenRowCols[i], tokenConfig);
-        }
+        drawPyramid();
 
-        for (int i = 0; age >= 0 && i < PYRAMID_SIZE; i++)
-        {
-            const PyramidSlot& slot = game->getPyramidSlot(i);
-            if (slot.objectId == OBJ_NONE) continue;
-            int id = slot.objectId != SLOT_UNREVEALED ? slot.objectId : OBJ_NONE;
-            drawObject(id, slotRowCols[age][i], cardConfig, slot.deck);
-        }
-
-        ImGui::SetCursorPos(ImVec2(10, 10 + TOP_OFFSET));
+        ImGui::SetCursorPos(ImVec2(10 * SIZE_MULT, 315 * SIZE_MULT + TOP_OFFSET));
 
         if (ImGui::Button("Advance"))
         {
@@ -312,6 +361,7 @@ void ListenerGUI::onClose()
 
 void ListenerGUI::notifyStart()
 {
+    std::fill(isDeckCached.begin(), isDeckCached.end(), false);
     drawState();
 }
 
