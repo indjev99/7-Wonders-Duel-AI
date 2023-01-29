@@ -59,7 +59,7 @@ private:
     std::array<ImFont*, NUM_FONTS> fonts;
 
     static GLuint loadTexture(const std::string& objName);
-    static void loadDeckTexture(int id, const std::string& objName);
+    void loadDeckTexture(int id, const std::string& objName);
 
     void drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, const ListenerGUI::SpaceConfig& spaceConfig, const ImVec2& offset, const std::string& text = "");
     void drawDeck(int deck, const ListenerGUI::SpaceConfig& spaceConfig, const SlotRowCol* rowsCols, const ImVec2& offset, int maxSizeForCache);
