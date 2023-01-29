@@ -15,7 +15,7 @@ void playPrint(PlayerAI& ai1, PlayerAI& ai2)
 {
     ListenerGUI gui;
     ListenerPrinter printer;
-    GameRunner runner({&ai1, &ai2}, {&printer, &gui});
+    GameRunner runner({&ai1, &ai2}, {&gui, &printer});
     runner.playGame();
 }
 

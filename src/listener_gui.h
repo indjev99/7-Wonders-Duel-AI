@@ -18,6 +18,7 @@ struct ListenerGUI final : Listener
         ImVec2 size;
         ImVec2 sizegap;
         double border;
+        double rounding;
     };
 
     ListenerGUI();
@@ -40,7 +41,7 @@ private:
 
     void onClose();
 
-    void drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, const ListenerGUI::SpaceConfig& spaceConfig, const ImVec2& offset, int deck = DECK_NONE);
+    void drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, const ListenerGUI::SpaceConfig& spaceConfig, const ImVec2& offset, int deck = DECK_NONE, const std::string& extra = "");
     void drawDeck(int deck, const ListenerGUI::SpaceConfig& spaceConfig, const SlotRowCol* rowsCols, const ImVec2& offset, int maxSizeForCache);
     void drawBuilt(int player);
     void drawDiscarded();

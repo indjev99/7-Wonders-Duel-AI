@@ -97,15 +97,17 @@ const std::array<ListenerGUI::SlotRowCol, NUM_TOKENS> boxTokenRowCols = {{
     {2, 0}
 }};
 
-#define NUM_COL_DECKS 9
+#define NUM_COL_DECKS 11
 #define DECK_MLEAD_FIGURE 4
 #define DECK_MLEAD_SLOT 5
 #define DECK_MLEAD_FINAL_SLOT 6
 #define DECK_LOOTING_TOKENS 7
 #define DECK_LOOTING_SLOTS 8
+#define DECK_COINS 9
+#define DECK_SCORE 10
 
 const std::array<ImVec4, NUM_COL_DECKS> deckCols = {{
-    ImVec4(0.74, 0.38, 0.18, 1.0),
+    ImVec4(0.75, 0.39, 0.19, 1.0),
     ImVec4(0.00, 0.57, 0.81, 1.0),
     ImVec4(0.71, 0.58, 0.76, 1.0),
     ImVec4(0.45, 0.42, 0.68, 1.0),
@@ -113,7 +115,9 @@ const std::array<ImVec4, NUM_COL_DECKS> deckCols = {{
     ImVec4(0.79, 0.55, 0.45, 1.0),
     ImVec4(0.79, 0.72, 0.43, 1.0),
     ImVec4(0.79, 0.30, 0.20, 1.0),
-    ImVec4(0.75, 0.60, 0.40, 1.0)
+    ImVec4(0.75, 0.60, 0.40, 1.0),
+    ImVec4(0.92, 0.77, 0.17, 1.0),
+    ImVec4(0.36, 0.73, 0.40, 1.0)
 }};
 
 const std::array<ImVec4, NUM_OBJECT_TYPES> typeCols = {{
@@ -129,56 +133,75 @@ const std::array<ImVec4, NUM_OBJECT_TYPES> typeCols = {{
     ImVec4(0.00, 0.00, 0.00, 1.0)
 }};
 
+const ImVec4 bgColor = ImVec4(0.20, 0.20, 0.20, 1.0);
+const ImVec4 textColor = ImVec4(0.00, 0.00, 0.00, 1.0);
+
 const ListenerGUI::SpaceConfig pyramidCardConfig = {
     ImVec2(44, 68),
     ImVec2(50, 40),
-    1.5
+    1.5,
+    3.5
 };
 
 const ListenerGUI::SpaceConfig builtCardConfig = {
     ImVec2(44, 68),
     ImVec2(50, 18),
-    1.5
+    1.5,
+    3.5
 };
 
 const ListenerGUI::SpaceConfig wonderCardConfig = {
     ImVec2(68, 44),
     ImVec2(68, 44),
-    1.5
+    1.5,
+    3.5
 };
 
 const ListenerGUI::SpaceConfig discardedConfig = {
     ImVec2(44, 68),
     ImVec2(50, 74),
-    1.5
+    1.5,
+    3.5
 };
 
 const ListenerGUI::SpaceConfig wonderConfig = {
     ImVec2(100, 65),
     ImVec2(110, 75),
-    2.5
+    2.5,
+    3.5
 };
 
 const ListenerGUI::SpaceConfig tokenConfig = {
     ImVec2(35, 35),
     ImVec2(40, 40),
-    1.0
+    1.0,
+    100
 };
 
 const ListenerGUI::SpaceConfig mLeadSlotConfig = {
     ImVec2(30, 12),
     ImVec2(30, 15),
-    0.75
+    0.75,
+    100
 };
 
 const ListenerGUI::SpaceConfig lootingBaseConfig = {
     ImVec2(25, 0),
     ImVec2(30, 15),
-    0.75
+    0.75,
+    3.5
+};
+
+const ListenerGUI::SpaceConfig coinScoreConfig = {
+    ImVec2(20, 20),
+    ImVec2(25, 25),
+    0.75,
+    100
 };
 
 const ImVec2 pyramidCardOffset(10, 165);
 const ImVec2 revealedWonderOffset(52, 249);
+const ImVec2 wonderCardRelOffset(37, 10.5);
 const ImVec2 gameTokenOffset(395, 221.5);
 const ImVec2 boxTokenOffset(440, 261.5);
 const ImVec2 discardedOffset(10, 643);
@@ -199,31 +222,36 @@ const std::array<ImVec2, NUM_PLAYERS> builtTokenHalfRelOffset = {{
     ImVec2(10, 115)
 }};
 
-const ImVec2 wonderCardRelOffset(37, 10.5);
+const std::array<ImVec2, NUM_PLAYERS> coinScoreOffset = {{
+    ImVec2(10, 463),
+    ImVec2(10, 155)
+}};
 
-const ImVec2 textPos = ImVec2(0.5, 0.0);
+
+const ImVec2 tokenTextPos = ImVec2(0.5, 0.5);
+const ImVec2 cardWonderTextPos = ImVec2(0.5, 0.0);
 
 const int MAX_BUILT_CARD_PER_COL = 5;
 const int MAX_BUILT_TOKEN_PER_COL = 3;
 const int MAX_DISCARDED_PER_ROW = 12;
 
-const double SIZE_MULT = 1.7;
-
 const double BORDER_DARK = 0.5;
+
+float SIZE_MULT = 1.7;
 
 ImVec4 borderCol(const ImVec4& col)
 {
     return ImVec4(col.x * BORDER_DARK, col.y * BORDER_DARK, col.z * BORDER_DARK, col.w);
 }
 
-void ListenerGUI::drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, const ListenerGUI::SpaceConfig& spaceConfig, const ImVec2& offset, int deck)
+void ListenerGUI::drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, const ListenerGUI::SpaceConfig& spaceConfig, const ImVec2& offset, int deck, const std::string& extra)
 {
     if (objId == OBJ_NONE && deck == DECK_NONE) return;
 
     bool pressed = false;
 
     ImVec4 col = objId != OBJ_NONE ? typeCols[objects[objId].type] : deckCols[deck];
-    std::string name = objId != OBJ_NONE ? objects[objId].name : "##";
+    std::string name = extra + (objId != OBJ_NONE ? objects[objId].name : "##");
 
     double x = spaceConfig.sizegap.x * rowCol.col / 2 + offset.x;
     double y = spaceConfig.sizegap.y * rowCol.row + offset.y;
@@ -241,6 +269,11 @@ void ListenerGUI::drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, c
         drawObject(OBJ_NONE, {0, 0}, wonderCardConfig, ImVec2(cX, cY), deck);
         ImGui::PopID();
     }
+
+    ImVec2 textPos = objId == OBJ_NONE || objects[objId].type == OT_TOKEN ? tokenTextPos : cardWonderTextPos;
+
+    ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, textPos);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, spaceConfig.rounding);
 
     ImGui::PushStyleColor(ImGuiCol_Button, bCol);
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, bCol);
@@ -261,15 +294,15 @@ void ListenerGUI::drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, c
     ImGui::PushStyleColor(ImGuiCol_Button, col);
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, col);
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, col);
-
-    ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, textPos);
+    ImGui::PushStyleColor(ImGuiCol_Text, textColor);
 
     ImGui::SetCursorPos(ImVec2(x * SIZE_MULT, y * SIZE_MULT));
     pressed = pressed || ImGui::ButtonEx(name.c_str(), ImVec2(sizeX * SIZE_MULT, sizeY * SIZE_MULT), ImGuiButtonFlags_AllowItemOverlap);
     ImGui::SetItemAllowOverlap();
 
-    ImGui::PopStyleVar(1);
-    ImGui::PopStyleColor(3);
+    ImGui::PopStyleColor(4);
+
+    ImGui::PopStyleVar(2);
 
     ImGui::PopID();
     ImGui::PopID();
@@ -390,6 +423,13 @@ void ListenerGUI::drawBuilt(int player)
         drawObject(i, SlotRowCol{row, 2 * col}, builtCardConfig, builtCardOffset[player]);
     }
 
+    ImGui::PushID("COIN SCORE");
+
+    drawObject(OBJ_NONE, SlotRowCol{0, 0}, coinScoreConfig, coinScoreOffset[player], DECK_COINS, std::to_string(state.coins));
+    drawObject(OBJ_NONE, SlotRowCol{0, 2}, coinScoreConfig, coinScoreOffset[player], DECK_SCORE, std::to_string(state.getScore()));
+
+    ImGui::PopID();
+
     ImGui::PopID();
     ImGui::PopID();
 }
@@ -484,6 +524,7 @@ void ListenerGUI::drawState(bool canAdvance)
         ImGui::NewFrame();
         ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
         ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
+        ImGui::PushStyleColor(ImGuiCol_WindowBg, bgColor);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
         ImGui::Begin("7wdai", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoResize);
 
@@ -509,12 +550,13 @@ void ListenerGUI::drawState(bool canAdvance)
 
         if (canAdvance)
         {
-            ImGui::SetCursorPos(ImVec2(10 * SIZE_MULT, 314 * SIZE_MULT));
-            advance = ImGui::Button("Advance");
+            ImGui::SetCursorPos(ImVec2(480 * SIZE_MULT, 315 * SIZE_MULT));
+            advance = ImGui::ArrowButton("##Advance", ImGuiDir_::ImGuiDir_Right);
         }
 
         ImGui::End();
         ImGui::PopStyleVar(1);
+        ImGui::PopStyleColor(1);
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         glfwSwapBuffers(window);
@@ -537,7 +579,7 @@ ListenerGUI::ListenerGUI()
         return;
     }
 
-    window = glfwCreateWindow(1200, 1350, "7wdai", NULL, NULL);
+    window = glfwCreateWindow(1200, 1300, "7wdai", NULL, NULL);
 
     if (window == nullptr)
     {
@@ -547,7 +589,7 @@ ListenerGUI::ListenerGUI()
     }
 
     glfwMakeContextCurrent(window);
-    glViewport(0, 0, 1200, 1350);
+    glViewport(0, 0, 1200, 1300);
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
