@@ -44,6 +44,7 @@ private:
     void drawDeck(int deck, const ListenerGUI::SpaceConfig& spaceConfig, const SlotRowCol* rowsCols, const ImVec2& offset, int maxSizeForCache);
     void drawBuilt(int player);
     void drawDiscarded();
+    void drawLooting(int from, int to, int deck);
     void drawMilitaryLead();
     void drawPyramid();
     void drawState(bool canAdvance = true);

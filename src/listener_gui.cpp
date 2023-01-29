@@ -97,19 +97,23 @@ const std::array<ListenerGUI::SlotRowCol, NUM_TOKENS> boxTokenRowCols = {{
     {2, 0}
 }};
 
-#define NUM_COL_DECKS 7
+#define NUM_COL_DECKS 9
 #define DECK_MLEAD_FIGURE 4
 #define DECK_MLEAD_SLOT 5
 #define DECK_MLEAD_FINAL_SLOT 6
+#define DECK_LOOTING_TOKENS 7
+#define DECK_LOOTING_SLOTS 8
 
 const std::array<ImVec4, NUM_COL_DECKS> deckCols = {{
     ImVec4(0.74, 0.38, 0.18, 1.0),
     ImVec4(0.00, 0.57, 0.81, 1.0),
     ImVec4(0.71, 0.58, 0.76, 1.0),
     ImVec4(0.45, 0.42, 0.68, 1.0),
-    ImVec4(0.77, 0.10, 0.12, 1.0),
+    ImVec4(0.77, 0.15, 0.12, 1.0),
     ImVec4(0.79, 0.55, 0.45, 1.0),
-    ImVec4(0.79, 0.72, 0.43, 1.0)
+    ImVec4(0.79, 0.72, 0.43, 1.0),
+    ImVec4(0.79, 0.30, 0.20, 1.0),
+    ImVec4(0.75, 0.60, 0.40, 1.0)
 }};
 
 const std::array<ImVec4, NUM_OBJECT_TYPES> typeCols = {{
@@ -164,15 +168,21 @@ const ListenerGUI::SpaceConfig tokenConfig = {
 const ListenerGUI::SpaceConfig mLeadSlotConfig = {
     ImVec2(30, 12),
     ImVec2(30, 15),
-    1.0
+    0.75
+};
+
+const ListenerGUI::SpaceConfig lootingBaseConfig = {
+    ImVec2(25, 0),
+    ImVec2(30, 15),
+    0.75
 };
 
 const ImVec2 pyramidCardOffset(10, 165);
 const ImVec2 revealedWonderOffset(52, 249);
-const ImVec2 gameTokenOffset(375, 221.5);
-const ImVec2 boxTokenOffset(420, 261.5);
+const ImVec2 gameTokenOffset(395, 221.5);
+const ImVec2 boxTokenOffset(440, 261.5);
 const ImVec2 discardedOffset(10, 643);
-const ImVec2 mLeadOffset(330, 313);
+const ImVec2 mLeadOffset(350, 313);
 
 const std::array<ImVec2, NUM_PLAYERS> selectedWondersOffset = {{
     ImVec2(10, 488),
@@ -195,7 +205,7 @@ const ImVec2 textPos = ImVec2(0.5, 0.0);
 
 const int MAX_BUILT_CARD_PER_COL = 5;
 const int MAX_BUILT_TOKEN_PER_COL = 3;
-const int MAX_DISCARDED_PER_ROW = 15;
+const int MAX_DISCARDED_PER_ROW = 12;
 
 const double SIZE_MULT = 1.7;
 
@@ -398,13 +408,29 @@ void ListenerGUI::drawDiscarded()
     ImGui::PopID();
 }
 
+void ListenerGUI::drawLooting(int from, int to, int deck)
+{
+    if (from < to) std::swap(from, to);
+
+    SpaceConfig config = lootingBaseConfig;
+    config.size.y = (from - to) * mLeadSlotConfig.sizegap.y + mLeadSlotConfig.size.y;
+
+    ImGui::PushID(deck);
+    ImGui::PushID(from);
+
+    drawObject(OBJ_NONE, {to, -2}, config, mLeadOffset, deck);
+
+    ImGui::PopID();
+    ImGui::PopID();
+}
+
 void ListenerGUI::drawMilitaryLead()
 {
     ImGui::PushID("MLEAD SLOTS");
 
     for (int i = - MILITARY_THRESHOLD_WIN; i <= MILITARY_THRESHOLD_WIN; i++)
     {
-        drawObject(OBJ_NONE, {i, 0}, mLeadSlotConfig, mLeadOffset, std::abs(i) < MILITARY_THRESHOLD_WIN ? DECK_MLEAD_SLOT : DECK_MLEAD_FINAL_SLOT);
+        drawObject(OBJ_NONE, {-i, 0}, mLeadSlotConfig, mLeadOffset, std::abs(i) < MILITARY_THRESHOLD_WIN ? DECK_MLEAD_SLOT : DECK_MLEAD_FINAL_SLOT);
     }
 
     ImGui::PopID();
@@ -415,7 +441,22 @@ void ListenerGUI::drawMilitaryLead()
     mLead = std::min(MILITARY_THRESHOLD_WIN, mLead);
     mLead = std::max(- MILITARY_THRESHOLD_WIN, mLead);
 
-    drawObject(OBJ_NONE, {mLead, 0}, mLeadSlotConfig, mLeadOffset, DECK_MLEAD_FIGURE);
+    drawObject(OBJ_NONE, {-mLead, 0}, mLeadSlotConfig, mLeadOffset, DECK_MLEAD_FIGURE);
+
+    ImGui::PopID();
+
+    ImGui::PushID("LOOTING");
+
+    for (int i = 0; i < NUM_PLAYERS; ++i)
+    {
+        const PlayerState& state = game->getPlayerState(i);
+        int sign = i == 0 ? -1 : 1;
+        drawLooting(sign * MILITARY_THRESHOLD_1, sign * (MILITARY_THRESHOLD_2 - 1), DECK_LOOTING_SLOTS);
+        drawLooting(sign * MILITARY_THRESHOLD_2, sign * (MILITARY_THRESHOLD_3 - 1), DECK_LOOTING_SLOTS);
+        drawLooting(sign * MILITARY_THRESHOLD_3, sign * (MILITARY_THRESHOLD_WIN - 1), DECK_LOOTING_SLOTS);
+        if (!state.objectsBuilt[O_LOOTING_LOOTING_1]) drawLooting(sign * MILITARY_THRESHOLD_2, sign * (MILITARY_THRESHOLD_3 - 1), DECK_LOOTING_TOKENS);
+        if (!state.objectsBuilt[O_LOOTING_LOOTING_2]) drawLooting(sign * MILITARY_THRESHOLD_3, sign * (MILITARY_THRESHOLD_WIN - 1), DECK_LOOTING_TOKENS);
+    }
 
     ImGui::PopID();
 }
@@ -496,7 +537,7 @@ ListenerGUI::ListenerGUI()
         return;
     }
 
-    window = glfwCreateWindow(1600, 1300, "7wdai", NULL, NULL);
+    window = glfwCreateWindow(1200, 1350, "7wdai", NULL, NULL);
 
     if (window == nullptr)
     {
@@ -506,7 +547,7 @@ ListenerGUI::ListenerGUI()
     }
 
     glfwMakeContextCurrent(window);
-    glViewport(0, 0, 1600, 1300);
+    glViewport(0, 0, 1200, 1350);
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
