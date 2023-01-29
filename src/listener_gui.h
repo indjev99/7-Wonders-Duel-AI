@@ -41,6 +41,7 @@ private:
 
     void drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, const ListenerGUI::SpaceConfig& spaceConfig, const ImVec2& offset, int deck = DECK_AGE_1);
     void drawDeck(int deck, const ListenerGUI::SpaceConfig& spaceConfig, const SlotRowCol* rowsCols, const ImVec2& offset, int maxSizeForCache);
+    void drawBuilt(int player);
     void drawPyramid();
     void drawState();
     void drawCard();

@@ -13,6 +13,7 @@ PlayerState::PlayerState()
     std::memset(this, 0, sizeof(PlayerState));
 
     coins = INITIAL_COINS;
+    shouldDestroyType = OBJ_NONE;
 }
 
 void PlayerState::buildObject(const Object& object)
@@ -92,7 +93,7 @@ int PlayerState::getScore(int onlyType) const
         }
     }
 
-    if (onlyType == OT_NONE || onlyType == OT_RED)
+    if (onlyType == OT_NONE || onlyType == OT_MILITARY)
     {
         int mLead = militaryLead();
         if (mLead >= MILITARY_THRESHOLD_3) score += MILITARY_SCORE_3;

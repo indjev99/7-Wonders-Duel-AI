@@ -14,5 +14,6 @@
 #define OT_LOOTING 9
 
 #define OT_COINS -1
+#define OT_MILITARY -2
 
 #define OT_NONE -100
