@@ -297,7 +297,7 @@ void ListenerGUI::drawBuilt(int player)
 
         if (type == OT_TOKEN) drawObject(i, SlotRowCol{row, 0}, tokenConfig, builtTokenOffset[player]);
         else if (type == OT_WONDER) drawObject(i, cachedRowCols[i], wonderConfig, selectedWondersOffset[player]);
-        else drawObject(i, SlotRowCol{row, type}, cardBuiltConfig, builtCardOffset[player]);
+        else drawObject(i, SlotRowCol{row, 2 * type}, cardBuiltConfig, builtCardOffset[player]);
     }
 
     ImGui::PopID();
