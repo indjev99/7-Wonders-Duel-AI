@@ -309,9 +309,6 @@ const int SMALL_FONT_SIZE = 16;
 const int INIT_WINDOW_W = 1800;
 const int INIT_WINDOW_H = 1350;
 
-bool ListenerGUI::loadedTextures = false;
-std::array<GLuint, ListenerGUI::NUM_TEXTURES> ListenerGUI::objectTextures;
-
 bool myImageButton(const char* str_id, ImTextureID texture_id, const ImVec2& size, const char* label = "", ImGuiButtonFlags flags = 0, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& bg_col = ImVec4(0, 0, 0, 0), const ImVec4& tint_col = ImVec4(1, 1, 1, 1))
 {
     using namespace ImGui;
