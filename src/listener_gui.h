@@ -2,6 +2,9 @@
 
 #include "listener.h"
 
+#define GLFW_INCLUDE_GLEXT
+#define IMGUI_DEFINE_MATH_OPERATORS
+
 #include <GLFW/glfw3.h>
 #include <imgui/imgui.h>
 
@@ -36,6 +39,8 @@ private:
     std::array<bool, NUM_DECKS> isDeckCached;
     std::array<SlotRowCol, NUM_OBJECTS> cachedRowCols;
     std::array<int, NUM_OBJECTS> wonderBuiltWithDeck;
+
+    std::array<GLuint, NUM_OBJECTS> objectTextures;
 
     int pressedId;
 

@@ -241,9 +241,9 @@ std::array<Object, NUM_OBJECTS> initObjects()
     objects[O_RED_SIEGE_WORKSHOP] = Object(O_RED_SIEGE_WORKSHOP, "Siege Workshop", OT_RED, Cost({R_WOOD, R_WOOD, R_WOOD, R_GLASS}, O_RED_ARCHERY_RANGE), effMilirary<2>);
     objects[O_RED_CIRCUS] = Object(O_RED_CIRCUS, "Circus", OT_RED, Cost({R_CLAY, R_CLAY, R_STONE, R_STONE}, O_RED_PARADE_GROUND), effMilirary<2>);
     objects[O_RED_ARSENAL] = Object(O_RED_ARSENAL, "Arsenal", OT_RED, Cost({R_CLAY, R_CLAY, R_CLAY, R_WOOD, R_WOOD}), effMilirary<3>);
-    objects[O_RED_COURTHOUSE] = Object(O_RED_COURTHOUSE, "Corthouse", OT_RED, Cost(8), effMilirary<3>);
+    objects[O_RED_COURTHOUSE] = Object(O_RED_COURTHOUSE, "Courthouse", OT_RED, Cost(8), effMilirary<3>);
 
-    objects[O_GREEN_SCRIPTORIUM] = Object(O_GREEN_SCRIPTORIUM, "Scriptrium", OT_GREEN, Cost(2), 0, effScience<S_QUILL>);
+    objects[O_GREEN_SCRIPTORIUM] = Object(O_GREEN_SCRIPTORIUM, "Scriptorium", OT_GREEN, Cost(2), 0, effScience<S_QUILL>);
     objects[O_GREEN_PHARMACIST] = Object(O_GREEN_PHARMACIST, "Pharmacist", OT_GREEN, Cost(2), 0, effScience<S_MORTAR>);
     objects[O_GREEN_WORKSHOP] = Object(O_GREEN_WORKSHOP, "Workshop", OT_GREEN, Cost({R_PAPER}), 1, effScience<S_PENDULUM>);
     objects[O_GREEN_APOTHECARY] = Object(O_GREEN_APOTHECARY, "Apothecary", OT_GREEN, Cost({R_GLASS}), 1, effScience<S_WHEEL>);

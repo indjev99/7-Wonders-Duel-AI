@@ -7,6 +7,9 @@
 #include <imgui/imgui_impl_glfw.h>
 #include <imgui/imgui_impl_opengl3.h>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb/stb_image.h>
+
 const std::array<std::array<ListenerGUI::SlotRowCol, PYRAMID_SIZE>, NUM_AGES> slotRowCols = {{
     {{
         {1, 4},
@@ -145,7 +148,7 @@ const ListenerGUI::SpaceConfig pyramidCardConfig = {
 
 const ListenerGUI::SpaceConfig builtCardConfig = {
     ImVec2(44, 68),
-    ImVec2(50, 18),
+    ImVec2(50, 16),
     1.5,
     3.5
 };
@@ -237,11 +240,74 @@ const int MAX_DISCARDED_PER_ROW = 12;
 
 const double BORDER_DARK = 0.5;
 
-float SIZE_MULT = 1.7;
+float SIZE_MULT = 2;
 
 ImVec4 borderCol(const ImVec4& col)
 {
     return ImVec4(col.x * BORDER_DARK, col.y * BORDER_DARK, col.z * BORDER_DARK, col.w);
+}
+
+#define NO_TEXTURE (GLuint) -1
+
+GLuint LoadTextureFromFile(const std::string& objName)
+{
+    std::string fileName = objName;
+    std::transform(fileName.begin(), fileName.end(), fileName.begin(), [](char c){ return (c == ' ') ? '_' : std::tolower(c); });
+
+    fileName = "imgs/" + fileName + ".png";
+
+    // Load from file
+    int image_width = 0;
+    int image_height = 0;
+    unsigned char* image_data = stbi_load(fileName.c_str(), &image_width, &image_height, nullptr, 4);
+
+    if (image_data == nullptr) return NO_TEXTURE;
+
+    // Create a OpenGL texture identifier
+    GLuint image_texture;
+    glGenTextures(1, &image_texture);
+    glBindTexture(GL_TEXTURE_2D, image_texture);
+
+    // Setup filtering parameters for display
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // This is required on WebGL for non power-of-two textures
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); // Same
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width, image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+    stbi_image_free(image_data);
+
+    return image_texture;
+}
+
+bool myImageButton(const char* str_id, ImTextureID texture_id, const ImVec2& size, ImGuiButtonFlags flags = 0, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& bg_col = ImVec4(0, 0, 0, 0), const ImVec4& tint_col = ImVec4(1, 1, 1, 1))
+{
+    using namespace ImGui;
+
+    ImGuiContext& g = *GImGui;
+    ImGuiWindow* window = g.CurrentWindow;
+    if (window->SkipItems)
+        return false;
+
+    ImGuiID id = window->GetID(str_id);
+
+    const ImVec2 padding = g.Style.FramePadding;
+    const ImRect bb(window->DC.CursorPos, window->DC.CursorPos + size + padding * 2.0f);
+    ItemSize(bb);
+    if (!ItemAdd(bb, id))
+        return false;
+
+    bool hovered, held;
+    bool pressed = ButtonBehavior(bb, id, &hovered, &held, flags);
+
+    const ImU32 col = GetColorU32((held && hovered) ? ImGuiCol_ButtonActive : hovered ? ImGuiCol_ButtonHovered : ImGuiCol_Button);
+    RenderNavHighlight(bb, id);
+    RenderFrame(bb.Min, bb.Max, col, true, ImClamp((float)ImMin(padding.x, padding.y), 0.0f, g.Style.FrameRounding));
+    if (bg_col.w > 0.0f)
+        window->DrawList->AddRectFilled(bb.Min + padding, bb.Max - padding, GetColorU32(bg_col));
+    window->DrawList->AddImage(texture_id, bb.Min + padding, bb.Max - padding, uv0, uv1, GetColorU32(tint_col));
+
+    return pressed;
 }
 
 void ListenerGUI::drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, const ListenerGUI::SpaceConfig& spaceConfig, const ImVec2& offset, int deck, const std::string& extra)
@@ -253,10 +319,7 @@ void ListenerGUI::drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, c
     ImVec4 col = objId != OBJ_NONE ? typeCols[objects[objId].type] : deckCols[deck];
     std::string name = extra + (objId != OBJ_NONE ? objects[objId].name : "##");
 
-    double x = spaceConfig.sizegap.x * rowCol.col / 2 + offset.x;
-    double y = spaceConfig.sizegap.y * rowCol.row + offset.y;
-
-    ImVec4 bCol = borderCol(col);
+    ImVec2 pos = spaceConfig.sizegap * ImVec2(rowCol.col / 2.0, rowCol.row) + offset;
 
     ImGui::PushID(rowCol.row);
     ImGui::PushID(rowCol.col);
@@ -264,45 +327,58 @@ void ListenerGUI::drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, c
     if (objId != OBJ_NONE && objects[objId].type == OT_WONDER && deck != DECK_NONE)
     {
         ImGui::PushID("WONDER CARD");
-        double cX = x + wonderCardRelOffset.x;
-        double cY = y + wonderCardRelOffset.y;
-        drawObject(OBJ_NONE, {0, 0}, wonderCardConfig, ImVec2(cX, cY), deck);
+        drawObject(OBJ_NONE, {0, 0}, wonderCardConfig, pos + wonderCardRelOffset, deck);
         ImGui::PopID();
     }
 
-    ImVec2 textPos = objId == OBJ_NONE || objects[objId].type == OT_TOKEN ? tokenTextPos : cardWonderTextPos;
+    if (objId == OBJ_NONE || objectTextures[objId] == NO_TEXTURE)
+    {
+        ImVec4 bCol = borderCol(col);
+        ImVec2 textPos = objId == OBJ_NONE || objects[objId].type == OT_TOKEN ? tokenTextPos : cardWonderTextPos;
 
-    ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, textPos);
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, spaceConfig.rounding);
+        ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, textPos);
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, spaceConfig.rounding);
 
-    ImGui::PushStyleColor(ImGuiCol_Button, bCol);
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, bCol);
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, bCol);
+        ImGui::PushStyleColor(ImGuiCol_Button, bCol);
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, bCol);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, bCol);
 
-    ImGui::SetCursorPos(ImVec2(x * SIZE_MULT, y * SIZE_MULT));
-    pressed = pressed || ImGui::ButtonEx(("## Border of " + name).c_str(), ImVec2(spaceConfig.size.x * SIZE_MULT, spaceConfig.size.y * SIZE_MULT), ImGuiButtonFlags_AllowItemOverlap);
-    ImGui::SetItemAllowOverlap();
+        ImGui::SetCursorPos(pos * SIZE_MULT);
+        pressed = pressed || ImGui::ButtonEx(("## Border of " + name).c_str(), spaceConfig.size * SIZE_MULT, ImGuiButtonFlags_AllowItemOverlap);
+        ImGui::SetItemAllowOverlap();
 
-    ImGui::PopStyleColor(3);
+        ImGui::PopStyleColor(3);
 
-    x += spaceConfig.border;
-    y += spaceConfig.border;
+        ImVec2 borderVec(spaceConfig.border, spaceConfig.border);
 
-    double sizeX = spaceConfig.size.x - 2 * spaceConfig.border;
-    double sizeY = spaceConfig.size.y - 2 * spaceConfig.border;
+        pos += borderVec;
 
-    ImGui::PushStyleColor(ImGuiCol_Button, col);
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, col);
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, col);
-    ImGui::PushStyleColor(ImGuiCol_Text, textColor);
+        ImVec2 size = spaceConfig.size - borderVec * 2;
 
-    ImGui::SetCursorPos(ImVec2(x * SIZE_MULT, y * SIZE_MULT));
-    pressed = pressed || ImGui::ButtonEx(name.c_str(), ImVec2(sizeX * SIZE_MULT, sizeY * SIZE_MULT), ImGuiButtonFlags_AllowItemOverlap);
-    ImGui::SetItemAllowOverlap();
+        ImGui::PushStyleColor(ImGuiCol_Button, col);
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, col);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, col);
+        ImGui::PushStyleColor(ImGuiCol_Text, textColor);
 
-    ImGui::PopStyleColor(4);
+        ImGui::SetCursorPos(pos * SIZE_MULT);
+        pressed = pressed || ImGui::ButtonEx(name.c_str(), size * SIZE_MULT, ImGuiButtonFlags_AllowItemOverlap);
+        ImGui::SetItemAllowOverlap();
 
-    ImGui::PopStyleVar(2);
+        ImGui::PopStyleColor(4);
+
+        ImGui::PopStyleVar(2);
+    }
+    else
+    {
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 100);
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
+        
+        ImGui::SetCursorPos(pos * SIZE_MULT);
+        pressed = pressed || myImageButton(name.c_str(), (void*) (intptr_t) objectTextures[objId], spaceConfig.size * SIZE_MULT, ImGuiButtonFlags_AllowItemOverlap);
+        ImGui::SetItemAllowOverlap();
+
+        ImGui::PopStyleVar(2);
+    }
 
     ImGui::PopID();
     ImGui::PopID();
@@ -597,6 +673,11 @@ ListenerGUI::ListenerGUI()
     ImGui::StyleColorsDark();
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330");
+
+    for (int i = 0; i < NUM_OBJECTS; ++i)
+    {
+        objectTextures[i] = LoadTextureFromFile(objects[i].name);
+    }
 }
 
 int findDeck(int id)
