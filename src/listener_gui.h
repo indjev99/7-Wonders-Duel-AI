@@ -61,7 +61,9 @@ private:
     static GLuint loadTexture(const std::string& objName);
     void loadDeckTexture(int id, const std::string& objName);
 
-    void drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, const ListenerGUI::SpaceConfig& spaceConfig, const ImVec2& offset, const std::string& text = "");
+
+    bool drawCost(int objId, int player, const ImVec2& offset);
+    bool drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, const ListenerGUI::SpaceConfig& spaceConfig, const ImVec2& offset, const std::string& text = "");
     void drawDeck(int deck, const ListenerGUI::SpaceConfig& spaceConfig, const SlotRowCol* rowsCols, const ImVec2& offset, int maxSizeForCache);
     void drawBuilt(int player);
     void drawDiscarded();

@@ -40,6 +40,7 @@ struct PlayerState
     void discardCard();
     void destroyObject(const Object& object);
 
+    int getCost(const Object& object) const;
     bool canPayFor(const Object& object) const;
 
     int militaryLead() const;

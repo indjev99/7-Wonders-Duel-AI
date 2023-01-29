@@ -24,14 +24,14 @@ const std::array<int, NUM_OBJECTS> objectDrawOrder = {{
     O_GRAY_GLASSBLOWER,
     O_GRAY_PRESS,
     O_GRAY_DRYING_ROOM,
-    O_YELLOW_FORUM,
-    O_YELLOW_CARAVANSERY,
+    O_YELLOW_TAVERN,
+    O_YELLOW_BREWERY,
     O_YELLOW_STONE_RESERVE,
     O_YELLOW_CLAY_RESERVE,
     O_YELLOW_WOOD_RESERVE,
     O_YELLOW_CUSOMS_HOUSE,
-    O_YELLOW_TAVERN,
-    O_YELLOW_BREWERY,
+    O_YELLOW_CARAVANSERY,
+    O_YELLOW_FORUM,
     O_YELLOW_LIGHTHOUSE,
     O_YELLOW_ARENA,
     O_YELLOW_CHAMBER_OF_COMMERCE,
@@ -203,6 +203,8 @@ const std::array<ListenerGUI::SlotRowCol, NUM_TOKENS> boxTokenRowCols = {{
 const ImVec4 bgColor = ImVec4(0.80, 0.75, 0.60, 1.0);
 const ImVec4 transColor = ImVec4(0.00, 0.00, 0.00, 0.0);
 const ImVec4 textColor = ImVec4(0.00, 0.00, 0.00, 1.0);
+const ImVec4 badTextColor = ImVec4(0.90, 0.10, 0.10, 1.0);
+const ImVec4 goodTextColor = ImVec4(0.10, 0.90, 0.10, 1.0);
 
 const ListenerGUI::SpaceConfig pyramidCardConfig = {
     ImVec2(44, 68),
@@ -254,6 +256,11 @@ const ListenerGUI::SpaceConfig coinScoreConfig = {
     ImVec2(25, 25)
 };
 
+const ListenerGUI::SpaceConfig smallCoinScoreConfig = {
+    ImVec2(12, 12),
+    ImVec2(12, 12)
+};
+
 const ListenerGUI::SpaceConfig sideBoardConfig = {
     ImVec2(104.5, 370),
     ImVec2(104.5, 370)
@@ -267,6 +274,7 @@ const ImVec2 boxTokenOffset(705, 251.8);
 const ImVec2 discardedOffset(10, 620);
 const ImVec2 mLeadOffset(776.9, 298.5);
 const ImVec2 sideBoardOffset(750, 122.5);
+const ImVec2 wonderCostRelOffset(96, 25.5);
 
 const std::array<ImVec2, NUM_PLAYERS> selectedWondersOffset = {{
     ImVec2(10, 474),
@@ -298,13 +306,18 @@ const std::array<ImVec2, NUM_PLAYERS> coinScoreOffset = {{
     ImVec2(10, 151)
 }};
 
+const std::array<ImVec2, NUM_PLAYERS> cardCostRelOffset = {{
+    ImVec2(2, 54),
+    ImVec2(30, 54)
+}};
+
 const int MAX_BUILT_CARD_PER_COL = 5;
 const int MAX_BUILT_TOKEN_PER_COL = 3;
 const int MAX_DISCARDED_PER_ROW = 17;
 
 const double SIZE_MULT = 2.1;
 const int MAIN_FONT_SIZE = 22;
-const int SMALL_FONT_SIZE = 16;
+const int SMALL_FONT_SIZE = 17;
 
 const int INIT_WINDOW_W = 1800;
 const int INIT_WINDOW_H = 1350;
@@ -370,7 +383,29 @@ GLuint ListenerGUI::loadTexture(const std::string& objName)
     return image_texture;
 }
 
-void ListenerGUI::drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, const ListenerGUI::SpaceConfig& spaceConfig, const ImVec2& offset, const std::string& text)
+bool ListenerGUI::drawCost(int objId, int player, const ImVec2& offset)
+{
+    ImGui::PushID("COST");
+    ImGui::PushID(player);
+    ImGui::PushFont(fonts[SMALL_FONT]);
+
+    const PlayerState& state = game->getPlayerState(player);
+    int cost = state.getCost(objects[objId]);
+
+    ImVec4 col = cost <= 0 ? goodTextColor : cost > state.coins ? badTextColor : textColor;
+
+    ImGui::PushStyleColor(ImGuiCol_Text, col);
+    bool pressed = drawObject(O_TEXTURE_COINS, {0, 0}, smallCoinScoreConfig, offset, std::to_string(cost));
+    ImGui::PopStyleColor();
+
+    ImGui::PopFont();
+    ImGui::PopID();
+    ImGui::PopID();
+
+    return pressed;
+}
+
+bool ListenerGUI::drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, const ListenerGUI::SpaceConfig& spaceConfig, const ImVec2& offset, const std::string& text)
 {
     bool pressed = false;
 
@@ -379,6 +414,7 @@ void ListenerGUI::drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, c
 
     ImVec2 pos = spaceConfig.sizegap * ImVec2(rowCol.col / 2.0, rowCol.row) + offset;
 
+    ImGui::PushID(objId);
     ImGui::PushID(rowCol.row);
     ImGui::PushID(rowCol.col);
 
@@ -412,10 +448,29 @@ void ListenerGUI::drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, c
         ImGui::PopStyleColor(3);
     }
 
+    if (objId != OBJ_NONE && objId < NUM_OBJECTS && game->getObjectDeck(objId) == DECK_CARD_PYRAMID && game->getPyramidSlot(game->getObjectPos(objId)).coveredBy == 0)
+    {
+        for (int i = 0; i < NUM_PLAYERS; ++i)
+        {
+            pressed = pressed || drawCost(objId, i, pos + cardCostRelOffset[i]);
+        }
+    }
+
+    for (int i = 0; i < NUM_PLAYERS; ++i)
+    {
+        if (objId != OBJ_NONE && objId < NUM_OBJECTS && game->getObjectDeck(objId) == DECK_SELECTED_WONDERS + i)
+        {
+            pressed = pressed || drawCost(objId, i, pos + wonderCostRelOffset);
+        }
+    }
+
+    ImGui::PopID();
     ImGui::PopID();
     ImGui::PopID();
 
     if (objId != OBJ_NONE && objId < NUM_OBJECTS && pressed) pressedId = objId;
+
+    return pressed;
 }
 
 void ListenerGUI::drawDeck(int deck, const ListenerGUI::SpaceConfig& spaceConfig, const SlotRowCol* rowsCols, const ImVec2& offset, int maxSizeForCache)

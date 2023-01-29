@@ -68,9 +68,14 @@ void PlayerState::destroyObject(const Object& object)
     if (mLead <= - MILITARY_THRESHOLD_3 && !otherPlayer->objectsBuilt[O_LOOTING_LOOTING_2]) otherPlayer->buildObject(objects[O_LOOTING_LOOTING_2]);
 }
 
+int PlayerState::getCost(const Object& object) const
+{
+    return calculateResourceCoinCost(*this, object) + object.cost.coins;
+}
+
 bool PlayerState::canPayFor(const Object& object) const
 {
-    return calculateResourceCoinCost(*this, object) + object.cost.coins <= coins;
+    return getCost(object) <= coins;
 }
 
 int PlayerState::militaryLead() const
