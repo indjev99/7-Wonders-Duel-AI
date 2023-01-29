@@ -1,6 +1,6 @@
 #pragma once
 
-#define NUM_DECKS 10 + NUM_PLAYERS
+#define NUM_DECKS (10 + NUM_PLAYERS)
 
 #define DECK_AGE_1 0
 #define DECK_AGE_2 1
@@ -13,7 +13,7 @@
 #define DECK_BOX_TOKENS 7
 #define DECK_REVEALED_WONDERS 8
 #define DECK_SELECTED_WONDERS 9
-#define DECK_DISCARDED 9 + NUM_PLAYERS
+#define DECK_DISCARDED (9 + NUM_PLAYERS)
 
 #define DECK_CARD_PYRAMID -1
 #define DECK_USED -2

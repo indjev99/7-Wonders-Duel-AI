@@ -20,8 +20,6 @@ struct ListenerGUI final : Listener
     {
         ImVec2 size;
         ImVec2 sizegap;
-        double border;
-        double rounding;
     };
 
     ListenerGUI();
@@ -40,17 +38,33 @@ private:
     std::array<SlotRowCol, NUM_OBJECTS> cachedRowCols;
     std::array<int, NUM_OBJECTS> wonderBuiltWithDeck;
 
-    std::array<GLuint, NUM_OBJECTS> objectTextures;
-
     int pressedId;
 
     void onClose();
 
-    void drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, const ListenerGUI::SpaceConfig& spaceConfig, const ImVec2& offset, int deck = DECK_NONE, const std::string& extra = "");
+    static constexpr GLint TEXTURE_NONE = -1;
+    static constexpr int NUM_TEXTURES = NUM_OBJECTS + NUM_DECKS * 2 + 4;
+    static constexpr int O_TEXTURE_DECKS = NUM_OBJECTS;
+    static constexpr int O_TEXTURE_DECKS_ROTATED = O_TEXTURE_DECKS + NUM_DECKS;
+    static constexpr int O_TEXTURE_SIDE_BOARD = O_TEXTURE_DECKS_ROTATED + NUM_DECKS;
+    static constexpr int O_TEXTURE_MILITARY_LEAD = O_TEXTURE_SIDE_BOARD + 1;
+    static constexpr int O_TEXTURE_COINS = O_TEXTURE_MILITARY_LEAD + 1;
+    static constexpr int O_TEXTURE_SCORE = O_TEXTURE_COINS + 1;
+
+    static constexpr int NUM_FONTS = 2;
+    static constexpr int MAIN_FONT = 0;
+    static constexpr int SMALL_FONT = 1;
+
+    std::array<GLuint, NUM_TEXTURES> objectTextures;
+    std::array<ImFont*, NUM_FONTS> fonts;
+
+    static GLuint loadTexture(const std::string& objName);
+    static void loadDeckTexture(int id, const std::string& objName);
+
+    void drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, const ListenerGUI::SpaceConfig& spaceConfig, const ImVec2& offset, const std::string& text = "");
     void drawDeck(int deck, const ListenerGUI::SpaceConfig& spaceConfig, const SlotRowCol* rowsCols, const ImVec2& offset, int maxSizeForCache);
     void drawBuilt(int player);
     void drawDiscarded();
-    void drawLooting(int from, int to, int deck);
     void drawMilitaryLead();
     void drawPyramid();
     void drawState(bool canAdvance = true);

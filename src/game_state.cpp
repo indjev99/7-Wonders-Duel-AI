@@ -675,6 +675,13 @@ int GameState::getDeckElem(int deck, int pos) const
     return deckObjects[pos];
 }
 
+int GameState::getObjectDeck(int id) const
+{
+    verifyObject(id);
+
+    return objectLocations[id].deck;
+}
+
 void GameState::possibleFromDeckActions(std::vector<Action>& possible, const Action& expected, int deck) const
 {
     possible.reserve(getDeckSize(deck));

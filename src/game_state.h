@@ -52,6 +52,7 @@ struct GameState
     int getDeckSize(int deck) const;
     bool isDeckEmpty(int deck) const;
     int getDeckElem(int deck, int pos) const;
+    int getObjectDeck(int id) const;
 
     const PyramidSlot& getPyramidSlot(int pos) const;
     const PlayerState& getPlayerState(int player) const;
