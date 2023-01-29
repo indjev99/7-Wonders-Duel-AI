@@ -1,7 +1,7 @@
 # Compiler settings - Can be customized.
 CC = g++
-CXXFLAGS = -std=c++17 -Wall -O3 -I GLFW/include -I .
-LDFLAGS = -static -static-libgcc -static-libstdc++ -L GLFW/lib -lglfw3 -lopengl32 -lglu32 -lgdi32
+CXXFLAGS = -std=c++17 -Wall -O3 -I include
+LDFLAGS = -static -static-libgcc -static-libstdc++ -L include/GLFW/lib -lglfw3 -lopengl32 -lglu32 -lgdi32
 
 # Makefile settings - Can be customized.
 APPNAME = 7wdai
@@ -11,7 +11,8 @@ OBJDIR = obj
 DEPDIR = dep
 
 ############## Do not change anything from here downwards! #############
-SRC = $(wildcard $(SRCDIR)/**/*$(EXT))
+rwildcard = $(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
+SRC = $(call rwildcard,$(SRCDIR)/,*$(EXT))
 OBJ = $(SRC:$(SRCDIR)/%$(EXT)=$(OBJDIR)/%.o)
 DEP = $(OBJ:$(OBJDIR)/%.o=$(DEPDIR)/%.d)
 # UNIX-based OS variables & settings
