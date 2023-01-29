@@ -119,19 +119,19 @@ const std::array<ImVec4, NUM_OBJECT_TYPES> typeCols = {{
     ImVec4(0.00, 0.00, 0.00, 1.0)
 }};
 
-const ListenerGUI::SpaceConfig cardPyramidConfig = {
+const ListenerGUI::SpaceConfig pyramidCardConfig = {
     ImVec2(44, 68),
     ImVec2(50, 40),
     1.5
 };
 
-const ListenerGUI::SpaceConfig cardBuiltConfig = {
+const ListenerGUI::SpaceConfig builtCardConfig = {
     ImVec2(44, 68),
     ImVec2(50, 18),
     1.5
 };
 
-const ListenerGUI::SpaceConfig cardWonderConfig = {
+const ListenerGUI::SpaceConfig wonderCardConfig = {
     ImVec2(68, 44),
     ImVec2(68, 44),
     1.5
@@ -164,17 +164,17 @@ const std::array<ImVec2, NUM_PLAYERS> builtCardOffset = {{
     ImVec2(230, 82)
 }};
 
-const std::array<ImVec2, NUM_PLAYERS> builtTokenOffset = {{
-    ImVec2(584, 488),
-    ImVec2(584, 115)
+const std::array<ImVec2, NUM_PLAYERS> builtTokenHalfRelOffset = {{
+    ImVec2(10, 488),
+    ImVec2(10, 115)
 }};
 
-const ImVec2 cardWonderRelOffset(37, 10.5);
+const ImVec2 wonderCardRelOffset(37, 10.5);
 
 const ImVec2 textPos = ImVec2(0.5, 0.0);
 
-const int MAX_BUILT_CARD_COL = 5;
-const int MAX_BUILT_TOKEN_COL = 3;
+const int MAX_BUILT_CARD_PER_COL = 5;
+const int MAX_BUILT_TOKEN_PER_COL = 3;
 
 const double SIZE_MULT = 1.75;
 
@@ -204,10 +204,10 @@ void ListenerGUI::drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, c
 
     if (objId != OBJ_NONE && objects[objId].type == OT_WONDER && deck != DECK_NONE)
     {
-        ImGui::PushID("CARD UNDER");
-        double cX = x + cardWonderRelOffset.x;
-        double cY = y + cardWonderRelOffset.y;
-        drawObject(OBJ_NONE, {0, 0}, cardWonderConfig, ImVec2(cX, cY), deck);
+        ImGui::PushID("WONDER CARD");
+        double cX = x + wonderCardRelOffset.x;
+        double cY = y + wonderCardRelOffset.y;
+        drawObject(OBJ_NONE, {0, 0}, wonderCardConfig, ImVec2(cX, cY), deck);
         ImGui::PopID();
     }
 
@@ -283,7 +283,7 @@ void ListenerGUI::drawPyramid()
         const PyramidSlot& slot = game->getPyramidSlot(i);
         if (slot.objectId == OBJ_NONE) continue;
         int id = slot.objectId != SLOT_UNREVEALED ? slot.objectId : OBJ_NONE;
-        drawObject(id, slotRowCols[age][i], cardPyramidConfig, pyramidCardOffset, slot.deck);
+        drawObject(id, slotRowCols[age][i], pyramidCardConfig, pyramidCardOffset, slot.deck);
     }
 
     ImGui::PopID();
@@ -293,8 +293,39 @@ void ListenerGUI::drawBuilt(int player)
 {
     const PlayerState& state = game->getPlayerState(player);
 
-    std::array<int, NUM_OBJECT_TYPES> cntByType;
-    std::fill(cntByType.begin(), cntByType.end(), 0);
+    std::vector<int> cntByCol;
+    std::array<int, NUM_OBJECTS> objCol;
+    std::array<int, NUM_OBJECTS> objRow;
+
+    int currType = OT_NONE;
+    int currCol = -1;
+    int lastCardCol = -1;
+
+    for (int i = 0; i < NUM_OBJECTS; ++i)
+    {
+        int type = objects[i].type;
+
+        if (type == OT_WONDER) continue;
+        if (type == OT_LOOTING) continue;
+        if (!state.objectsBuilt[i]) continue;
+
+        int maxInCol = type == OT_TOKEN ? MAX_BUILT_TOKEN_PER_COL : MAX_BUILT_CARD_PER_COL;
+
+        if (type != currType || cntByCol[currCol] == maxInCol)
+        {
+            currType = type;
+            currCol++;
+            cntByCol.push_back(0);
+        }
+
+        if (type != OT_TOKEN) lastCardCol = currCol;
+
+        objCol[i] = currCol;
+        objRow[i] = cntByCol[currCol];
+
+        cntByCol[currCol]++;
+    }
+
 
     ImGui::PushID("BUILT");
     ImGui::PushID(player);
@@ -306,17 +337,27 @@ void ListenerGUI::drawBuilt(int player)
         if (type == OT_LOOTING) continue;
         if (!state.objectsBuilt[i]) continue;
 
-        int row = cntByType[type];
-        cntByType[type]++;
+        if (type == OT_WONDER)
+        {
+            drawObject(i, cachedRowCols[i], wonderConfig, selectedWondersOffset[player], wonderBuiltWithDeck[i]);
+            continue;
+        }
 
-        int maxCol = type == OT_TOKEN ? MAX_BUILT_TOKEN_COL : MAX_BUILT_CARD_COL;
+        int col = objCol[i];
+        int row = objRow[i];
 
-        if (player == 0) row -= std::max(0, state.typeCounts[type] - maxCol);
-        else row -= std::min(maxCol, state.typeCounts[type]) - 1;
+        if (player != 0) row -= cntByCol[col] - 1;
 
-        if (type == OT_TOKEN) drawObject(i, SlotRowCol{row, 0}, tokenConfig, builtTokenOffset[player]);
-        else if (type == OT_WONDER) drawObject(i, cachedRowCols[i], wonderConfig, selectedWondersOffset[player], wonderBuiltWithDeck[i]);
-        else drawObject(i, SlotRowCol{row, 2 * type}, cardBuiltConfig, builtCardOffset[player]);
+        if (type == OT_TOKEN)
+        {
+            double oX = builtCardOffset[player].x +
+                (lastCardCol == -1 ? 0 : lastCardCol * builtCardConfig.sizegap.x + builtCardConfig.size.x + builtTokenHalfRelOffset[player].x);
+            double oY = builtTokenHalfRelOffset[player].y;
+            drawObject(i, SlotRowCol{row, 2 * (col - lastCardCol - 1)}, tokenConfig, ImVec2(oX, oY));
+            continue;
+        }
+
+        drawObject(i, SlotRowCol{row, 2 * col}, builtCardConfig, builtCardOffset[player]);
     }
 
     ImGui::PopID();
