@@ -2,8 +2,8 @@
 
 #include "listener.h"
 
-#include <imgui/imgui.h>
 #include <GLFW/glfw3.h>
+#include <imgui/imgui.h>
 
 struct ListenerGUI final : Listener
 {
@@ -34,12 +34,13 @@ private:
 
     std::array<bool, NUM_DECKS> isDeckCached;
     std::array<SlotRowCol, NUM_OBJECTS> cachedRowCols;
+    std::array<int, NUM_OBJECTS> wonderBuiltWithDeck;
 
     int pressedId;
 
     void onClose();
 
-    void drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, const ListenerGUI::SpaceConfig& spaceConfig, const ImVec2& offset, int deck = DECK_AGE_1);
+    void drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, const ListenerGUI::SpaceConfig& spaceConfig, const ImVec2& offset, int deck = DECK_NONE);
     void drawDeck(int deck, const ListenerGUI::SpaceConfig& spaceConfig, const SlotRowCol* rowsCols, const ImVec2& offset, int maxSizeForCache);
     void drawBuilt(int player);
     void drawPyramid();

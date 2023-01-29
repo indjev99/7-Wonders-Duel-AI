@@ -1,5 +1,6 @@
 #include "listener_gui.h"
 
+#include <algorithm>
 #include <iostream>
 
 #include <imgui/imgui_internal.h>
@@ -130,6 +131,12 @@ const ListenerGUI::SpaceConfig cardBuiltConfig = {
     1.5
 };
 
+const ListenerGUI::SpaceConfig cardWonderConfig = {
+    ImVec2(68, 44),
+    ImVec2(68, 44),
+    1.5
+};
+
 const ListenerGUI::SpaceConfig wonderConfig = {
     ImVec2(100, 65),
     ImVec2(110, 75),
@@ -162,12 +169,13 @@ const std::array<ImVec2, NUM_PLAYERS> builtTokenOffset = {{
     ImVec2(584, 115)
 }};
 
+const ImVec2 cardWonderRelOffset(37, 10.5);
+
 const ImVec2 textPos = ImVec2(0.5, 0.0);
 
 const int MAX_BUILT_CARD_COL = 5;
 const int MAX_BUILT_TOKEN_COL = 3;
 
-const double TOP_OFFSET = 15;
 const double SIZE_MULT = 1.75;
 
 const double BORDER_DARK = 0.5;
@@ -179,6 +187,8 @@ ImVec4 borderCol(const ImVec4& col)
 
 void ListenerGUI::drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, const ListenerGUI::SpaceConfig& spaceConfig, const ImVec2& offset, int deck)
 {
+    if (objId == OBJ_NONE && deck == DECK_NONE) return;
+
     bool pressed = false;
 
     ImVec4 col = objId != OBJ_NONE ? typeCols[objects[objId].type] : deckCols[deck];
@@ -192,11 +202,20 @@ void ListenerGUI::drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, c
     ImGui::PushID(rowCol.row);
     ImGui::PushID(rowCol.col);
 
+    if (objId != OBJ_NONE && objects[objId].type == OT_WONDER && deck != DECK_NONE)
+    {
+        ImGui::PushID("CARD UNDER");
+        double cX = x + cardWonderRelOffset.x;
+        double cY = y + cardWonderRelOffset.y;
+        drawObject(OBJ_NONE, {0, 0}, cardWonderConfig, ImVec2(cX, cY), deck);
+        ImGui::PopID();
+    }
+
     ImGui::PushStyleColor(ImGuiCol_Button, bCol);
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, bCol);
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, bCol);
 
-    ImGui::SetCursorPos(ImVec2(x * SIZE_MULT, y * SIZE_MULT + TOP_OFFSET));
+    ImGui::SetCursorPos(ImVec2(x * SIZE_MULT, y * SIZE_MULT));
     pressed = pressed || ImGui::ButtonEx(("## Border of " + name).c_str(), ImVec2(spaceConfig.size.x * SIZE_MULT, spaceConfig.size.y * SIZE_MULT), ImGuiButtonFlags_AllowItemOverlap);
     ImGui::SetItemAllowOverlap();
 
@@ -214,7 +233,7 @@ void ListenerGUI::drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, c
 
     ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, textPos);
 
-    ImGui::SetCursorPos(ImVec2(x * SIZE_MULT, y * SIZE_MULT + TOP_OFFSET));
+    ImGui::SetCursorPos(ImVec2(x * SIZE_MULT, y * SIZE_MULT));
     pressed = pressed || ImGui::ButtonEx(name.c_str(), ImVec2(sizeX * SIZE_MULT, sizeY * SIZE_MULT), ImGuiButtonFlags_AllowItemOverlap);
     ImGui::SetItemAllowOverlap();
 
@@ -296,7 +315,7 @@ void ListenerGUI::drawBuilt(int player)
         else row -= std::min(maxCol, state.typeCounts[type]) - 1;
 
         if (type == OT_TOKEN) drawObject(i, SlotRowCol{row, 0}, tokenConfig, builtTokenOffset[player]);
-        else if (type == OT_WONDER) drawObject(i, cachedRowCols[i], wonderConfig, selectedWondersOffset[player]);
+        else if (type == OT_WONDER) drawObject(i, cachedRowCols[i], wonderConfig, selectedWondersOffset[player], wonderBuiltWithDeck[i]);
         else drawObject(i, SlotRowCol{row, 2 * type}, cardBuiltConfig, builtCardOffset[player]);
     }
 
@@ -325,7 +344,10 @@ void ListenerGUI::drawState()
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-        ImGui::Begin("7wdai");
+        ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
+        ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+        ImGui::Begin("7wdai", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoResize);
 
         pressedId = OBJ_NONE;
 
@@ -345,14 +367,11 @@ void ListenerGUI::drawState()
 
         drawPyramid();
 
-        ImGui::SetCursorPos(ImVec2(10 * SIZE_MULT, 312 * SIZE_MULT + TOP_OFFSET));
-
-        if (ImGui::Button("Advance"))
-        {
-            advance = true;
-        }
+        ImGui::SetCursorPos(ImVec2(10 * SIZE_MULT, 313 * SIZE_MULT));
+        advance = ImGui::Button("Advance");
 
         ImGui::End();
+        ImGui::PopStyleVar(1);
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         glfwSwapBuffers(window);
@@ -397,6 +416,15 @@ ListenerGUI::ListenerGUI()
     ImGui_ImplOpenGL3_Init("#version 330");
 }
 
+int findDeck(int id)
+{
+    if (std::find(age1Cards.begin(), age1Cards.end(), id) != age1Cards.end()) return DECK_AGE_1;
+    if (std::find(age2Cards.begin(), age2Cards.end(), id) != age2Cards.end()) return DECK_AGE_2;
+    if (std::find(age3Cards.begin(), age3Cards.end(), id) != age3Cards.end()) return DECK_AGE_3;
+    if (std::find(guildCards.begin(), guildCards.end(), id) != guildCards.end()) return DECK_GUILDS;
+    return DECK_NONE;
+}
+
 ListenerGUI::~ListenerGUI()
 {
     if (closed) return;
@@ -427,6 +455,10 @@ void ListenerGUI::notifyStart()
 void ListenerGUI::notifyAction(const Action& action)
 {
     if (action.isPlayerMove()) drawState();
+    if (action.type == ACT_MOVE_PLAY_PYRAMID_CARD && action.arg2 >= 0)
+    {
+        wonderBuiltWithDeck[action.arg2] = findDeck(action.arg1);
+    }
 }
 
 void ListenerGUI::notifyEnd()
