@@ -7,8 +7,6 @@
 #include <imgui/imgui_impl_glfw.h>
 #include <imgui/imgui_impl_opengl3.h>
 
-#define NUM_CARD_DECKS 4
-
 const std::array<std::array<ListenerGUI::SlotRowCol, PYRAMID_SIZE>, NUM_AGES> slotRowCols = {{
     {{
         {1, 4},
@@ -99,11 +97,19 @@ const std::array<ListenerGUI::SlotRowCol, NUM_TOKENS> boxTokenRowCols = {{
     {2, 0}
 }};
 
-const std::array<ImVec4, NUM_CARD_DECKS> deckCols = {{
+#define NUM_COL_DECKS 7
+#define DECK_MLEAD_FIGURE 4
+#define DECK_MLEAD_SLOT 5
+#define DECK_MLEAD_FINAL_SLOT 6
+
+const std::array<ImVec4, NUM_COL_DECKS> deckCols = {{
     ImVec4(0.74, 0.38, 0.18, 1.0),
     ImVec4(0.00, 0.57, 0.81, 1.0),
     ImVec4(0.71, 0.58, 0.76, 1.0),
-    ImVec4(0.45, 0.42, 0.68, 1.0)
+    ImVec4(0.45, 0.42, 0.68, 1.0),
+    ImVec4(0.77, 0.10, 0.12, 1.0),
+    ImVec4(0.79, 0.55, 0.45, 1.0),
+    ImVec4(0.79, 0.72, 0.43, 1.0)
 }};
 
 const std::array<ImVec4, NUM_OBJECT_TYPES> typeCols = {{
@@ -137,6 +143,12 @@ const ListenerGUI::SpaceConfig wonderCardConfig = {
     1.5
 };
 
+const ListenerGUI::SpaceConfig discardedConfig = {
+    ImVec2(44, 68),
+    ImVec2(50, 74),
+    1.5
+};
+
 const ListenerGUI::SpaceConfig wonderConfig = {
     ImVec2(100, 65),
     ImVec2(110, 75),
@@ -149,10 +161,18 @@ const ListenerGUI::SpaceConfig tokenConfig = {
     1.0
 };
 
+const ListenerGUI::SpaceConfig mLeadSlotConfig = {
+    ImVec2(30, 12),
+    ImVec2(30, 15),
+    1.0
+};
+
 const ImVec2 pyramidCardOffset(10, 165);
 const ImVec2 revealedWonderOffset(52, 249);
-const ImVec2 gameTokenOffset(320, 221.5);
-const ImVec2 boxTokenOffset(365, 261.5);
+const ImVec2 gameTokenOffset(375, 221.5);
+const ImVec2 boxTokenOffset(420, 261.5);
+const ImVec2 discardedOffset(10, 643);
+const ImVec2 mLeadOffset(330, 313);
 
 const std::array<ImVec2, NUM_PLAYERS> selectedWondersOffset = {{
     ImVec2(10, 488),
@@ -175,8 +195,9 @@ const ImVec2 textPos = ImVec2(0.5, 0.0);
 
 const int MAX_BUILT_CARD_PER_COL = 5;
 const int MAX_BUILT_TOKEN_PER_COL = 3;
+const int MAX_DISCARDED_PER_ROW = 15;
 
-const double SIZE_MULT = 1.75;
+const double SIZE_MULT = 1.7;
 
 const double BORDER_DARK = 0.5;
 
@@ -326,7 +347,6 @@ void ListenerGUI::drawBuilt(int player)
         cntByCol[currCol]++;
     }
 
-
     ImGui::PushID("BUILT");
     ImGui::PushID(player);
 
@@ -364,7 +384,43 @@ void ListenerGUI::drawBuilt(int player)
     ImGui::PopID();
 }
 
-void ListenerGUI::drawState()
+void ListenerGUI::drawDiscarded()
+{
+    ImGui::PushID(DECK_DISCARDED);
+
+    for (int i = 0; i < game->getDeckSize(DECK_DISCARDED); i++)
+    {
+        int objectId = game->getDeckElem(DECK_DISCARDED, i);
+        SlotRowCol rowCol = {i / MAX_DISCARDED_PER_ROW, i % MAX_DISCARDED_PER_ROW * 2};
+        drawObject(objectId, rowCol, discardedConfig, discardedOffset);
+    }
+
+    ImGui::PopID();
+}
+
+void ListenerGUI::drawMilitaryLead()
+{
+    ImGui::PushID("MLEAD SLOTS");
+
+    for (int i = - MILITARY_THRESHOLD_WIN; i <= MILITARY_THRESHOLD_WIN; i++)
+    {
+        drawObject(OBJ_NONE, {i, 0}, mLeadSlotConfig, mLeadOffset, std::abs(i) < MILITARY_THRESHOLD_WIN ? DECK_MLEAD_SLOT : DECK_MLEAD_FINAL_SLOT);
+    }
+
+    ImGui::PopID();
+
+    ImGui::PushID("MLEAD FIGURE");
+
+    int mLead = game->getMilitaryLead(0);
+    mLead = std::min(MILITARY_THRESHOLD_WIN, mLead);
+    mLead = std::max(- MILITARY_THRESHOLD_WIN, mLead);
+
+    drawObject(OBJ_NONE, {mLead, 0}, mLeadSlotConfig, mLeadOffset, DECK_MLEAD_FIGURE);
+
+    ImGui::PopID();
+}
+
+void ListenerGUI::drawState(bool canAdvance)
 {
     if (closed) return;
 
@@ -407,9 +463,14 @@ void ListenerGUI::drawState()
         }
 
         drawPyramid();
+        drawDiscarded();
+        drawMilitaryLead();
 
-        ImGui::SetCursorPos(ImVec2(10 * SIZE_MULT, 313 * SIZE_MULT));
-        advance = ImGui::Button("Advance");
+        if (canAdvance)
+        {
+            ImGui::SetCursorPos(ImVec2(10 * SIZE_MULT, 314 * SIZE_MULT));
+            advance = ImGui::Button("Advance");
+        }
 
         ImGui::End();
         ImGui::PopStyleVar(1);
@@ -432,22 +493,20 @@ ListenerGUI::ListenerGUI()
     if (!glfwInit())
     {
         closed = true;
-        exit(1);
         return;
     }
 
-    window = glfwCreateWindow(1200, 1200, "7wdai", NULL, NULL);
+    window = glfwCreateWindow(1600, 1300, "7wdai", NULL, NULL);
 
     if (window == nullptr)
     {
         closed = true;
         glfwTerminate();
-        exit(1);
         return;
     }
 
     glfwMakeContextCurrent(window);
-    glViewport(0, 0, 1200, 1200);
+    glViewport(0, 0, 1600, 1300);
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -483,14 +542,11 @@ void ListenerGUI::onClose()
 
     glfwDestroyWindow(window);
     glfwTerminate();
-
-    exit(0);
 }
 
 void ListenerGUI::notifyStart()
 {
     std::fill(isDeckCached.begin(), isDeckCached.end(), false);
-    drawState();
 }
 
 void ListenerGUI::notifyAction(const Action& action)
@@ -504,5 +560,5 @@ void ListenerGUI::notifyAction(const Action& action)
 
 void ListenerGUI::notifyEnd()
 {
-    drawState();
+    drawState(false);
 }
