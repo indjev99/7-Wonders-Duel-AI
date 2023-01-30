@@ -276,8 +276,8 @@ const ListenerGUI::SpaceConfig textButtonConfig = {
     ImVec2(65, 25)
 };
 
-const ImVec2 pyramidCardOffset(200, 156);
-const ImVec2 revealedWonderOffset(242, 240);
+const ImVec2 pyramidCardOffset(230, 156);
+const ImVec2 revealedWonderOffset(272, 240);
 const ImVec2 wonderCardRelOffset(42, 10.5);
 const ImVec2 gameTokenOffset(817.3, 214.1);
 const ImVec2 boxTokenOffset(705, 251.8);
