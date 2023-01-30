@@ -682,11 +682,15 @@ int GameState::getObjectDeck(int id) const
     return objectLocations[id].deck;
 }
 
-int GameState::getObjectPos(int id) const
+bool GameState::isPlayableCard(int id) const
 {
     verifyObject(id);
 
-    return objectLocations[id].pos;
+    const ObjectLocation& loc = objectLocations[id];
+
+    if (loc.deck != DECK_CARD_PYRAMID) return false;
+    if (cardPyramid[loc.pos].coveredBy > 0) return false;
+    return true;
 }
 
 void GameState::possibleFromDeckActions(std::vector<Action>& possible, const Action& expected, int deck) const

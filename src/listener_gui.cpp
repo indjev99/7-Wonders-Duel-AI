@@ -1,5 +1,7 @@
 #include "listener_gui.h"
 
+#include "player_gui.h"
+
 #include <algorithm>
 #include <iostream>
 
@@ -415,8 +417,8 @@ bool ListenerGUI::drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, c
 {
     bool pressed = false;
 
-    std::string name = objId != OBJ_NONE && objId < NUM_OBJECTS ? objects[objId].name : "##";
-    GLint texture = objId != OBJ_NONE ? objectTextures[objId] : TEXTURE_NONE;
+    std::string name = objId < NUM_OBJECTS ? objects[objId].name : "##";
+    GLint texture = objectTextures[objId];
 
     ImVec2 pos = spaceConfig.sizegap * ImVec2(rowCol.col / 2.0, rowCol.row) + offset;
 
@@ -424,7 +426,7 @@ bool ListenerGUI::drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, c
     ImGui::PushID(rowCol.row);
     ImGui::PushID(rowCol.col);
 
-    if (objId != OBJ_NONE && objId < NUM_OBJECTS && objects[objId].type == OT_WONDER && game->getObjectDeck(objId) == DECK_USED)
+    if (objId < NUM_OBJECTS && objects[objId].type == OT_WONDER && game->getObjectDeck(objId) == DECK_USED)
     {
         ImGui::PushID("WONDER CARD");
         drawObject(O_TEXTURE_DECKS_ROTATED + wonderBuiltWithDeck[objId], {0, 0}, wonderCardConfig, pos + wonderCardRelOffset);
@@ -446,7 +448,7 @@ bool ListenerGUI::drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, c
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
 
         ImGui::SetCursorPos(pos * SIZE_MULT);
-        ImVec4 tintCol = objId != OBJ_NONE && isHighlighted[objId] ? highlightTintColor : nonHighlightTintColor;
+        ImVec4 tintCol = isHighlighted[objId] ? highlightTintColor : nonHighlightTintColor;
         pressed = myImageButton(name.c_str(), (void*) (intptr_t) texture, spaceConfig.size * SIZE_MULT, text.data(), ImGuiButtonFlags_AllowItemOverlap, tintCol);
         ImGui::SetItemAllowOverlap();
 
@@ -455,7 +457,7 @@ bool ListenerGUI::drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, c
         ImGui::PopStyleColor(3);
     }
 
-    if (objId != OBJ_NONE && objId < NUM_OBJECTS && game->getObjectDeck(objId) == DECK_CARD_PYRAMID && game->getPyramidSlot(game->getObjectPos(objId)).coveredBy == 0)
+    if (objId < NUM_OBJECTS && game->isPlayableCard(objId))
     {
         for (int i = 0; i < NUM_PLAYERS; ++i)
         {
@@ -465,7 +467,7 @@ bool ListenerGUI::drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, c
 
     for (int i = 0; i < NUM_PLAYERS; ++i)
     {
-        if (objId != OBJ_NONE && objId < NUM_OBJECTS && game->getObjectDeck(objId) == DECK_SELECTED_WONDERS + i)
+        if (objId < NUM_OBJECTS && game->getObjectDeck(objId) == DECK_SELECTED_WONDERS + i)
         {
             pressed = pressed || drawCost(objId, i, pos + wonderCostRelOffset);
         }
@@ -475,7 +477,11 @@ bool ListenerGUI::drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, c
     ImGui::PopID();
     ImGui::PopID();
 
-    if (objId != OBJ_NONE && objId < NUM_OBJECTS && pressed) pressedId = objId;
+    if (objId < NUM_OBJECTS && pressed)
+    {
+        std::cerr << "Pressed: " << objId << " " << objects[objId].name << std::endl;
+        pressedObjId = objId;
+    }
 
     return pressed;
 }
@@ -646,7 +652,7 @@ void ListenerGUI::drawMilitaryLead()
     ImGui::PopID();
 }
 
-void ListenerGUI::drawState(bool canAdvance)
+void ListenerGUI::drawState(bool canAdvance, PlayerGUI* playerGui)
 {
     if (closed) return;
 
@@ -677,7 +683,7 @@ void ListenerGUI::drawState(bool canAdvance)
         ImGui::PushFont(fonts[MAIN_FONT]);
         ImGui::Begin("7wdai", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoResize);
 
-        pressedId = OBJ_NONE;
+        pressedObjId = OBJ_NONE;
 
         drawPyramid();
         drawDiscarded();
@@ -699,6 +705,11 @@ void ListenerGUI::drawState(bool canAdvance)
             advance = ImGui::ArrowButton("##Advance", ImGuiDir_::ImGuiDir_Right);
         }
 
+        if (playerGui != nullptr)
+        {
+            advance = playerGui->guiCanAdvance();
+        }
+
         ImGui::End();
         ImGui::PopFont();
         ImGui::PopStyleVar(1);
@@ -707,6 +718,8 @@ void ListenerGUI::drawState(bool canAdvance)
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         glfwSwapBuffers(window);
     }
+
+    if (playerGui) lastMoveWasFromGui = true;
 }
 
 void glfwErrorCallback(int error, const char* description)
@@ -753,10 +766,7 @@ ListenerGUI::ListenerGUI()
     fonts[MAIN_FONT] = io.Fonts->AddFontFromFileTTF("resources/Roboto-Medium.ttf", MAIN_FONT_SIZE);
     fonts[SMALL_FONT] = io.Fonts->AddFontFromFileTTF("resources/Roboto-Medium.ttf", SMALL_FONT_SIZE);
 
-    for (int i = 0; i < NUM_TEXTURES; ++i)
-    {
-        objectTextures[i] = TEXTURE_NONE;
-    }
+    std::fill(objectTextures.begin(), objectTextures.end(), TEXTURE_NONE);
 
     for (int i = 0; i < NUM_OBJECTS; ++i)
     {
@@ -806,25 +816,28 @@ void ListenerGUI::onClose()
 
 void ListenerGUI::notifyStart()
 {
+    lastMoveWasFromGui = false;
     std::fill(isDeckCached.begin(), isDeckCached.end(), false);
 }
 
 void ListenerGUI::notifyAction(const Action& action)
 {
-    std::fill(isHighlighted.begin(), isHighlighted.end(), false);
-
-    if (action.isPlayerMove())
+    if (action.isPlayerMove() && !lastMoveWasFromGui)
     {
+        std::fill(isHighlighted.begin(), isHighlighted.end(), false);
+
         if (action.type != ACT_MOVE_CHOOSE_START_PLAYER) isHighlighted[action.arg1] = true;
         if (action.type == ACT_MOVE_PLAY_PYRAMID_CARD && action.arg2 >= 0) isHighlighted[action.arg2] = true;
-    }
 
-    if (action.isPlayerMove()) drawState();
+        drawState();
+    }
 
     if (action.type == ACT_MOVE_PLAY_PYRAMID_CARD && action.arg2 >= 0)
     {
         wonderBuiltWithDeck[action.arg2] = findDeck(action.arg1);
     }
+
+    lastMoveWasFromGui = false;
 }
 
 void ListenerGUI::notifyEnd()

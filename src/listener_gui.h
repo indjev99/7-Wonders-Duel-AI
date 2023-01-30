@@ -8,6 +8,8 @@
 #include <GLFW/glfw3.h>
 #include <imgui/imgui.h>
 
+struct PlayerGUI;
+
 struct ListenerGUI final : Listener
 {
     struct SlotRowCol
@@ -38,7 +40,8 @@ private:
     std::array<SlotRowCol, NUM_OBJECTS> cachedRowCols;
     std::array<int, NUM_OBJECTS> wonderBuiltWithDeck;
 
-    int pressedId;
+    int pressedObjId;
+    bool lastMoveWasFromGui;
 
     void onClose();
 
@@ -70,5 +73,7 @@ private:
     void drawDiscarded();
     void drawMilitaryLead();
     void drawPyramid();
-    void drawState(bool canAdvance = true);
+    void drawState(bool canAdvance = true, PlayerGUI* playerGui = nullptr);
+
+    friend PlayerGUI;
 };
