@@ -439,7 +439,7 @@ void GameState::doAction(const Action& action)
         return;
     }
 
-    advancePlayer();
+    if (action.type != ACT_MOVE_CHOOSE_START_PLAYER) advancePlayer();
     queueAction(Action(ACT_MOVE_PLAY_PYRAMID_CARD));
 }
 
