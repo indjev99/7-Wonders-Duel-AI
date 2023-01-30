@@ -326,7 +326,9 @@ const int MAX_BUILT_CARD_PER_COL = 5;
 const int MAX_BUILT_TOKEN_PER_COL = 3;
 const int MAX_DISCARDED_PER_ROW = 17;
 
-const double SIZE_MULT = 1.5;
+const double SIZE_MULT_DELTA = 0.1;
+double SIZE_MULT = 1.5;
+
 const int MAIN_FONT_SIZE = 22;
 const int SMALL_FONT_SIZE = 17;
 
@@ -484,11 +486,7 @@ bool ListenerGUI::drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, c
     ImGui::PopID();
     ImGui::PopID();
 
-    if (pressed)
-    {
-        std::cerr << "Pressed: " << objId << std::endl;
-        pressedId = objId;
-    }
+    if (pressed) pressedId = objId;
 
     return pressed;
 }
@@ -697,9 +695,27 @@ void ListenerGUI::drawButtons(bool advanceButton)
     ImGui::PopID();
 }
 
+bool ListenerGUI::isPressed(ImGuiKey key)
+{
+    return ImGui::IsKeyPressed(ImGui::GetKeyIndex(key));
+}
+
+bool ListenerGUI::isDown(ImGuiKey key)
+{
+    return ImGui::IsKeyDown(ImGui::GetKeyIndex(key));
+}
+
 void ListenerGUI::drawState(bool advanceButton, bool fastAdvance, PlayerGUI* playerGui)
 {
     if (closed) return;
+
+    if (playerGui != nullptr)
+    {
+        advanceButton = false;
+        fastAdvance = false;
+    }
+
+    if (fastAdvance) advanceButton = false;
 
     bool advance = false;
     bool advanceNext = fastAdvance;
@@ -731,6 +747,9 @@ void ListenerGUI::drawState(bool advanceButton, bool fastAdvance, PlayerGUI* pla
         ImGui::PushFont(fonts[MAIN_FONT]);
         ImGui::Begin("7wdai", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoResize);
 
+        if (isPressed(ImGuiKey_KeypadAdd) || isPressed(ImGuiKey_Equal)) SIZE_MULT = SIZE_MULT + SIZE_MULT_DELTA;
+        if (isPressed(ImGuiKey_KeypadSubtract) || isPressed(ImGuiKey_Minus)) SIZE_MULT = std::max(0.0, SIZE_MULT - SIZE_MULT_DELTA);
+
         pressedId = OBJ_NONE;
 
         drawPyramid();
@@ -750,14 +769,17 @@ void ListenerGUI::drawState(bool advanceButton, bool fastAdvance, PlayerGUI* pla
 
         drawButtons(advanceButton);
 
-        if (advanceButton && !advance) advance = pressedId == O_TEXTURE_ADVANCE_BUTTON;
-
-        if (playerGui != nullptr)
+        if (advanceButton && !advance)
         {
-            // To do: player gui should be split in two
-            // Also do highlighting for the partial action
+            advance = pressedId == O_TEXTURE_ADVANCE_BUTTON || isPressed(ImGuiKey_Space) || isPressed(ImGuiKey_Enter);
+        }
+
+        if (playerGui != nullptr && pressedId != OBJ_NONE)
+        {
+            clearHighlights();
             advanceButton = playerGui->guiCanAdvance();
             if (!advanceButton) advance = false;
+            highlightAction(playerGui->action);
         }
 
         ImGui::End();
@@ -770,6 +792,8 @@ void ListenerGUI::drawState(bool advanceButton, bool fastAdvance, PlayerGUI* pla
     }
 
     if (playerGui) lastMoveWasFromGui = true;
+
+    clearHighlights();
 }
 
 void glfwErrorCallback(int error, const char* description)
@@ -875,31 +899,43 @@ void ListenerGUI::onClose()
     glfwTerminate();
 }
 
+void ListenerGUI::clearHighlights()
+{
+    std::fill(isHighlighted.begin(), isHighlighted.end(), false);
+}
+
+void ListenerGUI::highlightAction(const Action& action)
+{
+    if (action.type == ACT_MOVE_CHOOSE_START_PLAYER && action.arg1 != ACT_ARG_NONE)
+        isHighlighted[O_TEXTURE_PLAYER_BUTTONS + action.arg1] = true;
+    
+    if (action.type != ACT_MOVE_CHOOSE_START_PLAYER && action.arg1 != ACT_ARG_NONE)
+        isHighlighted[action.arg1] = true;
+
+    if (action.type == ACT_MOVE_PLAY_PYRAMID_CARD && action.arg2 != ACT_ARG_NONE)
+    {
+        if (action.arg2 == ACT_ARG2_BUILD) isHighlighted[O_TEXTURE_COPT_BUTTONS + COPT_BUILD] = true;
+        else if (action.arg2 == ACT_ARG2_DISCARD) isHighlighted[O_TEXTURE_COPT_BUTTONS + COPT_DISCARD] = true;
+        else
+        {
+            isHighlighted[O_TEXTURE_COPT_BUTTONS + COPT_WONDER] = true;
+            if (action.arg2 != ACT_ARG2_WONDER) isHighlighted[action.arg2] = true;
+        }
+    }
+}
+
 void ListenerGUI::notifyStart()
 {
     lastMoveWasFromGui = false;
     std::fill(isDeckCached.begin(), isDeckCached.end(), false);
+    clearHighlights();
 }
 
 void ListenerGUI::notifyActionPre(const Action& action)
 {
     if (action.isPlayerMove() && !lastMoveWasFromGui)
     {
-        std::fill(isHighlighted.begin(), isHighlighted.end(), false);
-
-        if (action.type == ACT_MOVE_CHOOSE_START_PLAYER) isHighlighted[O_TEXTURE_PLAYER_BUTTONS + action.arg1] = true;
-        if (action.type != ACT_MOVE_CHOOSE_START_PLAYER) isHighlighted[action.arg1] = true;
-        if (action.type == ACT_MOVE_PLAY_PYRAMID_CARD)
-        {
-            if (action.arg2 == ACT_ARG2_BUILD) isHighlighted[O_TEXTURE_COPT_BUTTONS + COPT_BUILD] = true;
-            else if (action.arg2 == ACT_ARG2_DISCARD) isHighlighted[O_TEXTURE_COPT_BUTTONS + COPT_DISCARD] = true;
-            else
-            {
-                isHighlighted[O_TEXTURE_COPT_BUTTONS + COPT_WONDER] = true;
-                isHighlighted[action.arg2] = true;
-            }
-        }
-
+        highlightAction(action);
         drawState();
     }
 
@@ -915,13 +951,10 @@ void ListenerGUI::notifyActionPost(const Action& action)
 {
     if (game->isTerminal() || !game->getExpectedAction().isPlayerMove()) return;
 
-    std::fill(isHighlighted.begin(), isHighlighted.end(), false);
-
     drawState(false, true);
 }
 
 void ListenerGUI::notifyEnd()
 {
-    std::fill(isHighlighted.begin(), isHighlighted.end(), false);
     drawState(false);
 }

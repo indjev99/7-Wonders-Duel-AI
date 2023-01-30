@@ -19,7 +19,7 @@
 #define ACT_ARG2_DISCARD -2
 
 #define ACT_INVALID -100
-#define ACT_ARG_EMPTY -100
+#define ACT_ARG_NONE -100
 
 struct Action
 {
@@ -27,7 +27,9 @@ struct Action
     int arg1;
     int arg2;
 
-    Action(int type = ACT_INVALID, int arg1 = ACT_ARG_EMPTY, int arg2 = ACT_ARG_EMPTY);
+    Action(int type = ACT_INVALID, int arg1 = ACT_ARG_NONE, int arg2 = ACT_ARG_NONE);
 
     bool isPlayerMove() const;
 };
+
+bool operator==(const Action& left, const Action& right);

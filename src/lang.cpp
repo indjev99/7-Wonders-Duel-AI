@@ -95,7 +95,7 @@ std::vector<std::string> splitActionStr(const std::string& actionStr)
 
 std::string posToString(int pos)
 {
-    if (pos == ACT_ARG_EMPTY) return S_NONE;
+    if (pos == ACT_ARG_NONE) return S_NONE;
     else return std::to_string(pos);
 }
 
@@ -124,7 +124,7 @@ std::string ageToString(int age)
 
 std::string actorToString(int actor)
 {
-    if (actor == ACT_ARG_EMPTY) return S_NONE;
+    if (actor == ACT_ARG_NONE) return S_NONE;
     if (actor == ACTOR_GAME) return S_GAME;
     return S_PLAYER_SP + std::to_string(actor + 1);
 }
@@ -147,7 +147,7 @@ std::string actionToString(const Action& action)
     case ACT_MOVE_PLAY_PYRAMID_CARD:
         switch (action.arg2)
         {
-        case ACT_ARG_EMPTY:
+        case ACT_ARG_NONE:
             return joinActionStr({S_MOVE_PLAY_PYRAMID_CARD, S_NONE});
 
         case ACT_ARG2_BUILD:

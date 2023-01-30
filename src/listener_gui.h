@@ -69,6 +69,8 @@ private:
     static constexpr int MAIN_FONT = 0;
     static constexpr int SMALL_FONT = 1;
 
+    static constexpr int ACT_ARG2_WONDER = -3;
+
     std::array<bool, NUM_TEXTURES> isHighlighted;
 
     std::array<GLuint, NUM_TEXTURES> objectTextures;
@@ -76,6 +78,12 @@ private:
 
     static GLuint loadTexture(const std::string& objName);
     void loadDeckTexture(int id, const std::string& objName);
+
+    bool isPressed(ImGuiKey key);
+    bool isDown(ImGuiKey key);
+
+    void clearHighlights();
+    void highlightAction(const Action& action);
 
     bool drawCost(int objId, int player, const ImVec2& offset);
     bool drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, const ListenerGUI::SpaceConfig& spaceConfig, const ImVec2& offset, const std::string& text = "");

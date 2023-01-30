@@ -176,7 +176,7 @@ void GameState::playPyramidCard(int id)
     {
         PyramidSlot& other = cardPyramid[pos];
         other.coveredBy--;
-        if (other.objectId == SLOT_UNREVEALED && other.coveredBy == 0) queueAction(Action(ACT_REVEAL_PYRAMID_CARD, ACT_ARG_EMPTY, pos));
+        if (other.objectId == SLOT_UNREVEALED && other.coveredBy == 0) queueAction(Action(ACT_REVEAL_PYRAMID_CARD, ACT_ARG_NONE, pos));
     }
     objectLocations[id] = ObjectLocation();
 }
@@ -463,7 +463,7 @@ void GameState::advanceAge()
     for (int pos = 0; pos < PYRAMID_SIZE; pos++)
     {
         cardPyramid[pos] = PyramidSlot(currAge, SLOT_UNREVEALED, 0);
-        if (pyramidSchemes[currAge][pos].revealed) queueAction(Action(ACT_REVEAL_PYRAMID_CARD, ACT_ARG_EMPTY, pos));
+        if (pyramidSchemes[currAge][pos].revealed) queueAction(Action(ACT_REVEAL_PYRAMID_CARD, ACT_ARG_NONE, pos));
         for (int other : pyramidSchemes[currAge][pos].covering)
         {
             cardPyramid[other].coveredBy++;

@@ -22,5 +22,5 @@ Cost::Cost(int coins, int chain)
 {}
 
 Cost::Cost()
-    : Cost(0, {}, NO_CHAIN)
+    : Cost(0, {}, OBJ_NONE)
 {}
