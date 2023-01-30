@@ -5,6 +5,7 @@ Also contains a customizable class hierarchy of `Players` and `Listeners` that e
 One implementation is a pair of GUI `Player` and `Listener` classes for human interactions.
 The main product are the AI `Player` classes which can play against each other or versus a human.
 
+
 ## GUI
 
 On a player's turn, there will be an arrow pointing to them.
@@ -22,3 +23,8 @@ Shortcuts:
 - Player 2 -- `2`
 - Zoom in -- `+`, `=`
 - Zoom out -- `-`
+
+## TODO
+
+- Better AIs
+- Add a revealer class, default being the current RNG; this will allow replaying logs
