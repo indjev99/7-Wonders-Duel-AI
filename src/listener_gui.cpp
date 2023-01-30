@@ -255,12 +255,12 @@ const ListenerGUI::SpaceConfig looting2Config = {
     ImVec2(20, 45)
 };
 
-const ListenerGUI::SpaceConfig coinScoreConfig = {
+const ListenerGUI::SpaceConfig statsConfig = {
     ImVec2(20, 20),
     ImVec2(25, 25)
 };
 
-const ListenerGUI::SpaceConfig smallCoinScoreConfig = {
+const ListenerGUI::SpaceConfig smallstatsConfig = {
     ImVec2(12, 12),
     ImVec2(12, 12)
 };
@@ -305,7 +305,7 @@ const std::array<ImVec2, NUM_PLAYERS> looting2Offset = {{
     ImVec2(758.4, 410.1)
 }};
 
-const std::array<ImVec2, NUM_PLAYERS> coinScoreOffset = {{
+const std::array<ImVec2, NUM_PLAYERS> statsOffset = {{
     ImVec2(10, 449),
     ImVec2(10, 151)
 }};
@@ -319,7 +319,7 @@ const int MAX_BUILT_CARD_PER_COL = 5;
 const int MAX_BUILT_TOKEN_PER_COL = 3;
 const int MAX_DISCARDED_PER_ROW = 17;
 
-const double SIZE_MULT = 2.1;
+const double SIZE_MULT = 1.5;
 const int MAIN_FONT_SIZE = 22;
 const int SMALL_FONT_SIZE = 17;
 
@@ -403,7 +403,7 @@ bool ListenerGUI::drawCost(int objId, int player, const ImVec2& offset)
     ImVec4 col = cost <= 0 ? goodTextColor : cost > state.coins ? badTextColor : textColor;
 
     ImGui::PushStyleColor(ImGuiCol_Text, col);
-    bool pressed = drawObject(O_TEXTURE_COINS, {0, 0}, smallCoinScoreConfig, offset, std::to_string(cost));
+    bool pressed = drawObject(O_TEXTURE_COINS, {0, 0}, smallstatsConfig, offset, std::to_string(cost));
     ImGui::PopStyleColor();
 
     ImGui::PopFont();
@@ -459,13 +459,13 @@ bool ListenerGUI::drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, c
 
     if (objId < NUM_OBJECTS && game->isPlayableCard(objId))
     {
-        for (int i = 0; i < NUM_PLAYERS; ++i)
+        for (int i = 0; i < NUM_PLAYERS; i++)
         {
             pressed = pressed || drawCost(objId, i, pos + cardCostRelOffset[i]);
         }
     }
 
-    for (int i = 0; i < NUM_PLAYERS; ++i)
+    for (int i = 0; i < NUM_PLAYERS; i++)
     {
         if (objId < NUM_OBJECTS && game->getObjectDeck(objId) == DECK_SELECTED_WONDERS + i)
         {
@@ -477,10 +477,10 @@ bool ListenerGUI::drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, c
     ImGui::PopID();
     ImGui::PopID();
 
-    if (objId < NUM_OBJECTS && pressed)
+    if (pressed)
     {
         std::cerr << "Pressed: " << objId << " " << objects[objId].name << std::endl;
-        pressedObjId = objId;
+        pressedId = objId;
     }
 
     return pressed;
@@ -599,12 +599,25 @@ void ListenerGUI::drawBuilt(int player)
         drawObject(i, SlotRowCol{row, 2 * col}, builtCardConfig, builtCardOffset[player]);
     }
 
-    ImGui::PushID("COIN SCORE");
-
-    drawObject(O_TEXTURE_COINS, SlotRowCol{0, 0}, coinScoreConfig, coinScoreOffset[player], std::to_string(state.coins));
-    drawObject(O_TEXTURE_SCORE, SlotRowCol{0, 2}, coinScoreConfig, coinScoreOffset[player], std::to_string(state.getScore()));
-
     ImGui::PopID();
+    ImGui::PopID();
+}
+
+
+void ListenerGUI::drawPlayerStats(int player)
+{
+    const PlayerState& state = game->getPlayerState(player);
+
+    ImGui::PushID("STATS");
+    ImGui::PushID(player);
+
+    drawObject(O_TEXTURE_COINS, SlotRowCol{0, 0}, statsConfig, statsOffset[player], std::to_string(state.coins));
+    drawObject(O_TEXTURE_SCORE, SlotRowCol{0, 2}, statsConfig, statsOffset[player], std::to_string(state.getScore()));
+
+    bool hasArrow = !game->isTerminal() ? game->getCurrActor() == player : game->getResult(player) > 0;
+
+    if (hasArrow)
+        drawObject(O_TEXTURE_PLAYER_ARROWS + player, SlotRowCol{0, 4}, statsConfig, statsOffset[player]);
 
     ImGui::PopID();
     ImGui::PopID();
@@ -640,7 +653,7 @@ void ListenerGUI::drawMilitaryLead()
 
     ImGui::PushID("LOOTING");
 
-    for (int i = 0; i < NUM_PLAYERS; ++i)
+    for (int i = 0; i < NUM_PLAYERS; i++)
     {
         const PlayerState& state = game->getPlayerState(i);
         ImGui::PushID(i);
@@ -652,7 +665,7 @@ void ListenerGUI::drawMilitaryLead()
     ImGui::PopID();
 }
 
-void ListenerGUI::drawState(bool canAdvance, bool fastAdvance, PlayerGUI* playerGui)
+void ListenerGUI::drawState(bool advanceButton, bool fastAdvance, PlayerGUI* playerGui)
 {
     if (closed) return;
 
@@ -686,7 +699,7 @@ void ListenerGUI::drawState(bool canAdvance, bool fastAdvance, PlayerGUI* player
         ImGui::PushFont(fonts[MAIN_FONT]);
         ImGui::Begin("7wdai", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoResize);
 
-        pressedObjId = OBJ_NONE;
+        pressedId = OBJ_NONE;
 
         drawPyramid();
         drawDiscarded();
@@ -696,13 +709,14 @@ void ListenerGUI::drawState(bool canAdvance, bool fastAdvance, PlayerGUI* player
         drawDeck(DECK_BOX_TOKENS, tokenConfig, boxTokenRowCols.data(), boxTokenOffset, NUM_BOX_TOKENS);
         drawDeck(DECK_REVEALED_WONDERS, wonderConfig, wonderRowCols.data(), revealedWonderOffset, NUM_WONDERS_REVEALED);
 
-        for (int i = 0; i < NUM_PLAYERS; ++i)
+        for (int i = 0; i < NUM_PLAYERS; i++)
         {
             drawBuilt(i);
+            drawPlayerStats(i);
             drawDeck(DECK_SELECTED_WONDERS + i, wonderConfig, wonderRowCols.data(), selectedWondersOffset[i], NUM_WONDERS_PER_PLAYER);
         }
 
-        if (canAdvance && !advance)
+        if (advanceButton && !advance)
         {
             ImGui::SetCursorPos(ImVec2(10 * SIZE_MULT, 304 * SIZE_MULT));
             advance = ImGui::ArrowButton("##Advance", ImGuiDir_::ImGuiDir_Right);
@@ -771,7 +785,7 @@ ListenerGUI::ListenerGUI()
 
     std::fill(objectTextures.begin(), objectTextures.end(), TEXTURE_NONE);
 
-    for (int i = 0; i < NUM_OBJECTS; ++i)
+    for (int i = 0; i < NUM_OBJECTS; i++)
     {
         objectTextures[i] = loadTexture(objects[i].name);
     }
@@ -782,6 +796,9 @@ ListenerGUI::ListenerGUI()
     loadDeckTexture(DECK_GUILDS, "Deck Guilds");
     loadDeckTexture(DECK_TOKENS, "Deck Tokens");
     loadDeckTexture(DECK_WONDERS, "Deck Wonders");
+
+    objectTextures[O_TEXTURE_PLAYER_ARROWS + 0] = loadTexture("Arrow Down");
+    objectTextures[O_TEXTURE_PLAYER_ARROWS + 1] = loadTexture("Arrow Up");
 
     objectTextures[O_TEXTURE_SIDE_BOARD] = loadTexture("Side Board");
     objectTextures[O_TEXTURE_MILITARY_LEAD] = loadTexture("Military Lead");
