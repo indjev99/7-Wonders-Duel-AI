@@ -164,7 +164,7 @@ def wonders():
         'the temple of artemis',
         'the mausoleum'],
         ['the great library',
-        'pireaus',
+        'piraeus',
         'the hanging gardens',
         'the statue of zeus',
         'the sphinx'],

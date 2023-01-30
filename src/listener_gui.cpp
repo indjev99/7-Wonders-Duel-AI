@@ -205,6 +205,8 @@ const ImVec4 transColor = ImVec4(0.00, 0.00, 0.00, 0.0);
 const ImVec4 textColor = ImVec4(0.00, 0.00, 0.00, 1.0);
 const ImVec4 badTextColor = ImVec4(0.90, 0.10, 0.10, 1.0);
 const ImVec4 goodTextColor = ImVec4(0.10, 0.90, 0.10, 1.0);
+const ImVec4 nonHighlightTintColor = ImVec4(1.00, 1.00, 1.00, 1.0);
+const ImVec4 highlightTintColor = ImVec4(0.75, 0.75, 0.75, 1.0);
 
 const ListenerGUI::SpaceConfig pyramidCardConfig = {
     ImVec2(44, 68),
@@ -322,9 +324,13 @@ const int SMALL_FONT_SIZE = 17;
 const int INIT_WINDOW_W = 1800;
 const int INIT_WINDOW_H = 1350;
 
-bool myImageButton(const char* str_id, ImTextureID texture_id, const ImVec2& size, const char* label = "", ImGuiButtonFlags flags = 0, const ImVec2& uv0 = ImVec2(0, 0), const ImVec2& uv1 = ImVec2(1, 1), const ImVec4& bg_col = ImVec4(0, 0, 0, 0), const ImVec4& tint_col = ImVec4(1, 1, 1, 1))
+bool myImageButton(const char* str_id, ImTextureID texture_id, const ImVec2& size, const char* label = "", ImGuiButtonFlags flags = 0, const ImVec4& tint_col = ImVec4(1, 1, 1, 1))
 {
     using namespace ImGui;
+
+    ImVec2 uv0 = ImVec2(0, 0);
+    ImVec2 uv1 = ImVec2(1, 1);
+    ImVec4 bg_col = ImVec4(0, 0, 0, 0);
 
     ImGuiContext& g = *GImGui;
     ImGuiWindow* window = g.CurrentWindow;
@@ -438,9 +444,10 @@ bool ListenerGUI::drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, c
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, transColor);
 
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-        
+
         ImGui::SetCursorPos(pos * SIZE_MULT);
-        pressed = myImageButton(name.c_str(), (void*) (intptr_t) texture, spaceConfig.size * SIZE_MULT, text.data(), ImGuiButtonFlags_AllowItemOverlap);
+        ImVec4 tintCol = objId != OBJ_NONE && isHighlighted[objId] ? highlightTintColor : nonHighlightTintColor;
+        pressed = myImageButton(name.c_str(), (void*) (intptr_t) texture, spaceConfig.size * SIZE_MULT, text.data(), ImGuiButtonFlags_AllowItemOverlap, tintCol);
         ImGui::SetItemAllowOverlap();
 
         ImGui::PopStyleVar(1);
@@ -804,7 +811,16 @@ void ListenerGUI::notifyStart()
 
 void ListenerGUI::notifyAction(const Action& action)
 {
+    std::fill(isHighlighted.begin(), isHighlighted.end(), false);
+
+    if (action.isPlayerMove())
+    {
+        if (action.type != ACT_MOVE_CHOOSE_START_PLAYER) isHighlighted[action.arg1] = true;
+        if (action.type == ACT_MOVE_PLAY_PYRAMID_CARD && action.arg2 >= 0) isHighlighted[action.arg2] = true;
+    }
+
     if (action.isPlayerMove()) drawState();
+
     if (action.type == ACT_MOVE_PLAY_PYRAMID_CARD && action.arg2 >= 0)
     {
         wonderBuiltWithDeck[action.arg2] = findDeck(action.arg1);
@@ -813,5 +829,6 @@ void ListenerGUI::notifyAction(const Action& action)
 
 void ListenerGUI::notifyEnd()
 {
+    std::fill(isHighlighted.begin(), isHighlighted.end(), false);
     drawState(false);
 }
