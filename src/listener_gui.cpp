@@ -1,5 +1,6 @@
 #include "listener_gui.h"
 
+#include "lang.h"
 #include "player_gui.h"
 
 #include <algorithm>
@@ -260,7 +261,7 @@ const ListenerGUI::SpaceConfig statsConfig = {
     ImVec2(25, 25)
 };
 
-const ListenerGUI::SpaceConfig smallstatsConfig = {
+const ListenerGUI::SpaceConfig costConfig = {
     ImVec2(12, 12),
     ImVec2(12, 12)
 };
@@ -268,6 +269,11 @@ const ListenerGUI::SpaceConfig smallstatsConfig = {
 const ListenerGUI::SpaceConfig sideBoardConfig = {
     ImVec2(104.5, 370),
     ImVec2(104.5, 370)
+};
+
+const ListenerGUI::SpaceConfig textButtonConfig = {
+    ImVec2(60, 20),
+    ImVec2(65, 25)
 };
 
 const ImVec2 pyramidCardOffset(200, 156);
@@ -279,6 +285,7 @@ const ImVec2 discardedOffset(10, 620);
 const ImVec2 mLeadOffset(776.9, 298.5);
 const ImVec2 sideBoardOffset(750, 122.5);
 const ImVec2 wonderCostRelOffset(96, 25.5);
+const ImVec2 buttonListOffset(10, 260);
 
 const std::array<ImVec2, NUM_PLAYERS> selectedWondersOffset = {{
     ImVec2(10, 474),
@@ -403,7 +410,7 @@ bool ListenerGUI::drawCost(int objId, int player, const ImVec2& offset)
     ImVec4 col = cost <= 0 ? goodTextColor : cost > state.coins ? badTextColor : textColor;
 
     ImGui::PushStyleColor(ImGuiCol_Text, col);
-    bool pressed = drawObject(O_TEXTURE_COINS, {0, 0}, smallstatsConfig, offset, std::to_string(cost));
+    bool pressed = drawObject(O_TEXTURE_COINS, {0, 0}, costConfig, offset, std::to_string(cost));
     ImGui::PopStyleColor();
 
     ImGui::PopFont();
@@ -479,7 +486,7 @@ bool ListenerGUI::drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, c
 
     if (pressed)
     {
-        std::cerr << "Pressed: " << objId << " " << objects[objId].name << std::endl;
+        std::cerr << "Pressed: " << objId << std::endl;
         pressedId = objId;
     }
 
@@ -665,6 +672,31 @@ void ListenerGUI::drawMilitaryLead()
     ImGui::PopID();
 }
 
+void ListenerGUI::drawButtons(bool advanceButton)
+{
+    ImGui::PushID("Buttons");
+
+    if (advanceButton)
+        drawObject(O_TEXTURE_ADVANCE_BUTTON, {0, 0}, textButtonConfig, buttonListOffset, "Advance");
+
+    if (!game->isTerminal() && game->getExpectedAction().type == ACT_MOVE_CHOOSE_START_PLAYER)
+    {
+        for (int i = 0; i < NUM_PLAYERS; i++)
+        {
+            drawObject(O_TEXTURE_PLAYER_BUTTONS + i, {1 + i, 0}, textButtonConfig, buttonListOffset, actorToString(i));
+        }
+    }
+
+    if (!game->isTerminal() && game->getExpectedAction().type == ACT_MOVE_PLAY_PYRAMID_CARD)
+    {
+        drawObject(O_TEXTURE_COPT_BUTTONS + COPT_BUILD, {1, 0}, textButtonConfig, buttonListOffset, "Build");
+        drawObject(O_TEXTURE_COPT_BUTTONS + COPT_DISCARD, {2, 0}, textButtonConfig, buttonListOffset, "Discard");
+        drawObject(O_TEXTURE_COPT_BUTTONS + COPT_WONDER, {3, 0}, textButtonConfig, buttonListOffset, "Wonder");
+    }
+
+    ImGui::PopID();
+}
+
 void ListenerGUI::drawState(bool advanceButton, bool fastAdvance, PlayerGUI* playerGui)
 {
     if (closed) return;
@@ -716,15 +748,16 @@ void ListenerGUI::drawState(bool advanceButton, bool fastAdvance, PlayerGUI* pla
             drawDeck(DECK_SELECTED_WONDERS + i, wonderConfig, wonderRowCols.data(), selectedWondersOffset[i], NUM_WONDERS_PER_PLAYER);
         }
 
-        if (advanceButton && !advance)
-        {
-            ImGui::SetCursorPos(ImVec2(10 * SIZE_MULT, 304 * SIZE_MULT));
-            advance = ImGui::ArrowButton("##Advance", ImGuiDir_::ImGuiDir_Right);
-        }
+        drawButtons(advanceButton);
 
-        if (playerGui != nullptr && !advance)
+        if (advanceButton && !advance) advance = pressedId == O_TEXTURE_ADVANCE_BUTTON;
+
+        if (playerGui != nullptr)
         {
-            advance = playerGui->guiCanAdvance();
+            // To do: player gui should be split in two
+            // Also do highlighting for the partial action
+            advanceButton = playerGui->guiCanAdvance();
+            if (!advanceButton) advance = false;
         }
 
         ImGui::End();
@@ -804,6 +837,14 @@ ListenerGUI::ListenerGUI()
     objectTextures[O_TEXTURE_MILITARY_LEAD] = loadTexture("Military Lead");
     objectTextures[O_TEXTURE_COINS] = loadTexture("Coins");
     objectTextures[O_TEXTURE_SCORE] = loadTexture("Score");
+
+    GLint buttonTexture = loadTexture("Text Button");
+    objectTextures[O_TEXTURE_PLAYER_BUTTONS + 0] = buttonTexture;
+    objectTextures[O_TEXTURE_PLAYER_BUTTONS + 1] = buttonTexture;
+    objectTextures[O_TEXTURE_COPT_BUTTONS + COPT_BUILD] = buttonTexture;
+    objectTextures[O_TEXTURE_COPT_BUTTONS + COPT_DISCARD] = buttonTexture;
+    objectTextures[O_TEXTURE_COPT_BUTTONS + COPT_WONDER] = buttonTexture;
+    objectTextures[O_TEXTURE_ADVANCE_BUTTON] = buttonTexture;
 }
 
 int findDeck(int id)
@@ -846,8 +887,18 @@ void ListenerGUI::notifyActionPre(const Action& action)
     {
         std::fill(isHighlighted.begin(), isHighlighted.end(), false);
 
+        if (action.type == ACT_MOVE_CHOOSE_START_PLAYER) isHighlighted[O_TEXTURE_PLAYER_BUTTONS + action.arg1] = true;
         if (action.type != ACT_MOVE_CHOOSE_START_PLAYER) isHighlighted[action.arg1] = true;
-        if (action.type == ACT_MOVE_PLAY_PYRAMID_CARD && action.arg2 >= 0) isHighlighted[action.arg2] = true;
+        if (action.type == ACT_MOVE_PLAY_PYRAMID_CARD)
+        {
+            if (action.arg2 == ACT_ARG2_BUILD) isHighlighted[O_TEXTURE_COPT_BUTTONS + COPT_BUILD] = true;
+            else if (action.arg2 == ACT_ARG2_DISCARD) isHighlighted[O_TEXTURE_COPT_BUTTONS + COPT_DISCARD] = true;
+            else
+            {
+                isHighlighted[O_TEXTURE_COPT_BUTTONS + COPT_WONDER] = true;
+                isHighlighted[action.arg2] = true;
+            }
+        }
 
         drawState();
     }

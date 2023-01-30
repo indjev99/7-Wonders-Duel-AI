@@ -46,11 +46,19 @@ private:
 
     void onClose();
 
-    static constexpr int NUM_TEXTURES = NUM_OBJECTS + NUM_DECKS * 2 + NUM_PLAYERS + 4;
+    static constexpr int NUM_COPTS = 3;
+    static constexpr int COPT_BUILD = 0;
+    static constexpr int COPT_DISCARD = 1;
+    static constexpr int COPT_WONDER = 2;
+
+    static constexpr int NUM_TEXTURES = NUM_OBJECTS + NUM_DECKS * 2 + NUM_PLAYERS * 2 + NUM_COPTS + 5;
     static constexpr int O_TEXTURE_DECKS = NUM_OBJECTS;
     static constexpr int O_TEXTURE_DECKS_ROTATED = O_TEXTURE_DECKS + NUM_DECKS;
     static constexpr int O_TEXTURE_PLAYER_ARROWS = O_TEXTURE_DECKS_ROTATED + NUM_DECKS;
-    static constexpr int O_TEXTURE_SIDE_BOARD = O_TEXTURE_PLAYER_ARROWS + NUM_PLAYERS;
+    static constexpr int O_TEXTURE_PLAYER_BUTTONS = O_TEXTURE_PLAYER_ARROWS + NUM_PLAYERS;
+    static constexpr int O_TEXTURE_COPT_BUTTONS = O_TEXTURE_PLAYER_BUTTONS + NUM_PLAYERS;
+    static constexpr int O_TEXTURE_ADVANCE_BUTTON = O_TEXTURE_COPT_BUTTONS + NUM_COPTS;
+    static constexpr int O_TEXTURE_SIDE_BOARD = O_TEXTURE_ADVANCE_BUTTON + 1;
     static constexpr int O_TEXTURE_MILITARY_LEAD = O_TEXTURE_SIDE_BOARD + 1;
     static constexpr int O_TEXTURE_COINS = O_TEXTURE_MILITARY_LEAD + 1;
     static constexpr int O_TEXTURE_SCORE = O_TEXTURE_COINS + 1;
@@ -77,6 +85,7 @@ private:
     void drawDiscarded();
     void drawMilitaryLead();
     void drawPyramid();
+    void drawButtons(bool advanceButton);
     void drawState(bool advanceButton = true, bool fastAdvance = false, PlayerGUI* playerGui = nullptr);
 
     friend PlayerGUI;
