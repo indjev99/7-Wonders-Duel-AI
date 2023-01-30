@@ -21,7 +21,7 @@ void ListenerPrinter::notifyStart()
     std::cout << std::endl;
 }
 
-void ListenerPrinter::notifyAction(const Action& action)
+void ListenerPrinter::notifyActionPre(const Action& action)
 {
     if (game->getCurrAge() != currAge)
     {

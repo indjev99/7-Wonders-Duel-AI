@@ -7,7 +7,7 @@ PlayerGUI::PlayerGUI(ListenerGUI& gui)
 Action PlayerGUI::getAction()
 {
     action = game->getExpectedAction();
-    gui.drawState(false, this);
+    gui.drawState(false, false, this);
     return action;
 }
 

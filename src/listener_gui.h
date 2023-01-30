@@ -28,7 +28,8 @@ struct ListenerGUI final : Listener
     ~ListenerGUI();
 
     void notifyStart() override;
-    void notifyAction(const Action& action) override;
+    void notifyActionPre(const Action& action) override;
+    void notifyActionPost(const Action& action) override;
     void notifyEnd() override;
 
 private:
@@ -73,7 +74,7 @@ private:
     void drawDiscarded();
     void drawMilitaryLead();
     void drawPyramid();
-    void drawState(bool canAdvance = true, PlayerGUI* playerGui = nullptr);
+    void drawState(bool canAdvance = true, bool fastAdvance = false, PlayerGUI* playerGui = nullptr);
 
     friend PlayerGUI;
 };

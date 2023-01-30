@@ -652,17 +652,20 @@ void ListenerGUI::drawMilitaryLead()
     ImGui::PopID();
 }
 
-void ListenerGUI::drawState(bool canAdvance, PlayerGUI* playerGui)
+void ListenerGUI::drawState(bool canAdvance, bool fastAdvance, PlayerGUI* playerGui)
 {
     if (closed) return;
 
     bool advance = false;
+    bool advanceNext = fastAdvance;
 
     ImGuiStyle* style = &ImGui::GetStyle();
     style->Colors[ImGuiCol_Text] = textColor;
 
     while (!advance)
     {
+        advance = advanceNext;
+
         glfwPollEvents();
 
         if (glfwWindowShouldClose(window))
@@ -699,13 +702,13 @@ void ListenerGUI::drawState(bool canAdvance, PlayerGUI* playerGui)
             drawDeck(DECK_SELECTED_WONDERS + i, wonderConfig, wonderRowCols.data(), selectedWondersOffset[i], NUM_WONDERS_PER_PLAYER);
         }
 
-        if (canAdvance)
+        if (canAdvance && !advance)
         {
             ImGui::SetCursorPos(ImVec2(10 * SIZE_MULT, 304 * SIZE_MULT));
             advance = ImGui::ArrowButton("##Advance", ImGuiDir_::ImGuiDir_Right);
         }
 
-        if (playerGui != nullptr)
+        if (playerGui != nullptr && !advance)
         {
             advance = playerGui->guiCanAdvance();
         }
@@ -820,7 +823,7 @@ void ListenerGUI::notifyStart()
     std::fill(isDeckCached.begin(), isDeckCached.end(), false);
 }
 
-void ListenerGUI::notifyAction(const Action& action)
+void ListenerGUI::notifyActionPre(const Action& action)
 {
     if (action.isPlayerMove() && !lastMoveWasFromGui)
     {
@@ -838,6 +841,15 @@ void ListenerGUI::notifyAction(const Action& action)
     }
 
     lastMoveWasFromGui = false;
+}
+
+void ListenerGUI::notifyActionPost(const Action& action)
+{
+    if (game->isTerminal() || !game->getExpectedAction().isPlayerMove()) return;
+
+    std::fill(isHighlighted.begin(), isHighlighted.end(), false);
+
+    drawState(false, true);
 }
 
 void ListenerGUI::notifyEnd()

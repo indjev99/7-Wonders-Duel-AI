@@ -32,9 +32,13 @@ int GameRunner::playGame()
         Action action = actor == ACTOR_GAME ? uniformElem(game.getPossibleActions()) : playerAIs[actor]->getAction();
         for (auto listener : listeners)
         {
-            listener->notifyAction(action);
+            listener->notifyActionPre(action);
         }
         game.doAction(action);
+        for (auto listener : listeners)
+        {
+            listener->notifyActionPost(action);
+        }
     }
     for (auto listener : listeners)
     {

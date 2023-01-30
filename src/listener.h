@@ -7,7 +7,8 @@ struct Listener
     void setGame(const GameState& game);
 
     virtual void notifyStart();
-    virtual void notifyAction(const Action& action);
+    virtual void notifyActionPre(const Action& action);
+    virtual void notifyActionPost(const Action& action);
     virtual void notifyEnd();
 
     virtual ~Listener() = default;

@@ -6,5 +6,6 @@ void Listener::setGame(const GameState& game)
 }
 
 void Listener::notifyStart() {}
-void Listener::notifyAction(const Action& action) {}
+void Listener::notifyActionPre(const Action& action) {}
+void Listener::notifyActionPost(const Action& action) {}
 void Listener::notifyEnd() {}
