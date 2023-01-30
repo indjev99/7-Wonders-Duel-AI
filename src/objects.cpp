@@ -207,7 +207,7 @@ std::array<Object, NUM_OBJECTS> initObjects()
     objects[O_BROWN_STONE_PIT] = Object(O_BROWN_STONE_PIT, "Stone Pit", OT_BROWN, Cost(1), effResource<R_STONE, 1>, revEffResource<R_STONE, 1>);
     objects[O_BROWN_SAWMILL] = Object(O_BROWN_SAWMILL, "Sawmill", OT_BROWN, Cost(2), effResource<R_WOOD, 2>, revEffResource<R_WOOD, 2>);
     objects[O_BROWN_BRICKYARD] = Object(O_BROWN_BRICKYARD, "Brickyard", OT_BROWN, Cost(2), effResource<R_CLAY, 2>, revEffResource<R_CLAY, 2>);
-    objects[O_BROWN_SHELF_QUARRY] = Object(O_BROWN_SHELF_QUARRY, "Shelf Quarry", OT_BROWN, Cost(), effResource<R_STONE, 2>, revEffResource<R_STONE, 2>);
+    objects[O_BROWN_SHELF_QUARRY] = Object(O_BROWN_SHELF_QUARRY, "Shelf Quarry", OT_BROWN, Cost(2), effResource<R_STONE, 2>, revEffResource<R_STONE, 2>);
     objects[O_GRAY_GLASSWORKS] = Object(O_GRAY_GLASSWORKS, "Glassworks", OT_GRAY, Cost(1), effResource<R_GLASS, 1>, revEffResource<R_GLASS, 1>);
     objects[O_GRAY_PRESS] = Object(O_GRAY_PRESS, "Press", OT_GRAY, Cost(1), effResource<R_PAPER, 1>, revEffResource<R_PAPER, 1>);
     objects[O_GRAY_GLASSBLOWER] = Object(O_GRAY_GLASSBLOWER, "Glassblower", OT_GRAY, Cost(), effResource<R_GLASS, 1>, revEffResource<R_GLASS, 1>);
