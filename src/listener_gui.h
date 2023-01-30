@@ -76,6 +76,8 @@ private:
     std::array<GLuint, NUM_TEXTURES> objectTextures;
     std::array<ImFont*, NUM_FONTS> fonts;
 
+    std::array<std::vector<ImGuiKey>, NUM_TEXTURES> objectShortcuts;
+
     static GLuint loadTexture(const std::string& objName);
     void loadDeckTexture(int id, const std::string& objName);
 

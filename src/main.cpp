@@ -58,8 +58,8 @@ void run()
     PlayerUniform u1;
     PlayerUniform u2;
 
-    PlayerMC mc1(50000);
-    PlayerMC mc2(50000);
+    PlayerMC mc1(20000);
+    PlayerMC mc2(20000);
 
     playPrint(nullptr, &mc2);
 }

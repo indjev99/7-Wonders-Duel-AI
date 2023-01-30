@@ -486,6 +486,11 @@ bool ListenerGUI::drawObject(int objId, const ListenerGUI::SlotRowCol& rowCol, c
     ImGui::PopID();
     ImGui::PopID();
 
+    for (ImGuiKey shortcut : objectShortcuts[objId])
+    {
+        pressed = pressed || isPressed(shortcut);
+    }
+
     if (pressed) pressedId = objId;
 
     return pressed;
@@ -771,7 +776,7 @@ void ListenerGUI::drawState(bool advanceButton, bool fastAdvance, PlayerGUI* pla
 
         if (advanceButton && !advance)
         {
-            advance = pressedId == O_TEXTURE_ADVANCE_BUTTON || isPressed(ImGuiKey_Space) || isPressed(ImGuiKey_Enter);
+            advance = pressedId == O_TEXTURE_ADVANCE_BUTTON;
         }
 
         if (playerGui != nullptr && pressedId != OBJ_NONE)
@@ -869,6 +874,14 @@ ListenerGUI::ListenerGUI()
     objectTextures[O_TEXTURE_COPT_BUTTONS + COPT_DISCARD] = buttonTexture;
     objectTextures[O_TEXTURE_COPT_BUTTONS + COPT_WONDER] = buttonTexture;
     objectTextures[O_TEXTURE_ADVANCE_BUTTON] = buttonTexture;
+
+
+    objectShortcuts[O_TEXTURE_PLAYER_BUTTONS + 0] = {ImGuiKey_1};
+    objectShortcuts[O_TEXTURE_PLAYER_BUTTONS + 1] = {ImGuiKey_2};
+    objectShortcuts[O_TEXTURE_COPT_BUTTONS + COPT_BUILD] = {ImGuiKey_1};
+    objectShortcuts[O_TEXTURE_COPT_BUTTONS + COPT_DISCARD] = {ImGuiKey_2};
+    objectShortcuts[O_TEXTURE_COPT_BUTTONS + COPT_WONDER] = {ImGuiKey_3};
+    objectShortcuts[O_TEXTURE_ADVANCE_BUTTON] = {ImGuiKey_Space, ImGuiKey_Enter};
 }
 
 int findDeck(int id)
