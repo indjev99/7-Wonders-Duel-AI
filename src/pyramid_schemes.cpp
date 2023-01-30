@@ -20,7 +20,7 @@ const std::array<PyramidScheme, NUM_AGES> pyramidSchemes = {{
         {true, {9, 10}},
         {true, {10, 11}},
         {true, {11, 12}},
-        {true, {12, 3}},
+        {true, {12, 13}},
         {true, {13}}
     }},
     {{

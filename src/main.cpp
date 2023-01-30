@@ -61,7 +61,7 @@ void run()
     PlayerMC mc1(20000);
     PlayerMC mc2(20000);
 
-    playPrint(nullptr, &mc2);
+    playPrint(&mc1, &mc2);
 }
 
 int main()
