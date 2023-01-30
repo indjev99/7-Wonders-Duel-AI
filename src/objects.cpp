@@ -245,12 +245,12 @@ std::array<Object, NUM_OBJECTS> initObjects()
 
     objects[O_GREEN_SCRIPTORIUM] = Object(O_GREEN_SCRIPTORIUM, "Scriptorium", OT_GREEN, Cost(2), 0, effScience<S_QUILL>);
     objects[O_GREEN_PHARMACIST] = Object(O_GREEN_PHARMACIST, "Pharmacist", OT_GREEN, Cost(2), 0, effScience<S_MORTAR>);
-    objects[O_GREEN_WORKSHOP] = Object(O_GREEN_WORKSHOP, "Workshop", OT_GREEN, Cost({R_PAPER}), 1, effScience<S_PENDULUM>);
     objects[O_GREEN_APOTHECARY] = Object(O_GREEN_APOTHECARY, "Apothecary", OT_GREEN, Cost({R_GLASS}), 1, effScience<S_WHEEL>);
+    objects[O_GREEN_WORKSHOP] = Object(O_GREEN_WORKSHOP, "Workshop", OT_GREEN, Cost({R_PAPER}), 1, effScience<S_PENDULUM>);
     objects[O_GREEN_LIBRARY] = Object(O_GREEN_LIBRARY, "Library", OT_GREEN, Cost({R_STONE, R_WOOD, R_GLASS}, O_GREEN_SCRIPTORIUM), 2, effScience<S_QUILL>);
     objects[O_GREEN_DISPENSARY] = Object(O_GREEN_DISPENSARY, "Dispensary", OT_GREEN, Cost({R_CLAY, R_CLAY, R_STONE}, O_GREEN_PHARMACIST), 2, effScience<S_MORTAR>);
-    objects[O_GREEN_SCHOOL] = Object(O_GREEN_SCHOOL, "School", OT_GREEN, Cost({R_WOOD, R_PAPER, R_PAPER}), 1, effScience<S_PENDULUM>);
-    objects[O_GREEN_LABORATORY] = Object(O_GREEN_LABORATORY, "Laboratory", OT_GREEN, Cost({R_WOOD, R_GLASS, R_GLASS}), 1, effScience<S_WHEEL>);
+    objects[O_GREEN_SCHOOL] = Object(O_GREEN_SCHOOL, "School", OT_GREEN, Cost({R_WOOD, R_PAPER, R_PAPER}), 1, effScience<S_WHEEL>);
+    objects[O_GREEN_LABORATORY] = Object(O_GREEN_LABORATORY, "Laboratory", OT_GREEN, Cost({R_WOOD, R_GLASS, R_GLASS}), 1, effScience<S_PENDULUM>);
     objects[O_GREEN_UNIVERSITY] = Object(O_GREEN_UNIVERSITY, "University", OT_GREEN, Cost({R_CLAY, R_GLASS, R_PAPER}, O_GREEN_SCHOOL), 2, effScience<S_GYROSCOPE>);
     objects[O_GREEN_OBSERVATORY] = Object(O_GREEN_OBSERVATORY, "Observatory", OT_GREEN, Cost({R_STONE, R_PAPER, R_PAPER}), 2, effScience<S_GYROSCOPE>);
     objects[O_GREEN_ACADEMY] = Object(O_GREEN_ACADEMY, "Academy", OT_GREEN, Cost({R_STONE, R_WOOD, R_GLASS, R_GLASS}), 3, effScience<S_SUNDIAL>);
