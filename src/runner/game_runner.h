@@ -2,13 +2,14 @@
 
 #include "agent.h"
 #include "listener.h"
+#include "revealer.h"
 
 #include <array>
 #include <vector>
 
 struct GameRunner
 {
-    GameRunner(const std::array<Agent*, NUM_PLAYERS>& playerAIs, const std::vector<Listener*>& listeners = {});
+    GameRunner(Revealer* revealer, const std::array<Agent*, NUM_PLAYERS>& agents, const std::vector<Listener*>& listeners = {});
     GameRunner(const GameRunner&) = delete;
     GameRunner& operator=(const GameRunner&) = delete;
 
@@ -16,7 +17,8 @@ struct GameRunner
 
 private:
 
-    std::array<Agent*, NUM_PLAYERS> playerAIs;
+    Revealer* revealer;
+    std::array<Agent*, NUM_PLAYERS> agents;
     std::vector<Listener*> listeners;
 
     GameState game;

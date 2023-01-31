@@ -14,6 +14,7 @@ struct ListenerLogger final : Listener
 
 private:
 
-    std::ofstream defaultOutFile;
     std::ostream& out;
+
+    std::ofstream defaultOutFile;
 };

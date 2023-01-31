@@ -1,21 +1,21 @@
 #include "game_runner.h"
 
-#include "utils/random.h"
-
 #include <algorithm>
 
-GameRunner::GameRunner(const std::array<Agent*, NUM_PLAYERS>& playerAIs, const std::vector<Listener*>& listeners)
-    : playerAIs(playerAIs)
-    , listeners(listeners)
+GameRunner::GameRunner(Revealer* revealer_, const std::array<Agent*, NUM_PLAYERS>& agents_, const std::vector<Listener*>& listeners_)
+    : revealer(revealer_)
+    , agents(agents_)
+    , listeners(listeners_)
 {
-    std::copy(playerAIs.begin(), playerAIs.end(), std::back_inserter(this->listeners));
-    for (auto listener : this->listeners)
+    listeners.push_back(revealer);
+    std::copy(agents.begin(), agents.end(), std::back_inserter(listeners));
+    for (auto listener : listeners)
     {
         listener->setGame(game);
     }
     for (int i = 0; i < NUM_PLAYERS; i++)
     {
-        this->playerAIs[i]->setPlayer(i);
+        agents[i]->setPlayer(i);
     }
 }
 
@@ -29,7 +29,7 @@ int GameRunner::playGame()
     while (!game.isTerminal())
     {
         int actor = game.getCurrActor();
-        Action action = actor == ACTOR_GAME ? uniformElem(game.getPossibleActions()) : playerAIs[actor]->getAction();
+        Action action = actor == ACTOR_GAME ? revealer->getAction() : agents[actor]->getAction();
         for (auto listener : listeners)
         {
             listener->notifyActionPre(action);

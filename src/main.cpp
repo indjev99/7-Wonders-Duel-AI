@@ -5,6 +5,7 @@
 #include "gui/listener_gui.h"
 #include "runner/game_runner.h"
 #include "runner/listener_logger.h"
+#include "runner/revealer_uniform.h"
 #include "utils/random.h"
 
 #include <cmath>
@@ -13,7 +14,8 @@
 
 void benchmark(Agent* agent1, Agent* agent2)
 {
-    GameRunner runner({agent1, agent2});
+    RevealerUniform revealer;
+    GameRunner runner(&revealer, {agent1, agent2});
 
     int cnt = 0;
     int sum = 0;
@@ -37,6 +39,8 @@ void benchmark(Agent* agent1, Agent* agent2)
 
 void playGame(Agent* agent1, Agent* agent2)
 {
+    RevealerUniform revealer;
+
     ListenerGUI gui;
     ListenerLogger logger;
 
@@ -46,7 +50,7 @@ void playGame(Agent* agent1, Agent* agent2)
     if (agent1 == nullptr) agent1 = &pGui1;
     if (agent2 == nullptr) agent2 = &pGui2;
 
-    GameRunner runner({agent1, agent2}, {&gui, &logger});
+    GameRunner runner(&revealer, {agent1, agent2}, {&gui, &logger});
     runner.playGame();
 }
 
