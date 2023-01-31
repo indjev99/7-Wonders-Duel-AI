@@ -129,13 +129,13 @@ std::string actorToString(int actor)
     return S_PLAYER_SP + std::to_string(actor + 1);
 }
 
-int actorFromString(const std::string& actiorStr)
+int actorFromString(const std::string& actorStr)
 {
-    std::string sanitized = sanitizeName(actiorStr);
-    if (sanitized == sanitizeName(S_GAME)) return ACTOR_GAME;
+    std::string sanitized = sanitizeName(actorStr);
+    if (sanitized == sanitizeName(actorToString(ACTOR_GAME))) return ACTOR_GAME;
     for (int player = 0; player < NUM_PLAYERS; ++ player)
     {
-        if (sanitized == sanitizeName(S_PLAYER_SP + std::to_string(player))) return player;
+        if (sanitized == sanitizeName(actorToString(player))) return player;
     }
     throw GameException("Unknown actor name.", {});
 }

@@ -29,4 +29,3 @@ Shortcuts:
 ## TODO
 
 - Better AIs
-- Add a revealer class, default being the current RNG; this will allow replaying logs

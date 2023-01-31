@@ -5,8 +5,10 @@
 #include "gui/listener_gui.h"
 #include "runner/game_runner.h"
 #include "runner/revealer_uniform.h"
+#include "text/agent_reader.h"
 #include "text/listener_writer.h"
 #include "text/make_log.h"
+#include "text/revealer_reader.h"
 #include "utils/random.h"
 
 #include <cmath>
@@ -38,6 +40,20 @@ void benchmark(Agent* agent1, Agent* agent2)
     }
 }
 
+void replayGame(const std::string& logName)
+{
+    std::ifstream log(logName.c_str());
+
+    RevealerReader revealer(log);
+    AgentReader agent1(log);
+    AgentReader agent2(log);
+
+    ListenerGUI gui;
+
+    GameRunner runner(&revealer, {&agent1, &agent2}, {&gui});
+    runner.playGame();
+}
+
 void playGame(Agent* agent1, Agent* agent2)
 {
     std::ofstream log = makeLog();
@@ -57,7 +73,7 @@ void playGame(Agent* agent1, Agent* agent2)
     runner.playGame();
 }
 
-void run()
+int main()
 {
     setSeed(time(nullptr));
 
@@ -68,11 +84,6 @@ void run()
     AgentMC mc2;
 
     playGame(nullptr, &mc2);
-}
-
-int main()
-{
-    run();
 
     return 0;
 }
