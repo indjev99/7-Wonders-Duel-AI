@@ -796,7 +796,6 @@ void ListenerGUI::drawState(bool normalAdvance, bool fastAdvance, PlayerGUI* pla
             {
                 auto delta = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);
                 advance = delta.count() / 1000.0 >= currAdvanceTimeSecs;
-                std::cerr << delta.count() / 1000.0 << std::endl;
             }
         }
 
