@@ -4,8 +4,9 @@
 #include "gui/agent_gui.h"
 #include "gui/listener_gui.h"
 #include "runner/game_runner.h"
-#include "runner/listener_logger.h"
 #include "runner/revealer_uniform.h"
+#include "text/listener_writer.h"
+#include "text/make_log.h"
 #include "utils/random.h"
 
 #include <cmath>
@@ -39,10 +40,12 @@ void benchmark(Agent* agent1, Agent* agent2)
 
 void playGame(Agent* agent1, Agent* agent2)
 {
+    std::ofstream log = makeLog();
+
     RevealerUniform revealer;
 
     ListenerGUI gui;
-    ListenerLogger logger;
+    ListenerWriter logger(log);
 
     AgentGUI pGui1(gui);
     AgentGUI pGui2(gui);

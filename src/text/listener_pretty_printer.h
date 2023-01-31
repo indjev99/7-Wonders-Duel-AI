@@ -1,8 +1,8 @@
 #pragma once
 
-#include "listener.h"
+#include "runner/listener.h"
 
-struct ListenerPrinter final : Listener
+struct ListenerPrettyPrinter final : Listener
 {
     void notifyStart() override;
     void notifyActionPre(const Action& action) override;

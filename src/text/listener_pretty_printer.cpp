@@ -1,10 +1,10 @@
-#include "listener_printer.h"
+#include "listener_pretty_printer.h"
 
 #include "game/lang.h"
 
 #include <iostream>
 
-void ListenerPrinter::printSummary()
+void ListenerPrettyPrinter::printSummary()
 {
     std::cout << "Coins: " << game->getCoins(0) << " " << game->getCoins(1) << std::endl;
     std::cout << "Scores: " << game->getScore(0) << " " << game->getScore(1) << std::endl;
@@ -12,7 +12,7 @@ void ListenerPrinter::printSummary()
     std::cout << "Militaries: " << game->getMilitary(0) << " " << game->getMilitary(1) << std::endl;
 }
 
-void ListenerPrinter::notifyStart()
+void ListenerPrettyPrinter::notifyStart()
 {
     currAge = AGE_SETUP;
 
@@ -21,7 +21,7 @@ void ListenerPrinter::notifyStart()
     std::cout << std::endl;
 }
 
-void ListenerPrinter::notifyActionPre(const Action& action)
+void ListenerPrettyPrinter::notifyActionPre(const Action& action)
 {
     if (game->getCurrAge() != currAge)
     {
@@ -41,7 +41,7 @@ void ListenerPrinter::notifyActionPre(const Action& action)
     std::cout << std::endl;
 }
 
-void ListenerPrinter::notifyEnd()
+void ListenerPrettyPrinter::notifyEnd()
 {
     printSummary();
     std::cout << std::endl;
