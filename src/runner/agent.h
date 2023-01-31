@@ -1,9 +1,8 @@
 #pragma once
 
 #include "listener.h"
-#include "game_state.h"
 
-struct PlayerAI : Listener
+struct Agent : Listener
 {
     void setPlayer(int player);
 

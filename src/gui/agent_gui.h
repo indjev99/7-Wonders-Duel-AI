@@ -1,11 +1,12 @@
 #pragma once
 
-#include "player_ai.h"
 #include "listener_gui.h"
 
-struct PlayerGUI final : PlayerAI
+#include "runner/agent.h"
+
+struct AgentGUI final : Agent
 {
-    PlayerGUI(ListenerGUI& gui);
+    AgentGUI(ListenerGUI& gui);
 
     Action getAction() override;
 

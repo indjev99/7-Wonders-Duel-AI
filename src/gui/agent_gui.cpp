@@ -1,10 +1,10 @@
-#include "player_gui.h"
+#include "agent_gui.h"
 
-PlayerGUI::PlayerGUI(ListenerGUI& gui)
+AgentGUI::AgentGUI(ListenerGUI& gui)
     : gui(gui)
 {}
 
-Action PlayerGUI::getAction()
+Action AgentGUI::getAction()
 {
     action = game->getExpectedAction();
     possible = game->getPossibleActions();
@@ -18,7 +18,7 @@ void toggleArg(int& arg, int val)
     else arg = val;
 }
 
-bool PlayerGUI::updateActionFromDeck(int deck)
+bool AgentGUI::updateActionFromDeck(int deck)
 {
     int id = gui.pressedId;
     if (id < NUM_OBJECTS && game->getObjectDeck(id) == deck)
@@ -29,7 +29,7 @@ bool PlayerGUI::updateActionFromDeck(int deck)
     return false;
 }
 
-bool PlayerGUI::updateAction()
+bool AgentGUI::updateAction()
 {
     int id = gui.pressedId;
 
@@ -83,7 +83,7 @@ bool PlayerGUI::updateAction()
     return false;
 }
 
-bool PlayerGUI::canAdvance()
+bool AgentGUI::canAdvance()
 {
     return std::find(possible.begin(), possible.end(), action) != possible.end();
 }

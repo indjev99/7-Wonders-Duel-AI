@@ -1,18 +1,18 @@
-#include "player_mc.h"
+#include "agent_mc.h"
 
-#include "random.h"
-#include "results.h"
+#include "utils/random.h"
+#include "game/results.h"
 
 const double INF = 1e9;
 
 const double AVG_BRANCHES = 5.75;
 
-PlayerMC::PlayerMC(int avgNumSims, bool branchRelative)
+AgentMC::AgentMC(int avgNumSims, bool branchRelative)
     : avgNumSims(avgNumSims)
     , branchRelative(branchRelative)
 {}
 
-Action PlayerMC::getAction()
+Action AgentMC::getAction()
 {
     Action bestAction;
     double bestScore = -INF;

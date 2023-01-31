@@ -1,7 +1,8 @@
 #include "listener_gui.h"
 
-#include "lang.h"
-#include "player_gui.h"
+#include "agent_gui.h"
+
+#include "game/lang.h"
 
 #include <algorithm>
 #include <chrono>
@@ -713,7 +714,7 @@ bool ListenerGUI::isDown(ImGuiKey key)
     return ImGui::IsKeyDown(ImGui::GetKeyIndex(key));
 }
 
-void ListenerGUI::drawState(bool normalAdvance, bool fastAdvance, PlayerGUI* playerGui)
+void ListenerGUI::drawState(bool normalAdvance, bool fastAdvance, AgentGUI* playerGui)
 {
     if (closed) return;
 

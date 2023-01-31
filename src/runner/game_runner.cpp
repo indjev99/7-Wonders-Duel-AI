@@ -1,10 +1,10 @@
 #include "game_runner.h"
 
-#include "random.h"
+#include "utils/random.h"
 
 #include <algorithm>
 
-GameRunner::GameRunner(const std::array<PlayerAI*, NUM_PLAYERS>& playerAIs, const std::vector<Listener*>& listeners)
+GameRunner::GameRunner(const std::array<Agent*, NUM_PLAYERS>& playerAIs, const std::vector<Listener*>& listeners)
     : playerAIs(playerAIs)
     , listeners(listeners)
 {

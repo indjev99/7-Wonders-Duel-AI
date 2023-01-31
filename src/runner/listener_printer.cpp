@@ -1,6 +1,6 @@
 #include "listener_printer.h"
 
-#include "lang.h"
+#include "game/lang.h"
 
 #include <iostream>
 

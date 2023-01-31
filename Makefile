@@ -1,6 +1,6 @@
 # Compiler settings - Can be customized.
 CC = g++
-CXXFLAGS = -std=c++17 -Wall -O3 -I include
+CXXFLAGS = -std=c++17 -Wall -O3 -I include -I src
 LDFLAGS = -static -static-libgcc -static-libstdc++ -L include/GLFW/lib -lglfw3 -lopengl32 -lglu32 -lgdi32
 
 # Makefile settings - Can be customized.
@@ -38,13 +38,12 @@ $(APPNAME): $(OBJ)
 # Creates the dependecy rules
 $(DEPDIR)/%.d: $(SRCDIR)/%$(EXT)
 	@mkdir -p $(@D)
-	@$(CPP) $(CFLAGS) $< -MM -MT $(@:$(DEPDIR)/%.d=$(OBJDIR)/%.o) >$@
+	@$(CC) $(CXXFLAGS) $< -MM -MT $(@:$(DEPDIR)/%.d=$(OBJDIR)/%.o) >$@
 
 # Includes all .h files
 -include $(DEP)
 
 # Building rule for .o files and its .c/.cpp in combination with all .h
 $(OBJDIR)/%.o: $(SRCDIR)/%$(EXT)
-	@echo $(@D)
 	@mkdir -p $(@D)
 	$(CC) $(CXXFLAGS) -o $@ -c $<

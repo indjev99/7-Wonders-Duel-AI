@@ -1,21 +1,19 @@
-#include "game_exception.h"
-#include "game_runner.h"
-#include "listener_gui.h"
-#include "listener_logger.h"
-#include "listener_printer.h"
-#include "player_gui.h"
-#include "player_mc.h"
-#include "player_uniform.h"
-#include "random.h"
-#include "results.h"
+#include "ai/agent_mc.h"
+#include "ai/agent_uniform.h"
+#include "game/results.h"
+#include "gui/agent_gui.h"
+#include "gui/listener_gui.h"
+#include "runner/game_runner.h"
+#include "runner/listener_logger.h"
+#include "utils/random.h"
 
 #include <cmath>
 #include <ctime>
 #include <iostream>
 
-void benchmark(PlayerAI* ai1, PlayerAI* ai2)
+void benchmark(Agent* agent1, Agent* agent2)
 {
-    GameRunner runner({ai1, ai2});
+    GameRunner runner({agent1, agent2});
 
     int cnt = 0;
     int sum = 0;
@@ -37,19 +35,18 @@ void benchmark(PlayerAI* ai1, PlayerAI* ai2)
     }
 }
 
-void playGame(PlayerAI* ai1, PlayerAI* ai2)
+void playGame(Agent* agent1, Agent* agent2)
 {
     ListenerGUI gui;
     ListenerLogger logger;
-    ListenerPrinter printer;
 
-    PlayerGUI pGui1(gui);
-    PlayerGUI pGui2(gui);
+    AgentGUI pGui1(gui);
+    AgentGUI pGui2(gui);
 
-    if (ai1 == nullptr) ai1 = &pGui1;
-    if (ai2 == nullptr) ai2 = &pGui2;
+    if (agent1 == nullptr) agent1 = &pGui1;
+    if (agent2 == nullptr) agent2 = &pGui2;
 
-    GameRunner runner({ai1, ai2}, {&gui, &logger, &printer});
+    GameRunner runner({agent1, agent2}, {&gui, &logger});
     runner.playGame();
 }
 
@@ -57,11 +54,11 @@ void run()
 {
     setSeed(time(nullptr));
 
-    PlayerUniform u1;
-    PlayerUniform u2;
+    AgentUniform u1;
+    AgentUniform u2;
 
-    PlayerMC mc1;
-    PlayerMC mc2;
+    AgentMC mc1;
+    AgentMC mc2;
 
     playGame(nullptr, &mc2);
 }

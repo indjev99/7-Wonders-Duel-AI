@@ -1,6 +1,6 @@
 #pragma once
 
-#include "listener.h"
+#include "runner/listener.h"
 
 #define GLFW_INCLUDE_GLEXT
 #define IMGUI_DEFINE_MATH_OPERATORS
@@ -8,7 +8,7 @@
 #include <GLFW/glfw3.h>
 #include <imgui/imgui.h>
 
-struct PlayerGUI;
+struct AgentGUI;
 
 struct ListenerGUI final : Listener
 {
@@ -99,7 +99,7 @@ private:
     void drawMilitaryLead();
     void drawPyramid();
     void drawButtons(bool normalAdvance);
-    void drawState(bool normalAdvance = true, bool fastAdvance = false, PlayerGUI* playerGui = nullptr);
+    void drawState(bool normalAdvance = true, bool fastAdvance = false, AgentGUI* playerGui = nullptr);
 
-    friend PlayerGUI;
+    friend AgentGUI;
 };
