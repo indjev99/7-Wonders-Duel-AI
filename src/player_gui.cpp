@@ -18,13 +18,18 @@ void toggleArg(int& arg, int val)
     else arg = val;
 }
 
-void PlayerGUI::updateActionFromDeck(int deck)
+bool PlayerGUI::updateActionFromDeck(int deck)
 {
     int id = gui.pressedId;
-    if (id < NUM_OBJECTS && game->getObjectDeck(id) == deck) toggleArg(action.arg1, id);
+    if (id < NUM_OBJECTS && game->getObjectDeck(id) == deck)
+    {
+        toggleArg(action.arg1, id);
+        return true;
+    }
+    return false;
 }
 
-void PlayerGUI::updateAction()
+bool PlayerGUI::updateAction()
 {
     int id = gui.pressedId;
 
@@ -32,52 +37,53 @@ void PlayerGUI::updateAction()
     {
     case ACT_MOVE_PLAY_PYRAMID_CARD:
         if (id < NUM_OBJECTS && game->isPlayableCard(id)) toggleArg(action.arg1, id);
-        if (id < NUM_OBJECTS && game->getObjectDeck(id) == DECK_SELECTED_WONDERS + player) toggleArg(action.arg2, id);
-        if (id == ListenerGUI::O_TEXTURE_COPT_BUTTONS + ListenerGUI::COPT_BUILD) toggleArg(action.arg2, ACT_ARG2_BUILD);
-        if (id == ListenerGUI::O_TEXTURE_COPT_BUTTONS + ListenerGUI::COPT_DISCARD) toggleArg(action.arg2, ACT_ARG2_DISCARD);
-        if (id == ListenerGUI::O_TEXTURE_COPT_BUTTONS + ListenerGUI::COPT_WONDER)
+        else if (id < NUM_OBJECTS && game->getObjectDeck(id) == DECK_SELECTED_WONDERS + player) toggleArg(action.arg2, id);
+        else if (id == ListenerGUI::O_TEXTURE_COPT_BUTTONS + ListenerGUI::COPT_BUILD) toggleArg(action.arg2, ACT_ARG2_BUILD);
+        else if (id == ListenerGUI::O_TEXTURE_COPT_BUTTONS + ListenerGUI::COPT_DISCARD) toggleArg(action.arg2, ACT_ARG2_DISCARD);
+        else if (id == ListenerGUI::O_TEXTURE_COPT_BUTTONS + ListenerGUI::COPT_WONDER)
         {
             if (action.arg2 >= 0) action.arg2 = ACT_ARG_NONE;
             else toggleArg(action.arg2, ListenerGUI::ACT_ARG2_WONDER);
         }
-        break;
+        else return false;
+        return true;
 
     case ACT_MOVE_BUILD_GAME_TOKEN:
-        updateActionFromDeck(DECK_GAME_TOKENS);
-        break;
+        return updateActionFromDeck(DECK_GAME_TOKENS);
 
     case ACT_MOVE_BUILD_BOX_TOKEN:
-        updateActionFromDeck(DECK_BOX_TOKENS);
-        break;
+        return updateActionFromDeck(DECK_BOX_TOKENS);
 
     case ACT_MOVE_BUILD_DISCARDED:
-        updateActionFromDeck(DECK_DISCARDED);
-        break;
+        return updateActionFromDeck(DECK_DISCARDED);
 
     case ACT_MOVE_DESTROY_OBJECT:
         if (id < NUM_OBJECTS && objects[id].type == action.arg2 && game->getPlayerState(1 - player).objectsBuilt[id])
+        {
             toggleArg(action.arg1, id);
+            return true;
+        }
+        return false;
 
     case ACT_MOVE_SELECT_WONDER:
-        updateActionFromDeck(DECK_REVEALED_WONDERS);
-        break;
+        return updateActionFromDeck(DECK_REVEALED_WONDERS);
 
     case ACT_MOVE_CHOOSE_START_PLAYER:
         for (int i = 0; i < NUM_PLAYERS; i++)
         {
-            if (id == ListenerGUI::O_TEXTURE_PLAYER_BUTTONS + i) toggleArg(action.arg1, i);
+            if (id == ListenerGUI::O_TEXTURE_PLAYER_BUTTONS + i)
+            {
+                toggleArg(action.arg1, i);
+                return true;
+            }
         }
-        break;
+        return false;
     }
+
+    return false;
 }
 
-bool PlayerGUI::guiCanAdvance()
+bool PlayerGUI::canAdvance()
 {
-    updateAction();
-
     return std::find(possible.begin(), possible.end(), action) != possible.end();
-
-    // TODO: Split this into two methods:
-    // One handles updating the action
-    // The other handles checking if the current action is valid
 }

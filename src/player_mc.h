@@ -4,7 +4,7 @@
 
 struct PlayerMC final : PlayerAI
 {
-    PlayerMC(int avgNumSims = 20000, bool branchRelative = true);
+    PlayerMC(int avgNumSims = 40000, bool branchRelative = true);
 
     Action getAction() override;
 

@@ -4,6 +4,7 @@
 #include "player_gui.h"
 
 #include <algorithm>
+#include <chrono>
 #include <iostream>
 
 #include <imgui/imgui_internal.h>
@@ -334,6 +335,8 @@ const int SMALL_FONT_SIZE = 17;
 
 const int INIT_WINDOW_W = 1800;
 const int INIT_WINDOW_H = 1350;
+
+const double PLAYER_GUI_ADVANCE_TIME_RATIO = 0.5;
 
 bool myImageButton(const char* str_id, ImTextureID texture_id, const ImVec2& size, const char* label = "", ImGuiButtonFlags flags = 0, const ImVec4& tint_col = ImVec4(1, 1, 1, 1))
 {
@@ -675,11 +678,11 @@ void ListenerGUI::drawMilitaryLead()
     ImGui::PopID();
 }
 
-void ListenerGUI::drawButtons(bool advanceButton)
+void ListenerGUI::drawButtons(bool normalAdvance)
 {
     ImGui::PushID("Buttons");
 
-    if (advanceButton)
+    if (advanceButton && normalAdvance)
         drawObject(O_TEXTURE_ADVANCE_BUTTON, {0, 0}, textButtonConfig, buttonListOffset, "Advance");
 
     if (!game->isTerminal() && game->getExpectedAction().type == ACT_MOVE_CHOOSE_START_PLAYER)
@@ -710,28 +713,29 @@ bool ListenerGUI::isDown(ImGuiKey key)
     return ImGui::IsKeyDown(ImGui::GetKeyIndex(key));
 }
 
-void ListenerGUI::drawState(bool advanceButton, bool fastAdvance, PlayerGUI* playerGui)
+void ListenerGUI::drawState(bool normalAdvance, bool fastAdvance, PlayerGUI* playerGui)
 {
     if (closed) return;
 
     if (playerGui != nullptr)
     {
-        advanceButton = false;
+        normalAdvance = false;
         fastAdvance = false;
     }
 
-    if (fastAdvance) advanceButton = false;
+    if (fastAdvance) normalAdvance = false;
 
     bool advance = false;
-    bool advanceNext = fastAdvance;
 
     ImGuiStyle* style = &ImGui::GetStyle();
     style->Colors[ImGuiCol_Text] = textColor;
 
+    auto start = std::chrono::steady_clock::now();
+
+    double currAdvanceTimeSecs = advanceTimeSecs * (playerGui == nullptr ? 1 : PLAYER_GUI_ADVANCE_TIME_RATIO);
+
     while (!advance)
     {
-        advance = advanceNext;
-
         glfwPollEvents();
 
         if (glfwWindowShouldClose(window))
@@ -740,7 +744,6 @@ void ListenerGUI::drawState(bool advanceButton, bool fastAdvance, PlayerGUI* pla
             return;
         }
 
-        glClearColor(0.5, 0.5, 0.5, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -772,19 +775,29 @@ void ListenerGUI::drawState(bool advanceButton, bool fastAdvance, PlayerGUI* pla
             drawDeck(DECK_SELECTED_WONDERS + i, wonderConfig, wonderRowCols.data(), selectedWondersOffset[i], NUM_WONDERS_PER_PLAYER);
         }
 
-        drawButtons(advanceButton);
-
-        if (advanceButton && !advance)
-        {
-            advance = pressedId == O_TEXTURE_ADVANCE_BUTTON;
-        }
+        drawButtons(normalAdvance);
 
         if (playerGui != nullptr && pressedId != OBJ_NONE)
         {
-            clearHighlights();
-            advanceButton = playerGui->guiCanAdvance();
-            if (!advanceButton) advance = false;
-            highlightAction(playerGui->action);
+            bool actionUpdated = playerGui->updateAction();
+            if (actionUpdated)
+            {
+                start = std::chrono::steady_clock::now();
+                normalAdvance = playerGui->canAdvance();
+                clearHighlights();
+                highlightAction(playerGui->action);
+            }
+        }
+
+        if (normalAdvance && !advance)
+        {
+            if (advanceButton) advance = pressedId == O_TEXTURE_ADVANCE_BUTTON;
+            else
+            {
+                auto delta = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);
+                advance = delta.count() / 1000.0 >= currAdvanceTimeSecs;
+                std::cerr << delta.count() / 1000.0 << std::endl;
+            }
         }
 
         ImGui::End();
@@ -794,6 +807,8 @@ void ListenerGUI::drawState(bool advanceButton, bool fastAdvance, PlayerGUI* pla
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         glfwSwapBuffers(window);
+
+        if (fastAdvance) break;
     }
 
     if (playerGui) lastMoveWasFromGui = true;
@@ -812,8 +827,10 @@ void ListenerGUI::loadDeckTexture(int id, const std::string& objName)
     objectTextures[O_TEXTURE_DECKS_ROTATED + id] = loadTexture(objName + " Rotated");
 }
 
-ListenerGUI::ListenerGUI()
-    : closed(false)
+ListenerGUI::ListenerGUI(double advanceTimeSecs, bool advanceButton)
+    : advanceTimeSecs(advanceTimeSecs)
+    , advanceButton(advanceButton)
+    , closed(false)
 {
     glfwSetErrorCallback(glfwErrorCallback);
 

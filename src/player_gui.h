@@ -16,9 +16,9 @@ private:
     Action action;
     std::vector<Action> possible;
 
-    void updateActionFromDeck(int deck);
-    void updateAction();
-    bool guiCanAdvance();
+    bool updateActionFromDeck(int deck);
+    bool updateAction();
+    bool canAdvance();
 
     friend ListenerGUI;
 };

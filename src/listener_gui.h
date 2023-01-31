@@ -24,7 +24,7 @@ struct ListenerGUI final : Listener
         ImVec2 sizegap;
     };
 
-    ListenerGUI();
+    ListenerGUI(double advanceTimeSecs = 0.8, bool advanceButton = false);
     ~ListenerGUI();
 
     void notifyStart() override;
@@ -33,6 +33,9 @@ struct ListenerGUI final : Listener
     void notifyEnd() override;
 
 private:
+
+    double advanceTimeSecs;
+    bool advanceButton;
 
     bool closed;
     GLFWwindow* window;
@@ -95,8 +98,8 @@ private:
     void drawDiscarded();
     void drawMilitaryLead();
     void drawPyramid();
-    void drawButtons(bool advanceButton);
-    void drawState(bool advanceButton = true, bool fastAdvance = false, PlayerGUI* playerGui = nullptr);
+    void drawButtons(bool normalAdvance);
+    void drawState(bool normalAdvance = true, bool fastAdvance = false, PlayerGUI* playerGui = nullptr);
 
     friend PlayerGUI;
 };
