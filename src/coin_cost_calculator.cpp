@@ -53,7 +53,7 @@ int calculateResourceCoinCost(const PlayerState& state, const Object& object)
 
     for (int i = 0; i < state.grayWildcards; i++)
     {
-        chooseMostExpensive(remaining, costs, R_BROWNS_LIST);
+        chooseMostExpensive(remaining, costs, R_GRAYS_LIST);
     }
 
     for (int i = 0; i < allWildcards; i++)
