@@ -208,6 +208,7 @@ std::array<Object, NUM_OBJECTS> initObjects()
     objects[O_BROWN_SAWMILL] = Object(O_BROWN_SAWMILL, "Sawmill", OT_BROWN, Cost(2), effResource<R_WOOD, 2>, revEffResource<R_WOOD, 2>);
     objects[O_BROWN_BRICKYARD] = Object(O_BROWN_BRICKYARD, "Brickyard", OT_BROWN, Cost(2), effResource<R_CLAY, 2>, revEffResource<R_CLAY, 2>);
     objects[O_BROWN_SHELF_QUARRY] = Object(O_BROWN_SHELF_QUARRY, "Shelf Quarry", OT_BROWN, Cost(2), effResource<R_STONE, 2>, revEffResource<R_STONE, 2>);
+
     objects[O_GRAY_GLASSWORKS] = Object(O_GRAY_GLASSWORKS, "Glassworks", OT_GRAY, Cost(1), effResource<R_GLASS, 1>, revEffResource<R_GLASS, 1>);
     objects[O_GRAY_PRESS] = Object(O_GRAY_PRESS, "Press", OT_GRAY, Cost(1), effResource<R_PAPER, 1>, revEffResource<R_PAPER, 1>);
     objects[O_GRAY_GLASSBLOWER] = Object(O_GRAY_GLASSBLOWER, "Glassblower", OT_GRAY, Cost(), effResource<R_GLASS, 1>, revEffResource<R_GLASS, 1>);
@@ -218,12 +219,12 @@ std::array<Object, NUM_OBJECTS> initObjects()
     objects[O_BLUE_BATHS] = Object(O_BLUE_BATHS, "Baths", OT_BLUE, Cost({R_STONE}), 3);
     objects[O_BLUE_STATUE] = Object(O_BLUE_STATUE, "Statue", OT_BLUE, Cost({R_CLAY, R_CLAY}, O_BLUE_THEATER), 4);
     objects[O_BLUE_TEMPLE] = Object(O_BLUE_TEMPLE, "Temple", OT_BLUE, Cost({R_WOOD, R_PAPER}, O_BLUE_ALTAR), 4);
-    objects[O_BLUE_AQUEDUCT] = Object(O_BLUE_AQUEDUCT, "Aqueduct", OT_BLUE, Cost({R_STONE, R_STONE, R_STONE}, O_BLUE_STATUE), 5);
+    objects[O_BLUE_AQUEDUCT] = Object(O_BLUE_AQUEDUCT, "Aqueduct", OT_BLUE, Cost({R_STONE, R_STONE, R_STONE}, O_BLUE_BATHS), 5);
     objects[O_BLUE_ROSTRUM] = Object(O_BLUE_ROSTRUM, "Rostrum", OT_BLUE, Cost({R_STONE, R_WOOD}), 4);
-    objects[O_BLUE_TRIBUNAL] = Object(O_BLUE_TRIBUNAL, "Tribunal", OT_BLUE, Cost({R_WOOD, R_WOOD, R_GLASS}), 5);
-    objects[O_BLUE_GARDENS] = Object(O_BLUE_GARDENS, "Gardens", OT_BLUE, Cost({R_CLAY, R_CLAY, R_WOOD, R_WOOD}), 6);
-    objects[O_BLUE_PANTHEON] = Object(O_BLUE_PANTHEON, "Pantheon", OT_BLUE, Cost({R_CLAY, R_WOOD, R_PAPER, R_PAPER}), 6);
-    objects[O_BLUE_SENATE] = Object(O_BLUE_SENATE, "Senate", OT_BLUE, Cost({R_CLAY, R_CLAY, R_STONE, R_PAPER}), 5);
+    objects[O_BLUE_COURTHOUSE] = Object(O_BLUE_COURTHOUSE, "Courthouse", OT_BLUE, Cost({R_WOOD, R_WOOD, R_GLASS}), 5);
+    objects[O_BLUE_GARDENS] = Object(O_BLUE_GARDENS, "Gardens", OT_BLUE, Cost({R_CLAY, R_CLAY, R_WOOD, R_WOOD}, O_BLUE_STATUE), 6);
+    objects[O_BLUE_PANTHEON] = Object(O_BLUE_PANTHEON, "Pantheon", OT_BLUE, Cost({R_CLAY, R_WOOD, R_PAPER, R_PAPER}, O_BLUE_TEMPLE), 6);
+    objects[O_BLUE_SENATE] = Object(O_BLUE_SENATE, "Senate", OT_BLUE, Cost({R_CLAY, R_CLAY, R_STONE, R_PAPER}, O_BLUE_ROSTRUM), 5);
     objects[O_BLUE_PALACE] = Object(O_BLUE_PALACE, "Palace", OT_BLUE, Cost({R_CLAY, R_STONE, R_WOOD, R_GLASS, R_GLASS}), 7);
     objects[O_BLUE_TOWN_HALL] = Object(O_BLUE_TOWN_HALL, "Town Hall", OT_BLUE, Cost({R_STONE, R_STONE, R_STONE, R_WOOD, R_WOOD}), 7);
     objects[O_BLUE_OBELISK] = Object(O_BLUE_OBELISK, "Obelisk", OT_BLUE, Cost({R_STONE, R_STONE, R_GLASS}), 5);
@@ -241,18 +242,18 @@ std::array<Object, NUM_OBJECTS> initObjects()
     objects[O_RED_SIEGE_WORKSHOP] = Object(O_RED_SIEGE_WORKSHOP, "Siege Workshop", OT_RED, Cost({R_WOOD, R_WOOD, R_WOOD, R_GLASS}, O_RED_ARCHERY_RANGE), effMilirary<2>);
     objects[O_RED_CIRCUS] = Object(O_RED_CIRCUS, "Circus", OT_RED, Cost({R_CLAY, R_CLAY, R_STONE, R_STONE}, O_RED_PARADE_GROUND), effMilirary<2>);
     objects[O_RED_ARSENAL] = Object(O_RED_ARSENAL, "Arsenal", OT_RED, Cost({R_CLAY, R_CLAY, R_CLAY, R_WOOD, R_WOOD}), effMilirary<3>);
-    objects[O_RED_COURTHOUSE] = Object(O_RED_COURTHOUSE, "Courthouse", OT_RED, Cost(8), effMilirary<3>);
+    objects[O_RED_PRETORIUM] = Object(O_RED_PRETORIUM, "Pretorium", OT_RED, Cost(8), effMilirary<3>);
 
     objects[O_GREEN_SCRIPTORIUM] = Object(O_GREEN_SCRIPTORIUM, "Scriptorium", OT_GREEN, Cost(2), 0, effScience<S_QUILL>);
     objects[O_GREEN_PHARMACIST] = Object(O_GREEN_PHARMACIST, "Pharmacist", OT_GREEN, Cost(2), 0, effScience<S_MORTAR>);
-    objects[O_GREEN_APOTHECARY] = Object(O_GREEN_APOTHECARY, "Apothecary", OT_GREEN, Cost({R_GLASS}), 1, effScience<S_WHEEL>);
     objects[O_GREEN_WORKSHOP] = Object(O_GREEN_WORKSHOP, "Workshop", OT_GREEN, Cost({R_PAPER}), 1, effScience<S_PENDULUM>);
+    objects[O_GREEN_APOTHECARY] = Object(O_GREEN_APOTHECARY, "Apothecary", OT_GREEN, Cost({R_GLASS}), 1, effScience<S_WHEEL>);
     objects[O_GREEN_LIBRARY] = Object(O_GREEN_LIBRARY, "Library", OT_GREEN, Cost({R_STONE, R_WOOD, R_GLASS}, O_GREEN_SCRIPTORIUM), 2, effScience<S_QUILL>);
     objects[O_GREEN_DISPENSARY] = Object(O_GREEN_DISPENSARY, "Dispensary", OT_GREEN, Cost({R_CLAY, R_CLAY, R_STONE}, O_GREEN_PHARMACIST), 2, effScience<S_MORTAR>);
     objects[O_GREEN_SCHOOL] = Object(O_GREEN_SCHOOL, "School", OT_GREEN, Cost({R_WOOD, R_PAPER, R_PAPER}), 1, effScience<S_WHEEL>);
     objects[O_GREEN_LABORATORY] = Object(O_GREEN_LABORATORY, "Laboratory", OT_GREEN, Cost({R_WOOD, R_GLASS, R_GLASS}), 1, effScience<S_PENDULUM>);
     objects[O_GREEN_UNIVERSITY] = Object(O_GREEN_UNIVERSITY, "University", OT_GREEN, Cost({R_CLAY, R_GLASS, R_PAPER}, O_GREEN_SCHOOL), 2, effScience<S_GYROSCOPE>);
-    objects[O_GREEN_OBSERVATORY] = Object(O_GREEN_OBSERVATORY, "Observatory", OT_GREEN, Cost({R_STONE, R_PAPER, R_PAPER}), 2, effScience<S_GYROSCOPE>);
+    objects[O_GREEN_OBSERVATORY] = Object(O_GREEN_OBSERVATORY, "Observatory", OT_GREEN, Cost({R_STONE, R_PAPER, R_PAPER}, O_GREEN_LABORATORY), 2, effScience<S_GYROSCOPE>);
     objects[O_GREEN_ACADEMY] = Object(O_GREEN_ACADEMY, "Academy", OT_GREEN, Cost({R_STONE, R_WOOD, R_GLASS, R_GLASS}), 3, effScience<S_SUNDIAL>);
     objects[O_GREEN_STUDY] = Object(O_GREEN_STUDY, "Study", OT_GREEN, Cost({R_WOOD, R_WOOD, R_GLASS, R_PAPER}), 3, effScience<S_SUNDIAL>);
 
@@ -278,7 +279,7 @@ std::array<Object, NUM_OBJECTS> initObjects()
     objects[O_GUILD_MONEYLENDERS_GUILD] = Object(O_GUILD_MONEYLENDERS_GUILD, "Moneylenders Guild", OT_GUILD, Cost({R_STONE, R_STONE, R_WOOD, R_WOOD}), scorePer<1, OT_COIN_PACKETS, true>);
     objects[O_GUILD_TACTICIANS_GUILD] = Object(O_GUILD_TACTICIANS_GUILD, "Tacticians Guild", OT_GUILD, Cost({R_STONE, R_STONE, R_CLAY, R_PAPER}), scorePer<1, OT_RED, true>, effCoins<1, OT_RED, true>);
 
-    objects[O_TOKEN_AGRICULTURE] = Object(O_TOKEN_AGRICULTURE, "Agriculture", OT_TOKEN, Cost(), 4, effCoins<4>);
+    objects[O_TOKEN_AGRICULTURE] = Object(O_TOKEN_AGRICULTURE, "Agriculture", OT_TOKEN, Cost(), 4, effCoins<6>);
     objects[O_TOKEN_ARCHITECTURE] = Object(O_TOKEN_ARCHITECTURE, "Architecture", OT_TOKEN, Cost());
     objects[O_TOKEN_ECONOMY] = Object(O_TOKEN_ECONOMY, "Economy", OT_TOKEN, Cost());
     objects[O_TOKEN_LAW] = Object(O_TOKEN_LAW, "Law", OT_TOKEN, Cost(), effScience<S_LAW>);
@@ -289,18 +290,18 @@ std::array<Object, NUM_OBJECTS> initObjects()
     objects[O_TOKEN_THEOLOGY] = Object(O_TOKEN_THEOLOGY, "Theology", OT_TOKEN, Cost());
     objects[O_TOKEN_URBANISM] = Object(O_TOKEN_URBANISM, "Urbanism", OT_TOKEN, Cost(), effCoins<6>);
 
-    objects[O_WONDER_THE_APPIAN_WAY] = Object(O_WONDER_THE_APPIAN_WAY, "The Appian Way", OT_WONDER, Cost({R_STONE, R_STONE, R_CLAY, R_CLAY, R_PAPER}), effTheAppianWay);
-    objects[O_WONDER_CIRCUS_MAXIMUS] = Object(O_WONDER_CIRCUS_MAXIMUS, "Circus Maximus", OT_WONDER, Cost({R_STONE, R_STONE, R_WOOD, R_GLASS}), effCircusMaximus);
-    objects[O_WONDER_THE_COLOSSUS] = Object(O_WONDER_THE_COLOSSUS, "The Colossus", OT_WONDER, Cost({R_CLAY, R_CLAY, R_CLAY, R_GLASS}), effTheColossus);
-    objects[O_WONDER_THE_GREAT_LIBRARY] = Object(O_WONDER_THE_GREAT_LIBRARY, "The Great Library", OT_WONDER, Cost({R_WOOD, R_WOOD, R_WOOD, R_GLASS, R_PAPER}), effTheGreatLibrary);
-    objects[O_WONDER_THE_GREAT_LIGHTHOUSE] = Object(O_WONDER_THE_GREAT_LIGHTHOUSE, "The Great Lighthouse", OT_WONDER, Cost({R_WOOD, R_STONE, R_PAPER, R_PAPER}), effTheGreatLighthouse);
-    objects[O_WONDER_THE_HANGING_GARDENS] = Object(O_WONDER_THE_HANGING_GARDENS, "The Hanging Gardens", OT_WONDER, Cost({R_WOOD, R_WOOD, R_GLASS, R_PAPER}), effTheHangingGardens);
-    objects[O_WONDER_THE_MAUSOLEUM] = Object(O_WONDER_THE_MAUSOLEUM, "The Mausoleum", OT_WONDER, Cost({R_CLAY, R_CLAY, R_GLASS, R_GLASS, R_PAPER}), effTheMausoleum);
-    objects[O_WONDER_PIRAEUS] = Object(O_WONDER_PIRAEUS, "Piraeus", OT_WONDER, Cost({R_WOOD, R_WOOD, R_STONE, R_CLAY}), effPiraeus);
-    objects[O_WONDER_THE_PYRAMIDS] = Object(O_WONDER_THE_PYRAMIDS, "The Pyramids", OT_WONDER, Cost({R_STONE, R_STONE, R_STONE, R_PAPER}), effThePyramids);
-    objects[O_WONDER_THE_SPHINX] = Object(O_WONDER_THE_SPHINX, "The Sphinx", OT_WONDER, Cost({R_STONE, R_CLAY, R_GLASS, R_GLASS}), effTheSphinx);
-    objects[O_WONDER_THE_STATUE_OF_ZEUS] = Object(O_WONDER_THE_STATUE_OF_ZEUS, "The Statue of Zeus", OT_WONDER, Cost({R_STONE, R_WOOD, R_CLAY, R_PAPER, R_PAPER}), effTheStatueOfZeus);
-    objects[O_WONDER_THE_TEMPLE_OF_ARTEMIS] = Object(O_WONDER_THE_TEMPLE_OF_ARTEMIS, "The Temple of Artemis", OT_WONDER, Cost({R_WOOD, R_STONE, R_GLASS, R_PAPER}), effTheTempleOfArtemis);
+    objects[O_WONDER_THE_APPIAN_WAY] = Object(O_WONDER_THE_APPIAN_WAY, "The Appian Way", OT_WONDER, Cost({R_STONE, R_STONE, R_CLAY, R_CLAY, R_PAPER}), 3, effTheAppianWay);
+    objects[O_WONDER_CIRCUS_MAXIMUS] = Object(O_WONDER_CIRCUS_MAXIMUS, "Circus Maximus", OT_WONDER, Cost({R_STONE, R_STONE, R_WOOD, R_GLASS}), 3, effCircusMaximus);
+    objects[O_WONDER_THE_COLOSSUS] = Object(O_WONDER_THE_COLOSSUS, "The Colossus", OT_WONDER, Cost({R_CLAY, R_CLAY, R_CLAY, R_GLASS}), 3, effTheColossus);
+    objects[O_WONDER_THE_GREAT_LIBRARY] = Object(O_WONDER_THE_GREAT_LIBRARY, "The Great Library", OT_WONDER, Cost({R_WOOD, R_WOOD, R_WOOD, R_GLASS, R_PAPER}), 4, effTheGreatLibrary);
+    objects[O_WONDER_THE_GREAT_LIGHTHOUSE] = Object(O_WONDER_THE_GREAT_LIGHTHOUSE, "The Great Lighthouse", OT_WONDER, Cost({R_WOOD, R_STONE, R_PAPER, R_PAPER}), 4, effTheGreatLighthouse);
+    objects[O_WONDER_THE_HANGING_GARDENS] = Object(O_WONDER_THE_HANGING_GARDENS, "The Hanging Gardens", OT_WONDER, Cost({R_WOOD, R_WOOD, R_GLASS, R_PAPER}), 3, effTheHangingGardens);
+    objects[O_WONDER_THE_MAUSOLEUM] = Object(O_WONDER_THE_MAUSOLEUM, "The Mausoleum", OT_WONDER, Cost({R_CLAY, R_CLAY, R_GLASS, R_GLASS, R_PAPER}), 2, effTheMausoleum);
+    objects[O_WONDER_PIRAEUS] = Object(O_WONDER_PIRAEUS, "Piraeus", OT_WONDER, Cost({R_WOOD, R_WOOD, R_STONE, R_CLAY}), 2, effPiraeus);
+    objects[O_WONDER_THE_PYRAMIDS] = Object(O_WONDER_THE_PYRAMIDS, "The Pyramids", OT_WONDER, Cost({R_STONE, R_STONE, R_STONE, R_PAPER}), 9, effThePyramids);
+    objects[O_WONDER_THE_SPHINX] = Object(O_WONDER_THE_SPHINX, "The Sphinx", OT_WONDER, Cost({R_STONE, R_CLAY, R_GLASS, R_GLASS}), 6, effTheSphinx);
+    objects[O_WONDER_THE_STATUE_OF_ZEUS] = Object(O_WONDER_THE_STATUE_OF_ZEUS, "The Statue of Zeus", OT_WONDER, Cost({R_STONE, R_WOOD, R_CLAY, R_PAPER, R_PAPER}), 3, effTheStatueOfZeus);
+    objects[O_WONDER_THE_TEMPLE_OF_ARTEMIS] = Object(O_WONDER_THE_TEMPLE_OF_ARTEMIS, "The Temple of Artemis", OT_WONDER, Cost({R_WOOD, R_STONE, R_GLASS, R_PAPER}), 0, effTheTempleOfArtemis);
 
     objects[O_LOOTING_LOOTING_1] = Object(O_LOOTING_LOOTING_1, "Looting 1", OT_LOOTING, Cost(), effLooting<2>);
     objects[O_LOOTING_LOOTING_2] = Object(O_LOOTING_LOOTING_2, "Looting 2", OT_LOOTING, Cost(), effLooting<5>);
