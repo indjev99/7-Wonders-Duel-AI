@@ -237,6 +237,9 @@ void GameState::destroyObject(int id, int type)
         throw GameException("Object not of correct type.", {{"objectId", id}, {"objectType", type}, {"type", type}});
 
     playerStates[otherPlayer()].destroyObject(objects[id]);
+
+    objectLocations[id].deck = DECK_NONE;
+    insertObject(id, DECK_DISCARDED);
 }
 
 void GameState::selectWonder(int id)

@@ -327,7 +327,7 @@ const int MAX_BUILT_TOKEN_PER_COL = 3;
 const int MAX_DISCARDED_PER_ROW = 17;
 
 const double SIZE_MULT_DELTA = 0.1;
-double SIZE_MULT = 1.5;
+double SIZE_MULT = 2.0;
 
 const int MAIN_FONT_SIZE = 22;
 const int SMALL_FONT_SIZE = 17;

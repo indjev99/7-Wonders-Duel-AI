@@ -56,12 +56,15 @@ void PlayerState::discardCard()
 void PlayerState::destroyObject(const Object& object)
 {
     if (!objectsBuilt[object.id])
-        throw GameException("Object not built.", {{"objectId", object.id}});
+        throw GameException("Object not built but destroyed.", {{"objectId", object.id}});
+
+    if (object.revEffectFunc == nullptr && object.effectFunc != nullptr)
+        throw GameException("Object with effect destoryed but has no reverse effect.", {{"objectId", object.id}});
 
     objectsBuilt[object.id] = false;
     typeCounts[object.type]--;
 
-    if (object.effectFunc != nullptr) object.effectFunc(*this);
+    if (object.revEffectFunc != nullptr) object.revEffectFunc(*this);
 
     int mLead = militaryLead();
     if (mLead <= - MILITARY_THRESHOLD_2 && !otherPlayer->objectsBuilt[O_LOOTING_LOOTING_1]) otherPlayer->buildObject(objects[O_LOOTING_LOOTING_1]);
