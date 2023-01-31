@@ -1,6 +1,7 @@
 #include "game_exception.h"
 #include "game_runner.h"
 #include "listener_gui.h"
+#include "listener_logger.h"
 #include "listener_printer.h"
 #include "player_gui.h"
 #include "player_mc.h"
@@ -11,21 +12,6 @@
 #include <cmath>
 #include <ctime>
 #include <iostream>
-
-void playPrint(PlayerAI* ai1, PlayerAI* ai2)
-{
-    ListenerGUI gui;
-    ListenerPrinter printer;
-
-    PlayerGUI pGui1(gui);
-    PlayerGUI pGui2(gui);
-
-    if (ai1 == nullptr) ai1 = &pGui1;
-    if (ai2 == nullptr) ai2 = &pGui2;
-
-    GameRunner runner({ai1, ai2}, {&gui, &printer});
-    runner.playGame();
-}
 
 void benchmark(PlayerAI* ai1, PlayerAI* ai2)
 {
@@ -51,6 +37,22 @@ void benchmark(PlayerAI* ai1, PlayerAI* ai2)
     }
 }
 
+void playGame(PlayerAI* ai1, PlayerAI* ai2)
+{
+    ListenerGUI gui;
+    ListenerLogger logger;
+    ListenerPrinter printer;
+
+    PlayerGUI pGui1(gui);
+    PlayerGUI pGui2(gui);
+
+    if (ai1 == nullptr) ai1 = &pGui1;
+    if (ai2 == nullptr) ai2 = &pGui2;
+
+    GameRunner runner({ai1, ai2}, {&gui, &logger, &printer});
+    runner.playGame();
+}
+
 void run()
 {
     setSeed(time(nullptr));
@@ -61,7 +63,7 @@ void run()
     PlayerMC mc1;
     PlayerMC mc2;
 
-    playPrint(nullptr, &mc2);
+    playGame(nullptr, &mc2);
 }
 
 int main()
