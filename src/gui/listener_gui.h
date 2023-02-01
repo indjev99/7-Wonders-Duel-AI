@@ -24,7 +24,7 @@ struct ListenerGUI final : Listener
         ImVec2 sizegap;
     };
 
-    ListenerGUI(double advanceTimeSecs = 0.8, bool advanceButton = false);
+    ListenerGUI(bool advanceButton = false, double advanceTimeSecs = 0.8);
     ~ListenerGUI();
 
     void notifyStart() override;

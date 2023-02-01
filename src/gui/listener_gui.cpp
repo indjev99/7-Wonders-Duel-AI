@@ -827,7 +827,7 @@ void ListenerGUI::loadDeckTexture(int id, const std::string& objName)
     objectTextures[O_TEXTURE_DECKS_ROTATED + id] = loadTexture(objName + " Rotated");
 }
 
-ListenerGUI::ListenerGUI(double advanceTimeSecs, bool advanceButton)
+ListenerGUI::ListenerGUI(bool advanceButton, double advanceTimeSecs)
     : advanceTimeSecs(advanceTimeSecs)
     , advanceButton(advanceButton)
     , closed(false)
