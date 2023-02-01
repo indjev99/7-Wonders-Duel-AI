@@ -80,6 +80,9 @@ int main()
     AgentUniform u1;
     AgentUniform u2;
 
+    AgentMC mc1;
+    AgentMC mc2;
+
     playGame(nullptr, &mc2);
 
     return 0;
