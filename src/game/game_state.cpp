@@ -412,6 +412,16 @@ void GameState::doAction(const Action& action)
         }
     }
 
+    if (state.shouldBuildDiscarded)
+    {
+        state.shouldBuildDiscarded = false;
+        if (!isDeckEmpty(DECK_DISCARDED))
+        {
+            queueAction(Action(ACT_MOVE_BUILD_DISCARDED));
+            return;
+        }
+    }
+
     if (state.shouldDestroyType != OT_NONE)
     {
         int type = state.shouldDestroyType;
