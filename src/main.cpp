@@ -1,5 +1,6 @@
 #include "ai/agent_mc.h"
 #include "ai/agent_mc_ucb.h"
+#include "ai/agent_mcts_ucb.h"
 #include "ai/agent_uniform.h"
 #include "game/results.h"
 #include "gui/agent_gui.h"
@@ -58,7 +59,7 @@ void replayGame(const std::string& logName)
     runner.playGame();
 }
 
-void playGame(Agent* agent1, Agent* agent2, bool advanceButton)
+void playGame(Agent* agent1, Agent* agent2, bool advanceButton = false)
 {
     std::ofstream log = makeLog();
 
@@ -79,7 +80,12 @@ void playGame(Agent* agent1, Agent* agent2, bool advanceButton)
 
 int main()
 {
-    setSeed(time(nullptr));
+    int seed = time(nullptr);
+    // int seed = 1675345356;
+
+    std::cerr << "SEED: " << seed << std::endl;
+
+    setSeed(seed);
 
     AgentUniform u1;
     AgentUniform u2;
@@ -90,9 +96,12 @@ int main()
     AgentMcUcb mcUcb1;
     AgentMcUcb mcUcb2;
 
-    playGame(nullptr, &mcUcb2, false);
+    AgentMctsUcb mctsUcb1;
+    AgentMctsUcb mctsUcb2;
 
-    // benchmark(&mcUcb1, &mc2);
+    playGame(nullptr, &mcUcb2);
+
+    // benchmark(&mctsUcb1, &mcUcb2);
 
     // replayGame("");
 

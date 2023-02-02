@@ -1,6 +1,7 @@
 #include "agent_mc.h"
 
 #include "constants.h"
+#include "mc.h"
 
 #include "utils/random.h"
 #include "game/results.h"
@@ -12,14 +13,13 @@ AgentMc::AgentMc(int avgNumSims, bool branchRelative)
 
 Action AgentMc::getAction()
 {
-    Action bestAction;
-    double bestScore = -INF;
-
     const std::vector<Action>& possible = game->getPossibleActions();
-
     if (possible.size() == 1) return possible[0];
 
     int numSims = !branchRelative ? avgNumSims : avgNumSims * possible.size() / AVG_BRANCHES;
+
+    Action bestAction;
+    double bestScore = -INF;
 
     for (int i = 0; i < (int) possible.size(); i++)
     {
@@ -33,11 +33,7 @@ Action AgentMc::getAction()
         {
             GameState runGame = *game;
             runGame.doAction(action);
-            while (!runGame.isTerminal())
-            {
-                runGame.doAction(uniformElem(runGame.getPossibleActions()));
-            }
-            score += resultSign(runGame.getResult(player));
+            score += simRandGame(runGame, player);
         }
         score /= currSims;
 
