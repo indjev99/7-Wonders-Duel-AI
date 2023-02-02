@@ -226,7 +226,9 @@ void GameState::buildBoxToken(int id)
 
 void GameState::buildDiscarded(int id)
 {
-    buildDeckObject(id, DECK_DISCARDED);
+    drawObject(id, DECK_DISCARDED);
+    playerStates[currPlayer].buildObject(objects[id]);
+    objectLocations[id] = ObjectLocation(DECK_USED, POS_NONE);
 }
 
 void GameState::destroyObject(int id, int type)
