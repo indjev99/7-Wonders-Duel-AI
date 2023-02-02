@@ -1,7 +1,5 @@
 #include "random.h"
 
-#include <random>
-
 std::mt19937 generator;
 
 void setSeed(int seed)

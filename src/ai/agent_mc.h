@@ -2,9 +2,9 @@
 
 #include "runner/agent.h"
 
-struct AgentMC final : Agent
+struct AgentMc final : Agent
 {
-    AgentMC(int avgNumSims = 40000, bool branchRelative = true);
+    AgentMc(int avgNumSims = 40000, bool branchRelative = true);
 
     Action getAction() override;
 

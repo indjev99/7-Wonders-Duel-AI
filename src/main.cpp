@@ -1,4 +1,5 @@
 #include "ai/agent_mc.h"
+#include "ai/agent_mc_ucb.h"
 #include "ai/agent_uniform.h"
 #include "game/results.h"
 #include "gui/agent_gui.h"
@@ -54,13 +55,13 @@ void replayGame(const std::string& logName)
     runner.playGame();
 }
 
-void playGame(Agent* agent1, Agent* agent2)
+void playGame(Agent* agent1, Agent* agent2, bool advanceButton)
 {
     std::ofstream log = makeLog();
 
     RevealerUniform revealer;
 
-    ListenerGUI gui;
+    ListenerGUI gui(advanceButton);
     ListenerWriter logger(log);
 
     AgentGUI pGui1(gui);
@@ -80,10 +81,15 @@ int main()
     AgentUniform u1;
     AgentUniform u2;
 
-    AgentMC mc1;
-    AgentMC mc2;
+    AgentMc mc1;
+    AgentMc mc2;
 
-    playGame(nullptr, &mc2);
+    AgentMcUcb mcUcb1;
+    AgentMcUcb mcUcb2;
+
+    playGame(nullptr, &mcUcb2, false);
+
+    // benchmark(&mcUcb1, &mc2);
 
     return 0;
 }
