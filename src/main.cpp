@@ -7,6 +7,7 @@
 #include "runner/game_runner.h"
 #include "runner/revealer_uniform.h"
 #include "text/agent_reader.h"
+#include "text/listener_pretty_printer.h"
 #include "text/listener_writer.h"
 #include "text/make_log.h"
 #include "text/revealer_reader.h"
@@ -51,6 +52,8 @@ void replayGame(const std::string& logName)
 
     ListenerGUI gui(true);
 
+    ListenerPrettyPrinter pretty;
+
     GameRunner runner(&revealer, {&agent1, &agent2}, {&gui});
     runner.playGame();
 }
@@ -70,7 +73,7 @@ void playGame(Agent* agent1, Agent* agent2, bool advanceButton)
     if (agent1 == nullptr) agent1 = &pGui1;
     if (agent2 == nullptr) agent2 = &pGui2;
 
-    GameRunner runner(&revealer, {agent1, agent2}, {&gui, &logger});
+    GameRunner runner(&revealer, {agent1, agent2}, {&logger, &gui});
     runner.playGame();
 }
 
@@ -90,6 +93,8 @@ int main()
     playGame(nullptr, &mcUcb2, false);
 
     // benchmark(&mcUcb1, &mc2);
+
+    // replayGame("");
 
     return 0;
 }
