@@ -1,8 +1,10 @@
+#include "mc_config.h"
+
 #include "game/game_state.h"
 
 struct GameSimulator
 {
-    GameSimulator(GameStateFast& game);
+    GameSimulator(GameStateFast& game, const MCConfig& config);
 
     int simGame(int player);
 
@@ -19,4 +21,5 @@ private:
     Action action() const;
 
     GameStateFast& game;
+    MCConfig config;
 };

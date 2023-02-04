@@ -81,8 +81,8 @@ void playGame(Agent* agent1, Agent* agent2, bool advanceButton = false)
 
 int main()
 {
-    // int seed = time(nullptr);
-    int seed = 1675471986;
+    int seed = time(nullptr);
+    // int seed = 1675471986;
 
     std::cerr << "SEED: " << seed << std::endl;
 
@@ -94,15 +94,15 @@ int main()
     AgentMc mc1;
     AgentMc mc2;
 
-    AgentMcUcb mcUcb1(1000);
-    AgentMcUcb mcUcb2(1000);
+    AgentMcUcb mcUcb1;
+    AgentMcUcb mcUcb2;
 
-    AgentMctsUcb mctsUcb1(1000);
-    AgentMctsUcb mctsUcb2(1000);
+    AgentMctsUcb mctsUcb1;
+    AgentMctsUcb mctsUcb2;
 
-    // playGame(&mcUcb1, &mcUcb2, true);
+    playGame(nullptr, &mctsUcb2);
 
-    benchmark(&mcUcb1, &mcUcb2);
+    // benchmark(&mctsUcb1, &mctsUcb2);
 
     // replayGame("logs/1675521232.log");
 

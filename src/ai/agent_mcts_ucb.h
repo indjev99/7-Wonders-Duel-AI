@@ -1,16 +1,16 @@
 #pragma once
 
+#include "mc_config.h"
+
 #include "runner/agent.h"
 
 struct AgentMctsUcb final : Agent
 {
-    AgentMctsUcb(int avgNumSims = 40000, double explrFactor = 2.8284, bool branchRelative = true);
+    AgentMctsUcb(const MCConfig& config = MCConfig());
 
     Action getAction() override;
 
 private:
 
-    int avgNumSims;
-    double explrFactor;
-    bool branchRelative;
+    MCConfig config;
 };

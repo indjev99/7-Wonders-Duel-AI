@@ -1,6 +1,5 @@
 #include "agent_mcts_ucb.h"
 
-#include "constants.h"
 #include "mc.h"
 
 #include "game/lang.h"
@@ -62,13 +61,11 @@ void debugPrintNode(const std::vector<MctsNode>& nodes, int curr, const GameStat
     }
 }
 
-AgentMctsUcb::AgentMctsUcb(int avgNumSims, double explrFactor, bool branchRelative)
-    : avgNumSims(avgNumSims)
-    , explrFactor(explrFactor)
-    , branchRelative(branchRelative)
+AgentMctsUcb::AgentMctsUcb(const MCConfig& config)
+    : config(config)
 {}
 
-double mctsIteration(std::vector<MctsNode>& nodes, int curr, GameStateFast& game, double explrFactor, int player)
+double mctsIteration(std::vector<MctsNode>& nodes, int curr, GameStateFast& game, const MCConfig& config, int player)
 {
     if (game.isTerminal())
     {        
@@ -78,7 +75,7 @@ double mctsIteration(std::vector<MctsNode>& nodes, int curr, GameStateFast& game
 
     int currAge = game.getCurrAge();
     int currActor = game.getCurrActor();
-    int chosen = findBestArm(nodes[curr].arms, nodes[curr].numGames, explrFactor);
+    int chosen = findBestArm(nodes[curr].arms, nodes[curr].numGames, config.explrFactor);
     BanditArm& arm = nodes[curr].arms[chosen];
 
     game.doAction(arm.action);
@@ -87,14 +84,14 @@ double mctsIteration(std::vector<MctsNode>& nodes, int curr, GameStateFast& game
 
     double reward;
 
-    if(arm.child != CHILD_NONE) reward = mctsIteration(nodes, arm.child, game, explrFactor, player);
-    else if (newAge != currAge) reward = simRandGame(game, player);
+    if(arm.child != CHILD_NONE) reward = mctsIteration(nodes, arm.child, game, config, player);
+    else if (newAge != currAge) reward = simRandGame(game, player, config);
     else
     {
         arm.child = nodes.size();
         nodes.push_back(MctsNode(game));
         nodes.back().numGames++;
-        reward = simRandGame(game, player);
+        reward = simRandGame(game, player, config);
     }
 
     nodes[curr].numGames++;
@@ -107,7 +104,7 @@ Action AgentMctsUcb::getAction()
     const std::vector<Action>& possible = game->getPossibleActions();
     if (possible.size() == 1) return possible[0];
 
-    int numSims = !branchRelative ? avgNumSims : avgNumSims * possible.size() / AVG_BRANCHES;
+    int numSims = config.numSims(possible.size());
 
     std::vector<MctsNode> nodes;
     nodes.push_back(MctsNode(GameStateFast(game)));
@@ -117,7 +114,7 @@ Action AgentMctsUcb::getAction()
     for (int t = 0; t < numSims; t++)
     {
         GameStateFast runGame(game);
-        mctsIteration(nodes, root, runGame, explrFactor, player);
+        mctsIteration(nodes, root, runGame, config, player);
     }
 
     // GameStateFast runGame(game);

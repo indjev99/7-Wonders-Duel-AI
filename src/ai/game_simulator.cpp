@@ -4,8 +4,9 @@
 #include "game/results.h"
 #include "utils/random.h"
 
-GameSimulator::GameSimulator(GameStateFast& game)
+GameSimulator::GameSimulator(GameStateFast& game, const MCConfig& config)
     : game(game)
+    , config(config)
 {}
 
 int GameSimulator::randDeckObject(int deck) const
@@ -22,7 +23,7 @@ Action GameSimulator::fromDeckAction(const Action& expected, int deck) const
 
 Action GameSimulator::chooseStartPlayerAction() const
 {
-    return Action(ACT_MOVE_CHOOSE_START_PLAYER, uniformInt(0, NUM_PLAYERS));
+    return Action(ACT_MOVE_CHOOSE_START_PLAYER, game.getCurrActor());
 }
 
 Action GameSimulator::destroyObjectAction(int type) const
@@ -45,17 +46,29 @@ Action GameSimulator::playPyramidCardAction() const
 
     const PlayerState& state = game.getPlayerState(currPlayer);
 
+    int cnt = 0;
+
     do
     {
         action.arg1 = randDeckObject(DECK_PYRAMID_PLAYABLE);
 
-        int opt = uniformInt(ACT_ARG2_DISCARD, game.getWondersBuilt() < MAX_WONDERS_BUILT ? game.getDeckSize(DECK_SELECTED_WONDERS + currPlayer) : 0);
-        if (opt >= 0) action.arg2 = randDeckObject(DECK_SELECTED_WONDERS + currPlayer);
-        else action.arg2 = opt;
-
-        if (action.arg2 == ACT_ARG2_DISCARD) break;
-        else if (action.arg2 == ACT_ARG2_BUILD && state.canPayFor(objects[action.arg1])) break;
-        else if (action.arg2 >= 0 && state.canPayFor(objects[action.arg2])) break;
+        bool canBeWonder = game.getWondersBuilt() < MAX_WONDERS_BUILT && game.getDeckSize(DECK_SELECTED_WONDERS + currPlayer) > 0;
+        double roll = uniformReal(0, 1 - (canBeWonder ? 0 : config.simWonderProb));
+        if (roll < config.simDiscardProb)
+        {
+            action.arg2 = ACT_ARG2_DISCARD;
+            break;
+        }
+        else if (roll < config.simDiscardProb + config.simBuildProb)
+        {
+            action.arg2 = ACT_ARG2_BUILD;
+            if (state.canPayFor(objects[action.arg1])) break;
+        }
+        else
+        {
+            action.arg2 = randDeckObject(DECK_SELECTED_WONDERS + currPlayer);
+            if (state.canPayFor(objects[action.arg2])) break;
+        }
     }
     while (true);
 

@@ -1,3 +1,5 @@
+#include "mc_config.h"
+
 #include "game/game_state.h"
 
 #include <vector>
@@ -24,4 +26,4 @@ double ucbScore(const BanditArm& arm, double totalNumGames = 1, double explrFact
 
 int findBestArm(const std::vector<BanditArm>& arms, int totalNumGames = 1, double explrFactor = 0);
 
-int simRandGame(GameStateFast& game, int player);
+int simRandGame(GameStateFast& game, int player, const MCConfig& config);
