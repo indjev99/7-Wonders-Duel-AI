@@ -12,14 +12,19 @@ private:
 
     int randDeckObject(int deck) const;
 
+    int modeCard(int deck) const;
+    int modeToken(int deck) const;
+
     Action fromDeckAction(const Action& expected, int deck) const;
-    Action playPyramidCardAction();
+    Action playPyramidCardAction() const;
     Action destroyObjectAction(int type) const;
     Action chooseStartPlayerAction() const;
     Action revealGuildAction() const;
     Action revealFirstPlayerAction() const;
-    Action action();
+    Action action() const;
 
     GameStateFast& game;
     MCConfig config;
+
+    int simModes[NUM_PLAYERS];
 };

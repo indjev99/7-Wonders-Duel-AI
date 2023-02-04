@@ -81,5 +81,5 @@ int findBestArm(const std::vector<BanditArm>& arms, int totalNumGames, double ex
 int simRandGame(GameStateFast& game, int player, const MCConfig& config)
 {
     GameSimulator simulator(game, config);
-    return simulator.simGame(player);
+    return resultSign(simulator.simGame(player));
 }

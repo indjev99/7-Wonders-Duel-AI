@@ -14,5 +14,9 @@ struct MCConfig
     double simBuildProb = 0.45;
     double simWonderProb = 0.45;
 
+    double simModeNormalProb = 0.5;
+    double simModeScienceProb = 0.5;
+    double simModeMilitaryProb = 0.0;
+
     int numSims(int numBranches);
 };

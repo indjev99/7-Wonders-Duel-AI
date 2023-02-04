@@ -82,7 +82,7 @@ void playGame(Agent* agent1, Agent* agent2, bool advanceButton = false)
 int main()
 {
     int seed = time(nullptr);
-    // int seed = 1675471986;
+    // int seed = 1675537839;
 
     std::cerr << "SEED: " << seed << std::endl;
 
@@ -100,7 +100,7 @@ int main()
     AgentMctsUcb mctsUcb1;
     AgentMctsUcb mctsUcb2;
 
-    playGame(nullptr, &mctsUcb2);
+    playGame(nullptr, &mctsUcb1);
 
     // benchmark(&mctsUcb1, &mctsUcb2);
 
