@@ -5,10 +5,10 @@
 GameRunner::GameRunner(Revealer* revealer_, const std::array<Agent*, NUM_PLAYERS>& agents_, const std::vector<Listener*>& listeners_)
     : revealer(revealer_)
     , agents(agents_)
-    , listeners(listeners_)
 {
     listeners.push_back(revealer);
     std::copy(agents.begin(), agents.end(), std::back_inserter(listeners));
+    std::copy(listeners_.begin(), listeners_.end(), std::back_inserter(listeners));
     for (auto listener : listeners)
     {
         listener->setGame(game);
@@ -21,11 +21,13 @@ GameRunner::GameRunner(Revealer* revealer_, const std::array<Agent*, NUM_PLAYERS
 
 int GameRunner::playGame()
 {
-    game = GameState();
+    game.reset();
+
     for (auto listener : listeners)
     {
         listener->notifyStart();
     }
+
     while (!game.isTerminal())
     {
         int actor = game.getCurrActor();
@@ -40,9 +42,11 @@ int GameRunner::playGame()
             listener->notifyActionPost(action);
         }
     }
+
     for (auto listener : listeners)
     {
         listener->notifyEnd();
     }
+
     return game.getResult(0);
 }

@@ -16,7 +16,7 @@ struct MctsNode
 
     int numGames;
 
-    MctsNode(const GameState& game)
+    MctsNode(const GameStateFast& game)
         : arms(makeArms(!game.isTerminal() ? game.getPossibleActions() : std::vector<Action>()))
         , numGames(0)
     {}
@@ -30,7 +30,7 @@ void debugPrintIdent(int depth)
     }
 }
 
-void debugPrintNode(const std::vector<MctsNode>& nodes, int curr, const GameState& game, int player, int expandLimit = 1000, int depth = 1)
+void debugPrintNode(const std::vector<MctsNode>& nodes, int curr, const GameStateFast& game, int player, int expandLimit = 1000, int depth = 1)
 {
     if (depth == 1) std::cerr << std::endl;
 
@@ -55,7 +55,7 @@ void debugPrintNode(const std::vector<MctsNode>& nodes, int curr, const GameStat
         std::cerr << actionToString(arm.action) << " : " << arm.numGames << " with " << ucbScore(arm) << std::endl;
         if (arm.numGames >= expandLimit && arm.child != CHILD_NONE)
         {
-            GameState runGame = game;
+            GameStateFast runGame(&game);
             runGame.doAction(arm.action);
             debugPrintNode(nodes, arm.child, runGame, player, expandLimit, depth + 1);
         }
@@ -68,7 +68,7 @@ AgentMctsUcb::AgentMctsUcb(int avgNumSims, double explrFactor, bool branchRelati
     , branchRelative(branchRelative)
 {}
 
-double mctsIteration(std::vector<MctsNode>& nodes, int curr, GameState& game, double explrFactor, int player)
+double mctsIteration(std::vector<MctsNode>& nodes, int curr, GameStateFast& game, double explrFactor, int player)
 {
     if (game.isTerminal())
     {        
@@ -110,17 +110,17 @@ Action AgentMctsUcb::getAction()
     int numSims = !branchRelative ? avgNumSims : avgNumSims * possible.size() / AVG_BRANCHES;
 
     std::vector<MctsNode> nodes;
-    nodes.push_back(MctsNode(*game));
+    nodes.push_back(MctsNode(GameStateFast(game)));
 
     int root = 0;
 
     for (int t = 0; t < numSims; t++)
     {
-        GameState runGame = *game;
+        GameStateFast runGame(game);
         mctsIteration(nodes, root, runGame, explrFactor, player);
     }
 
-    // GameState runGame = *game;
+    // GameStateFast runGame(game);
     // debugPrintNode(nodes, root, runGame, player);
 
     return nodes[root].arms[findBestArm(nodes[0].arms)].action;

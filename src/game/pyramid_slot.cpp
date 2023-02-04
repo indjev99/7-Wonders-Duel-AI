@@ -7,6 +7,7 @@ PyramidSlot::PyramidSlot(int deck, int objectId, int coveredBy)
     : deck(deck)
     , objectId(objectId)
     , coveredBy(coveredBy)
+    , playablePos(POS_NONE)
 {}
 
 PyramidSlot::PyramidSlot()

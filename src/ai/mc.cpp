@@ -1,5 +1,7 @@
 #include "mc.h"
 
+#include "game_simulator.h"
+
 #include "game/action.h"
 #include "game/results.h"
 #include "utils/random.h"
@@ -68,11 +70,8 @@ int findBestArm(const std::vector<BanditArm>& arms, int totalNumGames, double ex
     return bestArm;
 }
 
-int simRandGame(GameState& game, int player)
+int simRandGame(GameStateFast& game, int player)
 {
-    while (!game.isTerminal())
-    {
-        game.doAction(uniformElem(game.getPossibleActions()));
-    }
-    return resultSign(game.getResult(player));
+    GameSimulator simulator(game);
+    return simulator.simGame(player);
 }

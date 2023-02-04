@@ -31,7 +31,7 @@ Action AgentMc::getAction()
         double score = 0;
         for (int t = 0; t < currSims; t++)
         {
-            GameState runGame = *game;
+            GameStateFast runGame(game);
             runGame.doAction(action);
             score += simRandGame(runGame, player);
         }

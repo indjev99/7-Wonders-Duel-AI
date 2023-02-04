@@ -16,20 +16,37 @@
 
 #define NUM_DECK_LOCATIONS NUM_AGE_1_CARDS + NUM_AGE_2_CARDS + NUM_AGE_3_CARDS + \
         NUM_GUILD_CARDS + NUM_TOKENS + NUM_WONDERS + NUM_GAME_TOKENS + NUM_BOX_TOKENS + \
-        NUM_WONDERS_REVEALED + 2 * NUM_WONDERS_PER_PLAYER + MAX_DISCARDED
+        NUM_WONDERS_REVEALED + 2 * NUM_WONDERS_PER_PLAYER + MAX_DISCARDED + PYRAMID_SIZE
 
 #define AGE_SETUP -2
 #define AGE_WONDER_SELECTION -1
 
 #define ACTOR_GAME -1
 
-struct GameState
+template <bool CheckValid>
+struct GameStateT
 {
-    GameState();
-    GameState(const GameState& other);
-    GameState& operator=(const GameState& other);
+    GameStateT();
+
+    template <bool OtherCheckValid>
+    GameStateT(const GameStateT<OtherCheckValid>* other);
 
     void reset();
+
+    template <bool OtherCheckValid>
+    void clone(const GameStateT<OtherCheckValid>* other);
+
+    template <bool OtherCheckValid>
+    GameStateT(const GameStateT<OtherCheckValid>& other) = delete;
+
+    template <bool OtherCheckValid>
+    GameStateT& operator=(const GameStateT<OtherCheckValid>& other) = delete;
+
+    template <bool OtherCheckValid>
+    GameStateT(GameStateT<OtherCheckValid>&& other) = delete;
+
+    template <bool OtherCheckValid>
+    GameStateT& operator=(GameStateT<OtherCheckValid>&& other) = delete;
 
     void doAction(const Action& action);
 
@@ -43,11 +60,13 @@ struct GameState
     const std::vector<Action>& getPossibleActions() const;
     void getPossibleActions(std::vector<Action>& possible) const;
 
+    int getOpponent(int player) const;
     int getCoins(int player) const;
     int getScore(int player, int onlyType = OT_NONE) const;
     int getDistinctSciences(int player) const;
     int getMilitary(int player) const;
     int getMilitaryLead(int player) const;
+    int getWondersBuilt() const;
 
     int getDeckSize(int deck) const;
     bool isDeckEmpty(int deck) const;
@@ -101,6 +120,8 @@ private:
 
     void buildDeckObject(int id, int deck);
     void playPyramidCard(int id);
+    void addPlayablePyramidCard(int pos);
+    void remPlayablePyramidCard(int pos);
 
     void buildPyramidCard(int id);
     void discardPyramidCard(int id);
@@ -127,4 +148,10 @@ private:
     bool correctPossibleActions;
     std::vector<Action> possibleActions;
     std::vector<int> possibleWonders;
+
+    template <bool OtherCheckValid>
+    friend class GameStateT;
 };
+
+using GameState = GameStateT<true>;
+using GameStateFast = GameStateT<false>;

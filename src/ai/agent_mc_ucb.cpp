@@ -25,7 +25,7 @@ Action AgentMcUcb::getAction()
     {
         int chosen = findBestArm(arms, t, explrFactor);
 
-        GameState runGame = *game;
+        GameStateFast runGame(game);
         runGame.doAction(arms[chosen].action);
         arms[chosen].totalReward += simRandGame(runGame, player);
         arms[chosen].numGames++;

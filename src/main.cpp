@@ -65,8 +65,9 @@ void playGame(Agent* agent1, Agent* agent2, bool advanceButton = false)
 
     RevealerUniform revealer;
 
-    ListenerGUI gui(advanceButton);
     ListenerWriter logger(log);
+    ListenerPrettyPrinter pretty;
+    ListenerGUI gui(advanceButton);
 
     AgentGUI pGui1(gui);
     AgentGUI pGui2(gui);
@@ -74,14 +75,14 @@ void playGame(Agent* agent1, Agent* agent2, bool advanceButton = false)
     if (agent1 == nullptr) agent1 = &pGui1;
     if (agent2 == nullptr) agent2 = &pGui2;
 
-    GameRunner runner(&revealer, {agent1, agent2}, {&logger, &gui});
+    GameRunner runner(&revealer, {agent1, agent2}, {&logger, &pretty, &gui});
     runner.playGame();
 }
 
 int main()
 {
-    int seed = time(nullptr);
-    // int seed = 1675345356;
+    // int seed = time(nullptr);
+    int seed = 1675471986;
 
     std::cerr << "SEED: " << seed << std::endl;
 
@@ -93,17 +94,17 @@ int main()
     AgentMc mc1;
     AgentMc mc2;
 
-    AgentMcUcb mcUcb1;
-    AgentMcUcb mcUcb2;
+    AgentMcUcb mcUcb1(1000);
+    AgentMcUcb mcUcb2(1000);
 
-    AgentMctsUcb mctsUcb1;
-    AgentMctsUcb mctsUcb2;
+    AgentMctsUcb mctsUcb1(1000);
+    AgentMctsUcb mctsUcb2(1000);
 
-    playGame(nullptr, &mctsUcb2);
+    // playGame(&mcUcb1, &mcUcb2, true);
 
-    // benchmark(&mctsUcb1, &mcUcb2);
+    benchmark(&mcUcb1, &mcUcb2);
 
-    // replayGame("");
+    // replayGame("logs/1675521232.log");
 
     return 0;
 }

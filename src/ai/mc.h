@@ -24,4 +24,4 @@ double ucbScore(const BanditArm& arm, double totalNumGames = 1, double explrFact
 
 int findBestArm(const std::vector<BanditArm>& arms, int totalNumGames = 1, double explrFactor = 0);
 
-int simRandGame(GameState& game, int player);
+int simRandGame(GameStateFast& game, int player);

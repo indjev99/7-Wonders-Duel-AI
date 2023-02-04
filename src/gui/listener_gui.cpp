@@ -530,7 +530,7 @@ void ListenerGUI::drawPyramid()
 
     if (age < 0) return;
 
-    ImGui::PushID(DECK_CARD_PYRAMID);
+    ImGui::PushID(DECK_PYRAMID);
 
     for (int i = 0; age >= 0 && i < PYRAMID_SIZE; i++)
     {
@@ -650,6 +650,8 @@ void ListenerGUI::drawDiscarded()
 
     ImGui::PopID();
 }
+
+#include <iostream>
 
 void ListenerGUI::drawMilitaryLead()
 {
