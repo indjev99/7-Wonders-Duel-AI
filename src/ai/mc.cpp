@@ -17,6 +17,11 @@ BanditArm::BanditArm(const Action& action, int child)
     , totalReward(0)
 {}
 
+double BanditArm::avgReward() const
+{
+    return totalReward / numGames;
+}
+
 void BanditArm::update(double reward)
 {
     numGames++;
@@ -36,9 +41,9 @@ std::vector<BanditArm> makeArms(const std::vector<Action>& possible)
     return arms;
 }
 
-double ucbScore(const BanditArm& arm, double totalNumGames, double explrFactor)
+double ucbScore(const BanditArm& arm, double logTotalNumGames, double explrFactor)
 {
-    return arm.totalReward / arm.numGames + explrFactor * sqrt(log(totalNumGames) / arm.numGames);
+    return arm.avgReward() + explrFactor * sqrt(logTotalNumGames / arm.numGames);
 }
 
 int findBestArm(const std::vector<BanditArm>& arms, int totalNumGames, double explrFactor)
@@ -46,9 +51,12 @@ int findBestArm(const std::vector<BanditArm>& arms, int totalNumGames, double ex
     int bestArm = -1;
     double bestScore;
 
-    std::vector<int> perm(arms.size());
+    static std::vector<int> perm;
+    perm.resize(arms.size());
     std::iota(perm.begin(), perm.end(), 0);
     randShuffle(perm);
+
+    double logTotalGames = totalNumGames > 0 ? log(totalNumGames) : 0;
 
     for (int i : perm)
     {
@@ -58,7 +66,7 @@ int findBestArm(const std::vector<BanditArm>& arms, int totalNumGames, double ex
             break;
         }
 
-        double score = ucbScore(arms[i], totalNumGames, explrFactor);
+        double score = ucbScore(arms[i], logTotalGames, explrFactor);
 
         if (bestArm == -1 || score > bestScore)
         {

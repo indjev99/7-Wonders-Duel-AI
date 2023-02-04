@@ -17,12 +17,12 @@ struct BanditArm
 
     BanditArm(const Action& action, int child = CHILD_NONE);
 
+    double avgReward() const;
+
     void update(double reward);
 };
 
 std::vector<BanditArm> makeArms(const std::vector<Action>& possible);
-
-double ucbScore(const BanditArm& arm, double totalNumGames = 1, double explrFactor = 0);
 
 int findBestArm(const std::vector<BanditArm>& arms, int totalNumGames = 1, double explrFactor = 0);
 

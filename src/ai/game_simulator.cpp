@@ -4,6 +4,8 @@
 #include "game/results.h"
 #include "utils/random.h"
 
+#include <algorithm>
+
 GameSimulator::GameSimulator(GameStateFast& game, const MCConfig& config)
     : game(game)
     , config(config)
@@ -38,15 +40,12 @@ Action GameSimulator::destroyObjectAction(int type) const
     return Action(ACT_MOVE_DESTROY_OBJECT, id, type);
 }
 
-Action GameSimulator::playPyramidCardAction() const
+Action GameSimulator::playPyramidCardAction()
 {
     Action action(ACT_MOVE_PLAY_PYRAMID_CARD);
 
     int currPlayer = game.getCurrActor();
-
     const PlayerState& state = game.getPlayerState(currPlayer);
-
-    int cnt = 0;
 
     do
     {
@@ -91,7 +90,7 @@ Action GameSimulator::revealFirstPlayerAction() const
     return Action(ACT_REVEAL_FIRST_PLAYER, uniformInt(0, NUM_PLAYERS));
 }
 
-Action GameSimulator::action() const
+Action GameSimulator::action()
 {
     const Action& expected = game.getExpectedAction();
 

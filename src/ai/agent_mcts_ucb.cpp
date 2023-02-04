@@ -51,7 +51,7 @@ void debugPrintNode(const std::vector<MctsNode>& nodes, int curr, const GameStat
     for (const BanditArm& arm : armsSorted)
     {
         debugPrintIdent(depth + 1);
-        std::cerr << actionToString(arm.action) << " : " << arm.numGames << " with " << ucbScore(arm) << std::endl;
+        std::cerr << actionToString(arm.action) << " : " << arm.numGames << " with " << (arm.numGames > 0 ? arm.avgReward() : 0) << std::endl;
         if (arm.numGames >= expandLimit && arm.child != CHILD_NONE)
         {
             GameStateFast runGame(&game);
