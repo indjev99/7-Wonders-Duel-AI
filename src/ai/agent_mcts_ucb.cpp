@@ -5,6 +5,7 @@
 
 #include "game/lang.h"
 
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <numeric>
@@ -29,28 +30,33 @@ void debugPrintIdent(int depth)
     }
 }
 
-void debugPrintNode(const std::vector<MctsNode>& nodes, int curr, const GameState& game, int player, int expandLimit = 20, int depth = 1)
+void debugPrintNode(const std::vector<MctsNode>& nodes, int curr, const GameState& game, int player, int expandLimit = 1000, int depth = 1)
 {
+    if (depth == 1) std::cerr << std::endl;
+
+    debugPrintIdent(depth);
+    std::cerr << "Depth: " << depth << ", ";
+
     if (game.isTerminal())
     {
-        debugPrintIdent(depth);
         std::cerr << "Terminal: " << resultToString(game.getResult(player)) << std::endl;
         return;
     }
 
-    debugPrintIdent(depth);
     std::cerr << "Actor: " << actorToString(game.getCurrActor()) << std::endl;
 
-    debugPrintIdent(depth);
-    std::cerr << "Children: " << std::endl;
+    std::vector<BanditArm> armsSorted = nodes[curr].arms;
 
-    for (const BanditArm& arm : nodes[curr].arms)
+    std::sort(armsSorted.begin(), armsSorted.end(), [](auto& left, auto& right){ return left.numGames > right.numGames; });
+
+    for (const BanditArm& arm : armsSorted)
     {
         debugPrintIdent(depth + 1);
-        std::cerr << arm.numGames << " with " << ucbScore(arm) << " : " << actionToString(arm.action) << std::endl;
+        std::cerr << actionToString(arm.action) << " : " << arm.numGames << " with " << ucbScore(arm) << std::endl;
         if (arm.numGames >= expandLimit && arm.child != CHILD_NONE)
         {
             GameState runGame = game;
+            runGame.doAction(arm.action);
             debugPrintNode(nodes, arm.child, runGame, player, expandLimit, depth + 1);
         }
     }
@@ -114,7 +120,8 @@ Action AgentMctsUcb::getAction()
         mctsIteration(nodes, root, runGame, explrFactor, player);
     }
 
-    GameState runGame = *game;
+    // GameState runGame = *game;
+    // debugPrintNode(nodes, root, runGame, player);
 
     return nodes[root].arms[findBestArm(nodes[0].arms)].action;
 }

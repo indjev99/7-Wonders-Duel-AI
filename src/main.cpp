@@ -99,7 +99,7 @@ int main()
     AgentMctsUcb mctsUcb1;
     AgentMctsUcb mctsUcb2;
 
-    playGame(nullptr, &mcUcb2);
+    playGame(nullptr, &mctsUcb2);
 
     // benchmark(&mctsUcb1, &mcUcb2);
 
