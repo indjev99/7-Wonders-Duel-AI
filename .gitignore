@@ -1,6 +1,8 @@
+.vscode/*
 *.exe
 *.o
 *.d
 *.ini
 *.log
-.vscode/*
+*.pyc
+scripts/paths.py
