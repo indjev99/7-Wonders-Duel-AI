@@ -26,7 +26,7 @@ class PipeReaderWriter():
 
         win32pipe.SetNamedPipeHandleState(self.pipe_handle, win32pipe.PIPE_READMODE_MESSAGE, None, None)
 
-    def write(self, s: str):
+    def write(self, s: str) -> None:
         s_bytes = str.encode(s)
         code, bytes_written = win32file.WriteFile(self.pipe_handle, s_bytes)
 

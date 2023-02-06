@@ -95,12 +95,9 @@ void playExternalGame(Agent* agent1, const std::string& pipeName = "//./pipe/7wd
 
     PipeReaderWriter pipe(pipeName);
 
-    // RevealerReader revealer(pipe);
-    // AgentReader agent2(pipe);
+    RevealerReader revealer(pipe);
+    AgentReader agent2(pipe);
     ListenerWriter sender(pipe);
-
-    RevealerUniform revealer;
-    AgentMctsUcb agent2;
 
     GameRunner runner(&revealer, {agent1, &agent2}, {&logger, &sender, &gui});
     runner.playGame();
@@ -126,9 +123,9 @@ int main()
     AgentMctsUcb mctsUcb1;
     AgentMctsUcb mctsUcb2;
 
-    // playGame(nullptr, &mctsUcb1);
+    playGame(nullptr, &mctsUcb1);
 
-    playExternalGame(&mctsUcb1);
+    // playExternalGame(&mctsUcb1);
 
     // benchmark(&mctsUcb1, &mctsUcb2);
 
