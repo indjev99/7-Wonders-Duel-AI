@@ -2,13 +2,11 @@
 
 #include "game/lang.h"
 
-RevealerReader::RevealerReader(std::istream& in)
-    : in(in)
+RevealerReader::RevealerReader(StringReader& reader)
+    : reader(reader)
 {}
 
 Action RevealerReader::getAction()
 {
-    std::string actionStr;
-    std::getline(in, actionStr);
-    return actionFromString(actionStr);
+    return actionFromString(reader.read());
 }

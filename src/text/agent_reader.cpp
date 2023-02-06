@@ -2,13 +2,11 @@
 
 #include "game/lang.h"
 
-AgentReader::AgentReader(std::istream& in)
-    : in(in)
+AgentReader::AgentReader(StringReader& reader)
+    : reader(reader)
 {}
 
 Action AgentReader::getAction()
 {
-    std::string actionStr;
-    std::getline(in, actionStr);
-    return actionFromString(actionStr);
+    return actionFromString(reader.read());
 }

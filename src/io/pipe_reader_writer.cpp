@@ -1,6 +1,8 @@
-#include "pipe_io.h"
+#include "pipe_reader_writer.h"
 
-PipeIO::PipeIO(const std::string& pipeName)
+#include <iostream>
+
+PipeReaderWriter::PipeReaderWriter(const std::string& pipeName)
 {
     std::unique_ptr<char[]> pipeNameChars = toChars(pipeName);
 
@@ -23,7 +25,7 @@ PipeIO::PipeIO(const std::string& pipeName)
     ConnectNamedPipe(pipeHandle, NULL);
 }
 
-void PipeIO::write(const std::string& s)
+void PipeReaderWriter::write(const std::string& s)
 {
     std::unique_ptr<char[]> sChars = toChars(s);
 
@@ -42,7 +44,7 @@ void PipeIO::write(const std::string& s)
     }
 }
 
-std::string PipeIO::read()
+std::string PipeReaderWriter::read()
 {
     std::unique_ptr<char[]> response = std::make_unique<char[]>(BUF_SIZE);
 
@@ -65,7 +67,7 @@ std::string PipeIO::read()
     return s;
 }
 
-std::unique_ptr<char[]> PipeIO::toChars(const std::string& str)
+std::unique_ptr<char[]> PipeReaderWriter::toChars(const std::string& str)
 {
     std::unique_ptr<char[]> chars = std::make_unique<char[]>(str.size() + 1);
     strcpy(chars.get(), str.c_str());

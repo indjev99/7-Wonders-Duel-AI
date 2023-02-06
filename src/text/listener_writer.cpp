@@ -2,11 +2,11 @@
 
 #include "game/lang.h"
 
-ListenerWriter::ListenerWriter(std::ostream& out)
-    : out(out)
+ListenerWriter::ListenerWriter(StringWriter& writer)
+    : writer(writer)
 {}
 
 void ListenerWriter::notifyActionPre(const Action& action)
 {
-    out << actionToString(action) << std::endl;
+    writer.write(actionToString(action));
 }

@@ -1,16 +1,17 @@
 #pragma once
 
+#include "io/string_reader.h"
 #include "runner/revealer.h"
 
 #include <iostream>
 
 struct RevealerReader final : Revealer
 {
-    RevealerReader(std::istream& in);
+    RevealerReader(StringReader& reader);
 
     Action getAction() override;
 
 private:
 
-    std::istream& in;
+    StringReader& reader;
 };

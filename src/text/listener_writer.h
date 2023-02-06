@@ -1,16 +1,17 @@
 #pragma once
 
+#include "io/string_writer.h"
 #include "runner/listener.h"
 
 #include <iostream>
 
 struct ListenerWriter final : Listener
 {
-    ListenerWriter(std::ostream& out);
+    ListenerWriter(StringWriter& writer);
 
     void notifyActionPre(const Action& action) override;
 
 private:
 
-    std::ostream& out;
+    StringWriter& writer;
 };

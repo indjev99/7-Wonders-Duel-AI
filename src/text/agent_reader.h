@@ -1,16 +1,17 @@
 #pragma once
 
+#include "io/string_reader.h"
 #include "runner/agent.h"
 
 #include <iostream>
 
 struct AgentReader final : Agent
 {
-    AgentReader(std::istream& in);
+    AgentReader(StringReader& reader);
 
     Action getAction() override;
 
 private:
 
-    std::istream& in;
+    StringReader& reader;
 };
