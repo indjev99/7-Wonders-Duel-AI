@@ -46,8 +46,10 @@ void benchmark(Agent* agent1, Agent* agent2)
     }
 }
 
-void replayGame(const std::string& logName)
+void replayGame(const std::string& logName, bool advanceButton = true)
 {
+    ListenerGUI gui(advanceButton);
+
     std::ifstream log(logName.c_str());
     StreamReader logReader(log);
 
@@ -55,38 +57,58 @@ void replayGame(const std::string& logName)
     AgentReader agent1(logReader);
     AgentReader agent2(logReader);
 
-    ListenerGUI gui(true);
-
-    ListenerPrettyPrinter pretty;
-
     GameRunner runner(&revealer, {&agent1, &agent2}, {&gui});
     runner.playGame();
 }
 
 void playGame(Agent* agent1, Agent* agent2, bool advanceButton = false)
 {
+    ListenerGUI gui(advanceButton);
+
+    AgentGUI aGui1(gui);
+    AgentGUI aGui2(gui);
+
+    if (agent1 == nullptr) agent1 = &aGui1;
+    if (agent2 == nullptr) agent2 = &aGui2;
+
     std::ofstream log = makeLog();
     StreamWriter logWriter(log);
+    ListenerWriter logger(logWriter);
 
     RevealerUniform revealer;
 
-    ListenerWriter logger(logWriter);
+    GameRunner runner(&revealer, {agent1, agent2}, {&logger, &gui});
+    runner.playGame();
+}
+
+void playExternalGame(Agent* agent1, const std::string& pipeName = "//./pipe/7wdai", bool advanceButton = false)
+{
     ListenerGUI gui(advanceButton);
 
-    AgentGUI pGui1(gui);
-    AgentGUI pGui2(gui);
+    AgentGUI aGui1(gui);
 
-    if (agent1 == nullptr) agent1 = &pGui1;
-    if (agent2 == nullptr) agent2 = &pGui2;
+    if (agent1 == nullptr) agent1 = &aGui1;
 
-    GameRunner runner(&revealer, {agent1, agent2}, {&logger, &gui});
+    std::ofstream log = makeLog();
+    StreamWriter logWriter(log);
+    ListenerWriter logger(logWriter);
+
+    PipeReaderWriter pipe(pipeName);
+
+    // RevealerReader revealer(pipe);
+    // AgentReader agent2(pipe);
+    ListenerWriter sender(pipe);
+
+    RevealerUniform revealer;
+    AgentMctsUcb agent2;
+
+    GameRunner runner(&revealer, {agent1, &agent2}, {&logger, &sender, &gui});
     runner.playGame();
 }
 
 int main()
 {
     int seed = time(nullptr);
-    // int seed = 1675537839;
 
     std::cerr << "SEED: " << seed << std::endl;
 
@@ -104,7 +126,9 @@ int main()
     AgentMctsUcb mctsUcb1;
     AgentMctsUcb mctsUcb2;
 
-    playGame(nullptr, &mctsUcb1);
+    // playGame(nullptr, &mctsUcb1);
+
+    playExternalGame(&mctsUcb1);
 
     // benchmark(&mctsUcb1, &mctsUcb2);
 

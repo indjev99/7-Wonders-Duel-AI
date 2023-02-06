@@ -3,7 +3,7 @@ import win32pipe
 import win32file
 import pywintypes
 
-class PipeIO():
+class PipeReaderWriter():
     def __init__(self, pipe_name: str):
         self.pipe_handle = None
         while self.pipe_handle is None:
@@ -35,7 +35,7 @@ class PipeIO():
             exit(-1)
 
     def read(self) -> str:
-        code, s_bytes = win32file.ReadFile(self.pipe_handle, PipeIO.BUF_SIZE)
+        code, s_bytes = win32file.ReadFile(self.pipe_handle, PipeReaderWriter.BUF_SIZE)
 
         if code != 0:
             print('Bad code from ReadFile:', code)
