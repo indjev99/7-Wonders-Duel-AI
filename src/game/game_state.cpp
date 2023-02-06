@@ -64,11 +64,20 @@ void GameStateT<CheckValid>::advancePlayer()
 }
 
 template <bool CheckValid>
+void GameStateT<CheckValid>::preQueueAction(const Action& action, int count)
+{
+    for (int i = 0; i < count; i++)
+    {
+        queuedActions.push_front(action);
+    }
+}
+
+template <bool CheckValid>
 void GameStateT<CheckValid>::queueAction(const Action& action, int count)
 {
     for (int i = 0; i < count; i++)
     {
-        queuedActions.push(action);
+        queuedActions.push_back(action);
     }
 }
 
@@ -416,7 +425,7 @@ void GameStateT<CheckValid>::doAction(const Action& action)
 
     correctPossibleActions = false;
 
-    queuedActions.pop();
+    queuedActions.pop_front();
 
     bool haveNextActions = !queuedActions.empty();
 
@@ -502,9 +511,6 @@ void GameStateT<CheckValid>::doAction(const Action& action)
 
     if constexpr (CheckValid)
     {
-        if (action.isPlayerMove() && haveNextActions)
-                throw GameException("Actions were queued after player move.", {{"actionType", action.type}});
-
         if (!action.isPlayerMove() && !haveNextActions)
                 throw GameException("No actions were queued after game reveal.", {{"actionType", action.type}});
     }
@@ -532,7 +538,7 @@ void GameStateT<CheckValid>::doAction(const Action& action)
 
     if (state.getResult(false) != RESULT_DRAW)
     {
-        queuedActions = std::queue<Action>();
+        queuedActions = std::deque<Action>();
         return;
     }
 
@@ -541,7 +547,7 @@ void GameStateT<CheckValid>::doAction(const Action& action)
         state.shouldBuildGameToken = false;
         if (!isDeckEmpty(DECK_GAME_TOKENS))
         {
-            queueAction(Action(ACT_MOVE_BUILD_GAME_TOKEN));
+            preQueueAction(Action(ACT_MOVE_BUILD_GAME_TOKEN));
             return;
         }
     }
@@ -551,8 +557,8 @@ void GameStateT<CheckValid>::doAction(const Action& action)
         state.shouldBuildBoxToken = false;
         if (!isDeckEmpty(DECK_TOKENS))
         {
-            queueAction(Action(ACT_REVEAL_BOX_TOKEN), std::min(NUM_BOX_TOKENS, getDeckSize(DECK_TOKENS)));
-            queueAction(Action(ACT_MOVE_BUILD_BOX_TOKEN));
+            preQueueAction(Action(ACT_MOVE_BUILD_BOX_TOKEN));
+            preQueueAction(Action(ACT_REVEAL_BOX_TOKEN), std::min(NUM_BOX_TOKENS, getDeckSize(DECK_TOKENS)));
             return;
         }
     }
@@ -562,7 +568,7 @@ void GameStateT<CheckValid>::doAction(const Action& action)
         state.shouldBuildDiscarded = false;
         if (!isDeckEmpty(DECK_DISCARDED))
         {
-            queueAction(Action(ACT_MOVE_BUILD_DISCARDED));
+            preQueueAction(Action(ACT_MOVE_BUILD_DISCARDED));
             return;
         }
     }
@@ -573,7 +579,7 @@ void GameStateT<CheckValid>::doAction(const Action& action)
         state.shouldDestroyType = OT_NONE;
         if (playerStates[otherPlayer()].typeCounts[type] > 0)
         {
-            queueAction(Action(ACT_MOVE_DESTROY_OBJECT, OBJ_NONE, type));
+            preQueueAction(Action(ACT_MOVE_DESTROY_OBJECT, OBJ_NONE, type));
             return;
         }
     }

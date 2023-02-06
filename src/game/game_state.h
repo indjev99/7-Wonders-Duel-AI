@@ -10,7 +10,7 @@
 #include "pyramid_slot.h"
 
 #include <algorithm>
-#include <queue>
+#include <deque>
 
 #define MAX_DISCARDED NUM_AGES * PYRAMID_SIZE
 
@@ -95,7 +95,7 @@ private:
     std::array<PyramidSlot, PYRAMID_SIZE> cardPyramid;
     std::array<ObjectLocation, NUM_OBJECTS> objectLocations;
 
-    std::queue<Action> queuedActions;
+    std::deque<Action> queuedActions;
 
     void linkPlayers();
 
@@ -106,6 +106,7 @@ private:
     int otherPlayer() const;
     void advancePlayer();
 
+    void preQueueAction(const Action& action, int count = 1);
     void queueAction(const Action& action, int count = 1);
 
     void drawObject(int id, int deck);
