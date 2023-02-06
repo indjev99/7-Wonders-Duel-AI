@@ -1,7 +1,7 @@
 # Compiler settings - Can be customized.
 CC = g++
 CXXFLAGS = -std=c++17 -Wall -O3 -I include -I src
-LDFLAGS = -static -static-libgcc -static-libstdc++ -L include/GLFW/lib -lglfw3 -lopengl32 -lglu32 -lgdi32
+LDFLAGS = -static -static-libgcc -static-libstdc++ -L include/GLFW/lib -lglfw3 -lopengl32 -lglu32 -lgdi32 -lws2_32
 
 # Makefile settings - Can be customized.
 APPNAME = 7wdai
