@@ -1045,7 +1045,7 @@ void GameStateT<CheckValid>::possibleActionsUnchecked(std::vector<Action>& possi
         break;
 
     case ACT_REVEAL_PYRAMID_CARD:
-        // verifyPos(expected.arg2, DECK_PYRAMID);
+        if constexpr (CheckValid) verifyPos(expected.arg2, DECK_PYRAMID);
         possibleFromDeckActions(possible, expected, cardPyramid[expected.arg2].deck);
         break;
 
