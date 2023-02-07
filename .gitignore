@@ -5,4 +5,5 @@
 *.ini
 *.log
 *.pyc
+*.ipynb
 scripts/paths.py

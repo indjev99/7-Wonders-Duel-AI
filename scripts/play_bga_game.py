@@ -37,9 +37,12 @@ class BGAGame:
     def register_name_id(self, name: str, id: str) -> None:
         self.names_to_ids[name] = id
 
-    def find_curr_player(self) -> str:
+    def find_title_text(self) -> str:
         title = self.driver.find_element(By.ID, 'pagemaintitletext')
         title_text = sanitize(title.text)
+        return title_text
+
+    def parse_curr_player(self, title_text):
         if 'must' not in title_text:
             return None
         elif 'you' in title_text:
@@ -53,16 +56,27 @@ class BGAGame:
         built_cards = set()
         discarded_cards = set()
 
+        new_total_pyramid_cards = 0
+
         for card in self.driver.find_elements(By.CLASS_NAME, 'building'):
             card_name = sanitize(card.text)
             card_id = card.get_attribute('id')
             card_bulding_id = card.get_attribute('data-building-id')
 
-            if card_bulding_id == '' or card_bulding_id is None:
+            container = card.find_element(By.XPATH, "../..")
+            container_id = container.get_attribute('id')
+
+            card_loc_str = card.get_attribute('data-location')
+
+            if container_id == 'draftpool_container':
+                new_total_pyramid_cards += 1
+
                 back_pos = card.value_of_css_property('background-position')
                 if back_pos == '-100% -700%':
-                    position = int(card.get_attribute('data-location'))
+                    position = int(card_loc_str)
                     guild_poses.add(position)
+
+            if card_bulding_id == '' or card_bulding_id is None:
                 continue
 
             if card_name != '':
@@ -75,11 +89,8 @@ class BGAGame:
 
             self.register_name_id(card_name, card_id)
 
-            container = card.find_element(By.XPATH, "../..")
-            container_id = container.get_attribute('id')
-
             if container_id == 'draftpool_container':
-                position = int(card.get_attribute('data-location'))
+                position = int(card_loc_str)
                 pyramid_poses_cards.add((position, card_name))
                 if 'GUILD' in card_name:
                     guild_poses.add(position)
@@ -88,9 +99,16 @@ class BGAGame:
             else:
                 built_cards.add(card_name)
 
-        if len(pyramid_poses_cards) > 0:
+        if new_total_pyramid_cards > self.total_pyramid_cards:
+            pyramid_poses = set(map(lambda pos_card : pos_card[0], pyramid_poses_cards))
+            if 0 not in pyramid_poses:
+                raise Exception()
+
+        self.total_pyramid_cards = new_total_pyramid_cards
+
+        if self.total_pyramid_cards > 0:
             self.wonder_selection = False
-    
+
         return pyramid_poses_cards, guild_poses, built_cards, discarded_cards
 
     def find_tokens(self) -> tuple[set[str], set[str], set[str]]:
@@ -208,11 +226,14 @@ class BGAGame:
         self.names_to_ids = {}
         self.building_ids_to_names = {}
         self.wonder_selection = True
+        self.curr_age = -1
         self.found_first_player = False
+        self.total_pyramid_cards = 0
+        self.found_start_player = True
         self.state = {}
 
-    def update_state(self, curr_state: dict[set], curr_player: str) -> None:
-        if curr_state == self.state:
+    def update_state(self, curr_state: dict[set]) -> None:
+        if curr_state == self.state and self.found_first_player and self.found_start_player:
             return
 
         def prev_elems(name: str) -> set:
@@ -235,6 +256,7 @@ class BGAGame:
 
         actions = []
 
+        new_pyramid_poses = set(map(lambda pos_card: pos_card[0], new_elems('pyramid_poses_cards')))
         gone_pyramid_cards = set(map(lambda pos_card: pos_card[1], old_elems('pyramid_poses_cards')))
         gone_built_cards = old_elems('built_cards')
         gone_discarded_cards = old_elems('discarded_cards')
@@ -242,19 +264,47 @@ class BGAGame:
         gone_box_tokens = old_elems('box_tokens')
         gone_revealed_wonders = old_elems('revealed_wonders')
 
+        next_found_first_player = self.found_first_player
+
         if not self.found_first_player:
             revealed_wonders = curr_elems('revealed_wonders')
+            title_text = self.find_title_text()
+            curr_player = self.parse_curr_player(title_text)
             if curr_player is None:
                 print(f'Unknown first player', file=sys.stderr)
                 return
-            elif len(revealed_wonders) == 4:
+            if len(revealed_wonders) == 4:
                 actions.append(f'Reveal first player, {curr_player}')
             elif len(revealed_wonders) == 3:
                 actions.append(f'Reveal first player, {BGAGame.OTHER_PLAYER[curr_player]}')
             else:
                 print(f'Unexpected starting number of revealed wonders, {revealed_wonders}', file=sys.stderr)
                 return
-            self.found_first_player = True
+            next_found_first_player = True
+
+        next_age = self.curr_age
+
+        next_found_start_player = self.found_start_player
+
+        if 0 in new_pyramid_poses:
+            next_found_start_player = False
+            next_age += 1
+
+        if not self.found_start_player or not next_found_start_player:
+            title_text = self.find_title_text()
+            if self.curr_age >= 1 or next_age >= 1 and 'must choose who begins' not in title_text:
+                curr_player = self.parse_curr_player(title_text)
+                if curr_player is None:
+                    print(f'Unknown start player', file=sys.stderr)
+                    return
+                if self.total_pyramid_cards == 20:
+                    actions.append(f'Choose start player, {curr_player}')
+                elif self.total_pyramid_cards == 19:
+                    actions.append(f'Choose start player, {BGAGame.OTHER_PLAYER[curr_player]}')
+                else:
+                    print(f'Unexpected starting number pyramid cards, {self.total_pyramid_cards}', file=sys.stderr)
+                    return
+                next_found_start_player = True
 
         for card in new_elems('discarded_cards'):
             if card in gone_pyramid_cards:
@@ -286,7 +336,7 @@ class BGAGame:
             else:
                 print(f'Unexplained built wonder, {wonder}', file=sys.stderr)
                 return
-    
+
         for token in new_elems('built_tokens'):
             if token in gone_game_tokens:
                 actions.append(f'Build token, {token}')
@@ -354,12 +404,15 @@ class BGAGame:
 
         self.state = curr_state
 
+        self.found_first_player = next_found_first_player
+        self.curr_age = next_age
+        self.found_start_player = next_found_start_player
+
     def play_game(self) -> None:
         self.reset_state()
 
         while True:
             try:
-                curr_player = self.find_curr_player()
                 pyramid_poses_cards, guild_poses, built_cards, discarded_cards = self.find_cards()
                 game_tokens, box_tokens, built_tokens = self.find_tokens()
                 revealed_wonders, selected_wonders, built_wonders = self.find_wonders()
@@ -377,7 +430,7 @@ class BGAGame:
                     'built_wonders' : built_wonders
                 }
 
-                self.update_state(curr_state, curr_player)
+                self.update_state(curr_state)
 
             except Exception:
                 pass
