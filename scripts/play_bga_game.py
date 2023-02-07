@@ -14,21 +14,38 @@ def sanitize(name: str) -> str:
     return ''.join(filter(lambda x: x.isalpha() or x == ',' or x == ' ', name.lower()))
 
 class BGAGame:
-    def __init__(self):
+
+    NONE = -100
+
+    PLAYER_ME = 'Player 1'
+    PLAYER_OTHER = 'Player 2'
+
+    OTHER_PLAYER = {
+        'Player 1' : 'Player 2',
+        'Player 2' : 'Player 1'
+    }
+
+    def __init__(self, pipe : PipeReaderWriter):
+        self.pipe = pipe
+
         options = Options()
         options.binary_location = browser_path
         options.add_argument(f'--profile {profile_path}')
         self.driver = webdriver.Firefox(service=Service(driver_path), options=options)
         self.reset_state()
 
-    def reset_state(self) -> None:
-        self.names_to_ids = {}
-        self.building_ids_to_names = {}
-        self.wonder_selection = True
-        self.state = {}
-
     def register_name_id(self, name: str, id: str) -> None:
         self.names_to_ids[name] = id
+
+    def find_curr_player(self) -> str:
+        title = self.driver.find_element(By.ID, 'pagemaintitletext')
+        title_text = sanitize(title.text)
+        if 'must' not in title_text:
+            return None
+        elif 'you' in title_text:
+            return BGAGame.PLAYER_ME
+        else:
+            return BGAGame.PLAYER_OTHER
 
     def find_cards(self) -> tuple[set[int], set[tuple[int, str]], set[str], set[str]]:
         pyramid_poses_cards = set()
@@ -52,6 +69,9 @@ class BGAGame:
                 self.building_ids_to_names[card_bulding_id] = card_name
             else:
                 card_name = self.building_ids_to_names[card_bulding_id]
+
+            if card_name == '' or card_name is None:
+                continue
 
             self.register_name_id(card_name, card_id)
 
@@ -85,6 +105,9 @@ class BGAGame:
             if token_id == '' or token_id is None:
                 continue
 
+            if token_name == '' or token_name is None:
+                continue
+
             self.register_name_id(token_name, token_id)
 
             container = token.find_element(By.XPATH, "../..")
@@ -109,6 +132,9 @@ class BGAGame:
             wonder_id = wonder.get_attribute('id')
 
             if wonder_id == '' or wonder_id is None:
+                continue
+
+            if wonder_name == '' or wonder_name is None:
                 continue
 
             self.register_name_id(wonder_name, wonder_id)
@@ -172,25 +198,40 @@ class BGAGame:
     def choose_go_second(self) -> None:
         self.select_by_id('buttonPlayerRight')
 
-    def start_bga_game(self) -> None:
+    def start_game(self) -> None:
         self.open_bga_page()
         self.create_game()
         self.open_table()
         self.accept_game()
 
-    def update_state(self, new_state: dict[set]) -> None:
-        if new_state == self.state:
+    def reset_state(self) -> None:
+        self.names_to_ids = {}
+        self.building_ids_to_names = {}
+        self.wonder_selection = True
+        self.found_first_player = False
+        self.state = {}
+
+    def update_state(self, curr_state: dict[set], curr_player: str) -> None:
+        if curr_state == self.state:
             return
 
-        def new_elems(name: str) -> set:
+        def prev_elems(name: str) -> set:
             if name not in self.state:
-                return new_state[name]
-            return new_state[name].difference(self.state[name])
+                return set()
+            return self.state[name]
+
+        def curr_elems(name: str) -> set:
+            if name not in curr_state:
+                return set()
+            return curr_state[name]
+
+        def new_elems(name: str) -> set:
+            return curr_elems(name).difference(prev_elems(name))
 
         def old_elems(name: str) -> set:
             if name not in self.state:
                 return set()
-            return self.state[name].difference(new_state[name])
+            return prev_elems(name).difference(curr_elems(name))
 
         actions = []
 
@@ -200,6 +241,16 @@ class BGAGame:
         gone_game_tokens = old_elems('game_tokens')
         gone_box_tokens = old_elems('box_tokens')
         gone_revealed_wonders = old_elems('revealed_wonders')
+
+        if not self.found_first_player:
+            if curr_player is None:
+                print(f'Unknown first player, {gone_discarded_cards}', file=sys.stderr)
+                return
+            elif len(curr_elems('revealed_wonders')) == 4:
+                actions.append(f'Reveal first player, {curr_player}')
+            else:
+                actions.append(f'Reveal first player, {BGAGame.OTHER_PLAYER[curr_player]}')
+            self.found_first_player = True
 
         for card in new_elems('discarded_cards'):
             if card in gone_pyramid_cards:
@@ -239,7 +290,7 @@ class BGAGame:
             elif token in gone_box_tokens:
                 actions.append(f'Build box token, {token}')
                 gone_game_tokens.remove(token)
-            elif len(self.state['box_tokens']) == 0 and len(new_state['box_tokens']) == 0:
+            elif len(prev_elems('box_tokens')) == 0 and len(curr_elems('box_tokens')) == 0:
                 # TODO: Reveal 2 random box tokens
                 actions.append(f'Reveal box token, {token}')
                 actions.append(f'Build box token, {token}')
@@ -251,8 +302,11 @@ class BGAGame:
             if wonder in gone_revealed_wonders:
                 actions.append(f'Select wonder, {wonder}')
                 gone_revealed_wonders.remove(wonder)
+            elif wonder not in prev_elems('revealed_wonders') and wonder not in curr_elems('revealed_wonders'):
+                actions.append(f'Reveal wonder, {wonder}')
+                actions.append(f'Select wonder, {wonder}')
             else:
-                print(f'Unexplained selected wonder, {card}', file=sys.stderr)
+                print(f'Unexplained selected wonder, {wonder}', file=sys.stderr)
                 return
 
         if len(gone_pyramid_cards) > 0:
@@ -291,21 +345,22 @@ class BGAGame:
             actions.append(f'Reveal wonder, {wonder}')
 
         for action in actions:
+            self.pipe.write(action)
             print(action)
 
-        self.state = new_state
+        self.state = curr_state
 
     def play_game(self) -> None:
-        self.start_bga_game()
         self.reset_state()
 
         while True:
             try:
+                curr_player = self.find_curr_player()
                 pyramid_poses_cards, guild_poses, built_cards, discarded_cards = self.find_cards()
                 game_tokens, box_tokens, built_tokens = self.find_tokens()
                 revealed_wonders, selected_wonders, built_wonders = self.find_wonders()
 
-                new_state = {
+                curr_state = {
                     'pyramid_poses_cards' : pyramid_poses_cards,
                     'guild_poses' : guild_poses,
                     'built_cards' : built_cards,
@@ -318,19 +373,17 @@ class BGAGame:
                     'built_wonders' : built_wonders
                 }
 
-                self.update_state(new_state)
+                self.update_state(curr_state, curr_player)
 
             except Exception:
                 pass
 
 
 def main() -> None:
-    # pipe = PipeReaderWriter('//./pipe/7wdai')
+    pipe = PipeReaderWriter('//./pipe/7wdai')
 
-    # while True:
-    #     print(pipe.read())
-
-    game = BGAGame()
+    game = BGAGame(pipe)
+    game.start_game()
     game.play_game()
 
 if __name__ == '__main__':
