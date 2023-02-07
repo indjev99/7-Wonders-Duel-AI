@@ -243,13 +243,17 @@ class BGAGame:
         gone_revealed_wonders = old_elems('revealed_wonders')
 
         if not self.found_first_player:
+            revealed_wonders = curr_elems('revealed_wonders')
             if curr_player is None:
-                print(f'Unknown first player, {gone_discarded_cards}', file=sys.stderr)
+                print(f'Unknown first player', file=sys.stderr)
                 return
-            elif len(curr_elems('revealed_wonders')) == 4:
+            elif len(revealed_wonders) == 4:
                 actions.append(f'Reveal first player, {curr_player}')
-            else:
+            elif len(revealed_wonders) == 3:
                 actions.append(f'Reveal first player, {BGAGame.OTHER_PLAYER[curr_player]}')
+            else:
+                print(f'Unexpected starting number of revealed wonders, {revealed_wonders}', file=sys.stderr)
+                return
             self.found_first_player = True
 
         for card in new_elems('discarded_cards'):
