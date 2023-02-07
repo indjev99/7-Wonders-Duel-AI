@@ -1,6 +1,8 @@
 from pipe_reader_writer import PipeReaderWriter
 from paths import driver_path, browser_path, profile_path
 
+from html.parser import HTMLParser
+
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -12,6 +14,150 @@ import sys
 
 def sanitize(name: str) -> str:
     return ''.join(filter(lambda x: x.isalpha() or x == ',' or x == ' ', name.lower()))
+
+class BGAParser(HTMLParser):
+    def reset_state(self):
+        self.object_names = {}
+        self.object_finders = {}
+        self.name_finders = {}
+        self.start_parse()
+
+    def start_parse(self):
+        self.stack = []
+        self.obj_stack = []
+        self.last_object = None
+        self.pyramid_poses_cards = set()
+        self.guild_poses = set()
+        self.built_cards = set()
+        self.discarded_cards = set()
+        self.game_tokens = set()
+        self.box_tokens = set()
+        self.built_tokens = set()
+        self.revealed_wonders = set()
+        self.selected_wonders = set()
+        self.built_wonders = set()
+
+    def handle_card(self):
+        container = self.stack[-3]
+        self.last_object = 'card_' + self.stack[-1]['data-building-id']
+        # TODO: Discarded cards have no id
+        self.object_finders[self.last_object] = (By.ID, self.stack[-1]['id'])
+
+        if 'building building_small' not in self.stack[-1]['class']:
+            self.built_cards.add(self.last_object)
+        elif container['id'] == 'draftpool_container':
+            pos = int(self.stack[-1]['data-location'])
+            type = self.stack[-1]['data-building-type']
+            if type == 'Purple' or 'background-position: -100% -700%' in self.stack[-1]['style']:
+                self.guild_poses.add(pos)
+            if type != '':
+                self.pyramid_poses_cards.add((pos, self.last_object))
+        elif container['id'] == 'discarded_cards_container':
+            self.discarded_cards.add(self.last_object)
+
+    def handle_token(self):
+        container = self.stack[-3]
+        self.last_object = 'token_' + self.stack[-1]['data-progress-token-id']
+        self.object_finders[self.last_object] = (By.ID, self.stack[-1]['id'])
+
+        if container['id'] == 'board_progress_tokens':
+            self.game_tokens.add(self.last_object)
+        elif container['id'] == 'progress_token_from_box_container':
+            self.box_tokens.add(self.last_object)
+        else:
+            self.built_tokens.add(self.last_object)
+
+    def handle_wonder(self):
+        container = self.stack[-4]
+        built = self.stack[-1]['data-constructed']
+        self.last_object = 'wonder_' + self.stack[-1]['data-wonder-id']
+        self.object_finders[self.last_object] = (By.ID, self.stack[-1]['id'])
+
+        if container['id'] == 'wonder_selection_container':
+            self.revealed_wonders.add(self.last_object)
+        elif built == '0':
+            self.selected_wonders.add(self.last_object)
+        else:
+            self.built_wonders.add(self.last_object)
+
+    def handle_starttag(self, tag, attrs):
+        if tag != 'div':
+            return
+
+        attrs = dict(attrs)
+        self.stack.append(attrs)
+
+        self.last_object = None
+        self.obj_stack.append(None)
+
+        if 'class' not in attrs:
+            return
+
+        if 'building building_small' in attrs['class'] or 'building building_header_small' in attrs['class']:
+            self.handle_card()
+
+        if 'progress_token progress_token_small' in attrs['class']:
+            self.handle_token()
+
+        if 'wonder wonder_small' in attrs['class']:
+            self.handle_wonder()
+
+        self.obj_stack[-1] = self.last_object
+
+    def handle_endtag(self, tag):
+        if tag != 'div':
+            return
+
+        self.stack.pop()
+        self.obj_stack.pop()
+
+    def handle_data(self, data):
+        if data is None or data.strip() == '':
+            return
+
+        if len(self.obj_stack) > 0 and self.obj_stack[-1] is not None:
+            self.object_names[self.obj_stack[-1]] = data.strip()
+            self.last_object = None
+
+    def map_object_names(self, obj_set):
+        res = set()
+        for obj in obj_set:
+            name = self.object_names.get(obj)
+            if name is None:
+                print(f'No name known for {obj}', file = sys.stderr)
+                continue
+            self.name_finders[name] = self.object_finders[obj]
+            res.add(name)
+        return res
+
+    def map_pos_object_names(self, obj_set):
+        res = set()
+        for pos, obj in obj_set:
+            name = self.object_names.get(obj)
+            if name is None:
+                print(f'No name known for {obj}', file = sys.stderr)
+                continue
+            self.name_finders[name] = self.object_finders[obj]
+            res.add((pos, name))
+        return res
+
+    def get_state(self):
+        if len(self.selected_wonders) == 0:
+            self.selected_wonders = self.built_wonders
+            self.built_wonders = set()
+
+        return {
+            'pyramid_poses_cards' : self.map_pos_object_names(self.pyramid_poses_cards),
+            'guild_poses' : self.guild_poses,
+            'built_cards' : self.map_object_names(self.built_cards),
+            'discarded_cards' : self.map_object_names(self.discarded_cards),
+            'game_tokens' : self.map_object_names(self.game_tokens),
+            'box_tokens' : self.map_object_names(self.box_tokens),
+            'built_tokens' : self.map_object_names(self.built_tokens),
+            'revealed_wonders' : self.map_object_names(self.revealed_wonders),
+            'selected_wonders' : self.map_object_names(self.selected_wonders),
+            'built_wonders' : self.map_object_names(self.built_wonders)
+        }
 
 class BGAGame:
 
@@ -32,10 +178,10 @@ class BGAGame:
         options.binary_location = browser_path
         options.add_argument(f'--profile {profile_path}')
         self.driver = webdriver.Firefox(service=Service(driver_path), options=options)
-        self.reset_state()
 
-    def register_name_id(self, name: str, id: str) -> None:
-        self.names_to_ids[name] = id
+        self.parser = BGAParser()
+
+        self.reset_state()
 
     def find_title_text(self) -> str:
         title = self.driver.find_element(By.ID, 'pagemaintitletext')
@@ -50,143 +196,22 @@ class BGAGame:
         else:
             return BGAGame.PLAYER_OTHER
 
-    def find_cards(self) -> tuple[set[int], set[tuple[int, str]], set[str], set[str]]:
-        pyramid_poses_cards = set()
-        guild_poses = set()
-        built_cards = set()
-        discarded_cards = set()
-
-        new_total_pyramid_cards = 0
-
-        for card in self.driver.find_elements(By.CLASS_NAME, 'building'):
-            card_name = sanitize(card.text)
-            card_id = card.get_attribute('id')
-            card_bulding_id = card.get_attribute('data-building-id')
-
-            container = card.find_element(By.XPATH, "../..")
-            container_id = container.get_attribute('id')
-
-            card_loc_str = card.get_attribute('data-location')
-
-            if container_id == 'draftpool_container':
-                new_total_pyramid_cards += 1
-
-                back_pos = card.value_of_css_property('background-position')
-                if back_pos == '-100% -700%':
-                    position = int(card_loc_str)
-                    guild_poses.add(position)
-
-            if card_bulding_id == '' or card_bulding_id is None:
-                continue
-
-            if card_name != '':
-                self.building_ids_to_names[card_bulding_id] = card_name
-            else:
-                card_name = self.building_ids_to_names[card_bulding_id]
-
-            if card_name == '' or card_name is None:
-                continue
-
-            self.register_name_id(card_name, card_id)
-
-            if container_id == 'draftpool_container':
-                position = int(card_loc_str)
-                pyramid_poses_cards.add((position, card_name))
-                if 'GUILD' in card_name:
-                    guild_poses.add(position)
-            elif container_id == 'discarded_cards_container':
-                discarded_cards.add(card_name)
-            else:
-                built_cards.add(card_name)
-
-        if new_total_pyramid_cards > self.total_pyramid_cards:
-            pyramid_poses = set(map(lambda pos_card : pos_card[0], pyramid_poses_cards))
-            if 0 not in pyramid_poses:
-                raise Exception()
-
-        self.total_pyramid_cards = new_total_pyramid_cards
-
-        if self.total_pyramid_cards > 0:
-            self.wonder_selection = False
-
-        return pyramid_poses_cards, guild_poses, built_cards, discarded_cards
-
-    def find_tokens(self) -> tuple[set[str], set[str], set[str]]:
-        game_tokens = set()
-        box_tokens = set()
-        built_tokens = set()
-
-        for token in self.driver.find_elements(By.CLASS_NAME, 'progress_token'):
-            token_name = sanitize(token.text)
-            token_id = token.get_attribute('id')
-
-            if token_id == '' or token_id is None:
-                continue
-
-            if token_name == '' or token_name is None:
-                continue
-
-            self.register_name_id(token_name, token_id)
-
-            container = token.find_element(By.XPATH, "../..")
-            container_id = container.get_attribute('id')
-
-            if container_id == 'board_progress_tokens':
-                game_tokens.add(token_name)
-            elif container_id == 'progress_token_from_box_container':
-                box_tokens.add(token_name)
-            else:
-                built_tokens.add(token_name)
-
-        return game_tokens, box_tokens, built_tokens
-
-    def find_wonders(self) -> tuple[set[str], set[str], set[str]]:
-        revealed_wonders = set()
-        selected_wonders = set()
-        built_wonders = set()
-
-        for wonder in self.driver.find_elements(By.CLASS_NAME, 'wonder'):
-            wonder_name = sanitize(wonder.text)
-            wonder_id = wonder.get_attribute('id')
-
-            if wonder_id == '' or wonder_id is None:
-                continue
-
-            if wonder_name == '' or wonder_name is None:
-                continue
-
-            self.register_name_id(wonder_name, wonder_id)
-
-            constructed = not self.wonder_selection and bool(int(wonder.get_attribute('data-constructed')))
-            container = wonder.find_element(By.XPATH, "../../../..")
-
-            if container.get_attribute('id') == 'wonder_selection_block':
-                revealed_wonders.add(wonder_name)
-            elif constructed:
-                built_wonders.add(wonder_name)
-            else:
-                selected_wonders.add(wonder_name)
-
-        if len(revealed_wonders) > 0:
-            selected_wonders |= built_wonders
-            built_wonders = set()
-
-        return revealed_wonders, selected_wonders, built_wonders
-
     def open_bga_page(self) -> None:
         self.driver.get("https://boardgamearena.com/lobby")
 
-    def select_by_id(self, id: str) -> None:
+    def select_by_finder(self, finder) -> None:
         while True:
             try:
-                WebDriverWait(self.driver, 120).until(EC.element_to_be_clickable((By.ID, id))).click()
+                WebDriverWait(self.driver, 120).until(EC.element_to_be_clickable(finder)).click()
                 return
             except Exception:
                 pass
 
+    def select_by_id(self, id: str) -> None:
+        self.select_by_finder((By.ID, id))
+
     def select_by_name(self, name: str) -> None:
-        id = self.names_to_ids[name]
-        self.select_by_id(id)
+        self.select_by_id(self.parser.name_finders[name])
 
     def create_game(self) -> None:
         self.select_by_id('joingame_create_1266')
@@ -217,20 +242,18 @@ class BGAGame:
         self.select_by_id('buttonPlayerRight')
 
     def start_game(self) -> None:
+        self.reset_state()
         self.open_bga_page()
         self.create_game()
         self.open_table()
         self.accept_game()
 
     def reset_state(self) -> None:
-        self.names_to_ids = {}
-        self.building_ids_to_names = {}
-        self.wonder_selection = True
         self.curr_age = -1
         self.found_first_player = False
-        self.total_pyramid_cards = 0
         self.found_start_player = True
         self.state = {}
+        self.parser.reset_state()
 
     def update_state(self, curr_state: dict[set]) -> None:
         if curr_state == self.state and self.found_first_player and self.found_start_player:
@@ -264,21 +287,23 @@ class BGAGame:
         gone_box_tokens = old_elems('box_tokens')
         gone_revealed_wonders = old_elems('revealed_wonders')
 
+        title_text = self.find_title_text()
+
         next_found_first_player = self.found_first_player
 
         if not self.found_first_player:
             revealed_wonders = curr_elems('revealed_wonders')
-            title_text = self.find_title_text()
+            selected_wonders = curr_elems('selected_wonders')
             curr_player = self.parse_curr_player(title_text)
-            if curr_player is None:
+            if curr_player is None or len(revealed_wonders) + len(selected_wonders) < 4:
                 print(f'Unknown first player', file=sys.stderr)
                 return
-            if len(revealed_wonders) == 4:
+            if len(selected_wonders) == 0:
                 actions.append(f'Reveal first player, {curr_player}')
-            elif len(revealed_wonders) == 3:
+            elif len(selected_wonders) == 1:
                 actions.append(f'Reveal first player, {BGAGame.OTHER_PLAYER[curr_player]}')
             else:
-                print(f'Unexpected starting number of revealed wonders, {revealed_wonders}', file=sys.stderr)
+                print(f'Unexpected starting number of selected wonders, {selected_wonders}', file=sys.stderr)
                 return
             next_found_first_player = True
 
@@ -286,25 +311,21 @@ class BGAGame:
 
         next_found_start_player = self.found_start_player
 
-        if 0 in new_pyramid_poses:
+        if 'must choose who begins' in title_text:
             next_found_start_player = False
-            next_age += 1
-
-        if not self.found_start_player or not next_found_start_player:
-            title_text = self.find_title_text()
-            if self.curr_age >= 1 or next_age >= 1 and 'must choose who begins' not in title_text:
-                curr_player = self.parse_curr_player(title_text)
-                if curr_player is None:
-                    print(f'Unknown start player', file=sys.stderr)
-                    return
-                if self.total_pyramid_cards == 20:
-                    actions.append(f'Choose start player, {curr_player}')
-                elif self.total_pyramid_cards == 19:
-                    actions.append(f'Choose start player, {BGAGame.OTHER_PLAYER[curr_player]}')
-                else:
-                    print(f'Unexpected starting number pyramid cards, {self.total_pyramid_cards}', file=sys.stderr)
-                    return
-                next_found_start_player = True
+        elif not self.found_start_player:
+            curr_player = self.parse_curr_player(title_text)
+            if curr_player is None:
+                print(f'Unknown start player', file=sys.stderr)
+                return
+            if self.total_pyramid_cards == 20:
+                actions.append(f'Choose start player, {curr_player}')
+            elif self.total_pyramid_cards == 19:
+                actions.append(f'Choose start player, {BGAGame.OTHER_PLAYER[curr_player]}')
+            else:
+                print(f'Unexpected starting number pyramid cards, {self.total_pyramid_cards}', file=sys.stderr)
+                return
+            next_found_start_player = True
 
         for card in new_elems('discarded_cards'):
             if card in gone_pyramid_cards:
@@ -409,27 +430,11 @@ class BGAGame:
         self.found_start_player = next_found_start_player
 
     def play_game(self) -> None:
-        self.reset_state()
-
         while True:
             try:
-                pyramid_poses_cards, guild_poses, built_cards, discarded_cards = self.find_cards()
-                game_tokens, box_tokens, built_tokens = self.find_tokens()
-                revealed_wonders, selected_wonders, built_wonders = self.find_wonders()
-
-                curr_state = {
-                    'pyramid_poses_cards' : pyramid_poses_cards,
-                    'guild_poses' : guild_poses,
-                    'built_cards' : built_cards,
-                    'discarded_cards' : discarded_cards,
-                    'game_tokens' : game_tokens,
-                    'box_tokens' : box_tokens,
-                    'built_tokens' : built_tokens,
-                    'revealed_wonders' : revealed_wonders,
-                    'selected_wonders' : selected_wonders,
-                    'built_wonders' : built_wonders
-                }
-
+                self.parser.start_parse()
+                self.parser.feed(self.driver.page_source)
+                curr_state = self.parser.get_state()
                 self.update_state(curr_state)
 
             except Exception:
