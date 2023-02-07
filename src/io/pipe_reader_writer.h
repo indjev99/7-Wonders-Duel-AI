@@ -6,7 +6,6 @@
 #include "string_writer.h"
 
 #include <memory>
-#include <string>
 #include <windows.h>
 
 struct PipeReaderWriter final : StringReader, StringWriter

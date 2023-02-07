@@ -6,6 +6,7 @@
 #include "gui/agent_gui.h"
 #include "gui/listener_gui.h"
 #include "io/make_log.h"
+#include "io/action_arbiter_reader_writer.h"
 #include "io/pipe_reader_writer.h"
 #include "io/stream_reader.h"
 #include "io/stream_writer.h"
@@ -65,11 +66,11 @@ void playGame(Agent* agent1, Agent* agent2, bool advanceButton = false)
 {
     ListenerGUI gui(advanceButton);
 
-    AgentGUI aGui1(gui);
-    AgentGUI aGui2(gui);
+    AgentGUI defAgent1(gui);
+    AgentGUI defAgent2(gui);
 
-    if (agent1 == nullptr) agent1 = &aGui1;
-    if (agent2 == nullptr) agent2 = &aGui2;
+    if (agent1 == nullptr) agent1 = &defAgent1;
+    if (agent2 == nullptr) agent2 = &defAgent2;
 
     std::ofstream log = makeLog();
     StreamWriter logWriter(log);
@@ -90,15 +91,16 @@ void playExternalGame(Agent* agent1, const std::string& pipeName = "//./pipe/7wd
     ListenerWriter logger(logWriter);
 
     PipeReaderWriter pipe(pipeName);
+    ActionArbiterReaderWriter arbiter(pipe, pipe);
 
-    RevealerReader revealer(pipe);
-    AgentReader aPipe1(pipe);
-    AgentReader agent2(pipe);
-    ListenerWriter sender(pipe);
+    AgentReader defAgent1(arbiter);
+    if (agent1 == nullptr) agent1 = &defAgent1;
 
-    if (agent1 == nullptr) agent1 = &aPipe1;
+    RevealerReader revealer(arbiter);
+    AgentReader agent2(arbiter);
+    ListenerWriter sender(arbiter);
 
-    GameRunner runner(&revealer, {agent1, &agent2}, {&logger, &pretty, &sender});
+    GameRunner runner(&revealer, {agent1, &agent2}, {&logger, &pretty, &sender, &arbiter});
     runner.playGame();
 }
 
