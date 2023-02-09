@@ -236,7 +236,6 @@ class BGAGame:
 
     def select_by_finder(self, finder) -> None:
         element = self.driver.find_element(*finder)
-        # self.driver.execute_script("arguments[0].scrollIntoView();", element)
         element.click()
 
     def select_by_id(self, id: str) -> None:
