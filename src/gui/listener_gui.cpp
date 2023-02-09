@@ -981,8 +981,6 @@ void ListenerGUI::notifyActionPre(const Action& action)
 
 void ListenerGUI::notifyActionPost(const Action& action)
 {
-    if (game->isTerminal() || !game->getExpectedAction().isPlayerMove()) return;
-
     drawState(false, true);
 }
 

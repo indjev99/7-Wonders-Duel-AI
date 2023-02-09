@@ -51,7 +51,7 @@ const std::string S_AGE_SP = "Age ";
 
 const std::array<std::string, NUM_OBJECT_TYPES> S_TYPES = {{
     "brown",
-    "gray",
+    "grey",
     "blue",
     "red",
     "green",

@@ -12,14 +12,20 @@ from selenium.webdriver.firefox.service import Service
 
 import sys
 
+extralog = open('extralog.log', 'w')
+
 def sanitize(name: str) -> str:
-    return ''.join(filter(lambda x: x.isalpha() or x == ',' or x == ' ', name.lower()))
+    return (''.join(filter(lambda x: x.isalpha() or x == ',' or x == ' ', name.lower()))).strip()
+
+def sanitize_all(names: set[str]) -> set[str]:
+    return set(map(sanitize, names))
 
 class BGAParser(HTMLParser):
     def reset_state(self):
         self.object_names = {}
+        self.name_objects = {}
         self.object_finders = {}
-        self.name_finders = {}
+        self.card_types = {}
         self.start_parse()
 
     def start_parse(self):
@@ -38,10 +44,25 @@ class BGAParser(HTMLParser):
         self.built_wonders = set()
 
     def handle_card(self):
+
+        print('', file=extralog)
+        print('CARD:', file=extralog)
+        print(self.stack, file=extralog)
+        print('', file=extralog)
+
+        if 'data-building-id' not in self.stack[-1]:
+            return
+
         container = self.stack[-3]
         self.last_object = 'card_' + self.stack[-1]['data-building-id']
         # TODO: Discarded cards have no id
         self.object_finders[self.last_object] = (By.ID, self.stack[-1]['id'])
+
+        if 'data-building-type' in self.stack[-1]:
+            card_type = sanitize(self.stack[-1]['data-building-type'])
+            if card_type == 'purple':
+                card_type = 'guild'
+            self.card_types[self.last_object] = card_type
 
         if 'building building_small' not in self.stack[-1]['class']:
             self.built_cards.add(self.last_object)
@@ -56,18 +77,30 @@ class BGAParser(HTMLParser):
             self.discarded_cards.add(self.last_object)
 
     def handle_token(self):
+
+        print('', file=extralog)
+        print('TOKEN:', file=extralog)
+        print(self.stack, file=extralog)
+        print('', file=extralog)
+
         container = self.stack[-3]
         self.last_object = 'token_' + self.stack[-1]['data-progress-token-id']
         self.object_finders[self.last_object] = (By.ID, self.stack[-1]['id'])
 
-        if container['id'] == 'board_progress_tokens':
+        if 'id' not in container:
+            self.built_tokens.add(self.last_object)
+        elif container['id'] == 'board_progress_tokens':
             self.game_tokens.add(self.last_object)
         elif container['id'] == 'progress_token_from_box_container':
             self.box_tokens.add(self.last_object)
-        else:
-            self.built_tokens.add(self.last_object)
 
     def handle_wonder(self):
+
+        print('', file=extralog)
+        print('WONDER:', file=extralog)
+        print(self.stack, file=extralog)
+        print('', file=extralog)
+
         container = self.stack[-4]
         built = self.stack[-1]['data-constructed']
         self.last_object = 'wonder_' + self.stack[-1]['data-wonder-id']
@@ -124,9 +157,9 @@ class BGAParser(HTMLParser):
         for obj in obj_set:
             name = self.object_names.get(obj)
             if name is None:
-                print(f'No name known for {obj}', file = sys.stderr)
+                print(f'No name known for {obj}', file=sys.stderr)
                 continue
-            self.name_finders[name] = self.object_finders[obj]
+            self.name_objects[name] = obj
             res.add(name)
         return res
 
@@ -135,9 +168,9 @@ class BGAParser(HTMLParser):
         for pos, obj in obj_set:
             name = self.object_names.get(obj)
             if name is None:
-                print(f'No name known for {obj}', file = sys.stderr)
+                print(f'No name known for {obj}', file=sys.stderr)
                 continue
-            self.name_finders[name] = self.object_finders[obj]
+            self.name_objects[name] = obj
             res.add((pos, name))
         return res
 
@@ -169,6 +202,19 @@ class BGAGame:
     OTHER_PLAYER = {
         'Player 1' : 'Player 2',
         'Player 2' : 'Player 1'
+    }
+
+    ALL_TOKENS = {
+        'Agriculture',
+        'Architecture',
+        'Economy',
+        'Law',
+        'Masonry',
+        'Mathematics',
+        'Philosophy',
+        'Strategy',
+        'Theology',
+        'Urbanism'
     }
 
     def __init__(self, pipe : PipeReaderWriter):
@@ -211,7 +257,7 @@ class BGAGame:
         self.select_by_finder((By.ID, id))
 
     def select_by_name(self, name: str) -> None:
-        self.select_by_id(self.parser.name_finders[name])
+        self.select_by_id(self.parser.object_finders[self.parser.name_objects[name]])
 
     def create_game(self) -> None:
         self.select_by_id('joingame_create_1266')
@@ -256,8 +302,6 @@ class BGAGame:
         self.parser.reset_state()
 
     def update_state(self, curr_state: dict[set]) -> None:
-        if curr_state == self.state and self.found_first_player and self.found_start_player:
-            return
 
         def prev_elems(name: str) -> set:
             if name not in self.state:
@@ -279,7 +323,6 @@ class BGAGame:
 
         actions = []
 
-        new_pyramid_poses = set(map(lambda pos_card: pos_card[0], new_elems('pyramid_poses_cards')))
         gone_pyramid_cards = set(map(lambda pos_card: pos_card[1], old_elems('pyramid_poses_cards')))
         gone_built_cards = old_elems('built_cards')
         gone_discarded_cards = old_elems('discarded_cards')
@@ -318,13 +361,8 @@ class BGAGame:
             if curr_player is None:
                 print(f'Unknown start player', file=sys.stderr)
                 return
-            if self.total_pyramid_cards == 20:
-                actions.append(f'Choose start player, {curr_player}')
-            elif self.total_pyramid_cards == 19:
-                actions.append(f'Choose start player, {BGAGame.OTHER_PLAYER[curr_player]}')
             else:
-                print(f'Unexpected starting number pyramid cards, {self.total_pyramid_cards}', file=sys.stderr)
-                return
+                actions.append(f'Choose start player, {curr_player}')
             next_found_start_player = True
 
         for card in new_elems('discarded_cards'):
@@ -332,8 +370,8 @@ class BGAGame:
                 actions.append(f'Discard card, {card}')
                 gone_pyramid_cards.remove(card)
             elif card in gone_built_cards:
-                # TODO: color
-                actions.append(f'Destroy TODO, {card}')
+                card_type = self.parser.card_types[self.parser.name_objects[card]]
+                actions.append(f'Destroy {card_type}, {card}')
                 gone_built_cards.remove(card)
             else:
                 print(f'Unexplained discarded card, {card}', file=sys.stderr)
@@ -366,8 +404,15 @@ class BGAGame:
                 actions.append(f'Build box token, {token}')
                 gone_game_tokens.remove(token)
             elif len(prev_elems('box_tokens')) == 0 and len(curr_elems('box_tokens')) == 0:
-                # TODO: Reveal 2 random box tokens
+                possible = sanitize_all(BGAGame.ALL_TOKENS)
+                possible = possible.difference(sanitize_all(curr_elems('game_tokens')))
+                possible = possible.difference(sanitize_all(curr_elems('built_tokens')))
+                possible.discard(sanitize(token))
                 actions.append(f'Reveal box token, {token}')
+                if len(possible) > 0:
+                    actions.append(f'Reveal box token, {possible.pop()}')
+                if len(possible) > 0:
+                    actions.append(f'Reveal box token, {possible.pop()}')
                 actions.append(f'Build box token, {token}')
             else:
                 print(f'Unexplained built token, {token}', file=sys.stderr)
@@ -436,7 +481,6 @@ class BGAGame:
                 self.parser.feed(self.driver.page_source)
                 curr_state = self.parser.get_state()
                 self.update_state(curr_state)
-
             except Exception:
                 pass
 
