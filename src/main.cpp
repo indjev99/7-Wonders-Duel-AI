@@ -125,7 +125,10 @@ int main()
     AgentMcUcb mcUcb1;
     AgentMcUcb mcUcb2;
 
-    AgentMctsUcb mctsUcb1;
+    MCConfig config;
+    config.avgNumSims = 3e5;
+
+    AgentMctsUcb mctsUcb1(config);
     AgentMctsUcb mctsUcb2;
 
     // playGame(nullptr, &mctsUcb1);
