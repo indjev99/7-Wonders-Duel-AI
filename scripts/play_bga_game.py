@@ -421,7 +421,7 @@ class BGAGame:
                 gone_game_tokens.remove(token)
             elif token in gone_box_tokens:
                 actions.append(f'Build box token, {token}')
-                gone_game_tokens.remove(token)
+                gone_box_tokens.remove(token)
             elif len(prev_elems('box_tokens')) == 0 and len(curr_elems('box_tokens')) == 0:
                 possible = sanitize_all(BGAGame.ALL_TOKENS)
                 possible = possible.difference(sanitize_all(curr_elems('game_tokens')))
