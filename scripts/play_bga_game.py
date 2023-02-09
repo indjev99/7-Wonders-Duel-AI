@@ -9,6 +9,7 @@ from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.firefox.service import Service
 
 import sys
+import time
 
 def sanitize(name: str) -> str:
     return (''.join(filter(lambda x: x.isalpha() or x.isdigit() or x == ',' or x == ' ', name.lower()))).strip()
@@ -261,6 +262,9 @@ class BGAGame:
     def accept_game_btn(self) -> None:
         self.select_by_id('ags_start_game_accept')
 
+    def access_game_btn(self) -> None:
+        self.select_by_id('access_game_normal')
+
     def build_card(self, name: str) -> None:
         self.select_by_name(name)
         self.select_by_id('buttonConstructBuilding')
@@ -301,6 +305,10 @@ class BGAGame:
             except Exception:
                 pass
             try:
+                self.access_game_btn()
+            except Exception:
+                pass
+            try:
                 title_text = self.find_title_text()
                 if title_text != '':
                     return
@@ -308,7 +316,6 @@ class BGAGame:
                 pass
 
     def reset_state(self) -> None:
-        self.curr_age = -1
         self.found_first_player = False
         self.found_start_player = True
         self.state = {}
@@ -363,8 +370,6 @@ class BGAGame:
                 print(f'Unexpected starting number of selected wonders, {selected_wonders}', file=sys.stderr)
                 return
             next_found_first_player = True
-
-        next_age = self.curr_age
 
         next_found_start_player = self.found_start_player
 
@@ -485,12 +490,10 @@ class BGAGame:
         self.state_changed = \
             curr_state != self.state or \
             next_found_first_player != self.found_first_player or \
-            next_age != self.curr_age or \
             next_found_start_player != self.found_start_player
 
         self.state = curr_state
         self.found_first_player = next_found_first_player
-        self.curr_age = next_age
         self.found_start_player = next_found_start_player
 
     def read_message(self) -> str:
@@ -507,9 +510,15 @@ class BGAGame:
     def process_action(self, action: str) -> None:
         act_type, *args = list(map(sanitize, action.split(',')))
 
+        if act_type == sanitize('choose start player'):
+            self.found_start_player = False
+
         self.state_changed = False
         while not self.state_changed:
+            print(self.state, file=sys.stderr)
+            print(self.found_first_player, self.found_start_player, file=sys.stderr)
             print(f'Action: {act_type} {args}', file=sys.stderr)
+
             try:
                 self.select_by_id('pagemaintitletext')
             except Exception as e:
@@ -595,6 +604,7 @@ def main() -> None:
         game.wait_to_start()
         game.start_game()
         game.play_game()
+        time.sleep(5)
 
 if __name__ == '__main__':
     main()
