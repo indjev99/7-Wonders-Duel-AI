@@ -93,7 +93,7 @@ void playExternalGame(Agent* agent1, const std::string& pipeName = "//./pipe/7wd
     ListenerWriter logger(logWriter);
 
     PipeReaderWriter pipe(pipeName);
-    ActionArbiterReaderWriter arbiter(pipe, pipe);
+    ActionArbiterReaderWriter arbiter(pipe, pipe, true);
 
     AgentReader defAgent1(arbiter);
     if (agent1 == nullptr) agent1 = &defAgent1;
@@ -128,7 +128,7 @@ int main()
 
     // playGame(nullptr, &mctsUcb1);
 
-    playExternalGame(nullptr);
+    playExternalGame(&mctsUcb1);
 
     // benchmark(&mctsUcb1, &mctsUcb2);
 

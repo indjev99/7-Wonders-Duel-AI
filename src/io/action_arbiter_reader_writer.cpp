@@ -3,9 +3,10 @@
 #include "game/game_exception.h"
 #include "game/lang.h"
 
-ActionArbiterReaderWriter::ActionArbiterReaderWriter(StringReader& reader, StringWriter& writer)
+ActionArbiterReaderWriter::ActionArbiterReaderWriter(StringReader& reader, StringWriter& writer, bool notifyStartEnd)
     : reader(reader)
     , writer(writer)
+    , notifyStartEnd(notifyStartEnd)
     , lastReadAction()
 {}
 
@@ -74,4 +75,11 @@ void ActionArbiterReaderWriter::notifyStart()
 {
     pendingActions = {};
     lastReadAction = Action();
+
+    if (notifyStartEnd) writer.write("Start game");
+}
+
+void ActionArbiterReaderWriter::notifyEnd()
+{
+    if (notifyStartEnd) writer.write("End game");
 }

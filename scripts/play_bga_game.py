@@ -5,14 +5,10 @@ from html.parser import HTMLParser
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.firefox.service import Service
 
 import sys
-
-extralog = open('extralog.log', 'w')
 
 def sanitize(name: str) -> str:
     return (''.join(filter(lambda x: x.isalpha() or x == ',' or x == ' ', name.lower()))).strip()
@@ -44,18 +40,11 @@ class BGAParser(HTMLParser):
         self.built_wonders = set()
 
     def handle_card(self):
-
-        print('', file=extralog)
-        print('CARD:', file=extralog)
-        print(self.stack, file=extralog)
-        print('', file=extralog)
-
         if 'data-building-id' not in self.stack[-1]:
             return
 
         container = self.stack[-3]
         self.last_object = 'card_' + self.stack[-1]['data-building-id']
-        # TODO: Discarded cards have no id
         self.object_finders[self.last_object] = (By.ID, self.stack[-1]['id'])
 
         if 'data-building-type' in self.stack[-1]:
@@ -75,14 +64,10 @@ class BGAParser(HTMLParser):
                 self.pyramid_poses_cards.add((pos, self.last_object))
         elif container['id'] == 'discarded_cards_container':
             self.discarded_cards.add(self.last_object)
+            building_id = self.stack[-1]['data-building-id']
+            self.object_finders[self.last_object] = (By.XPATH, f'//*[@data-location="-1" and @data-building-id="{building_id}"]')
 
     def handle_token(self):
-
-        print('', file=extralog)
-        print('TOKEN:', file=extralog)
-        print(self.stack, file=extralog)
-        print('', file=extralog)
-
         container = self.stack[-3]
         self.last_object = 'token_' + self.stack[-1]['data-progress-token-id']
         self.object_finders[self.last_object] = (By.ID, self.stack[-1]['id'])
@@ -95,23 +80,22 @@ class BGAParser(HTMLParser):
             self.box_tokens.add(self.last_object)
 
     def handle_wonder(self):
-
-        print('', file=extralog)
-        print('WONDER:', file=extralog)
-        print(self.stack, file=extralog)
-        print('', file=extralog)
-
         container = self.stack[-4]
+
+        if 'id' not in container:
+            return
+
         built = self.stack[-1]['data-constructed']
         self.last_object = 'wonder_' + self.stack[-1]['data-wonder-id']
         self.object_finders[self.last_object] = (By.ID, self.stack[-1]['id'])
 
         if container['id'] == 'wonder_selection_container':
             self.revealed_wonders.add(self.last_object)
-        elif built == '0':
-            self.selected_wonders.add(self.last_object)
-        else:
-            self.built_wonders.add(self.last_object)
+        elif 'player_wonders' in container['id']:
+            if built == '0':
+                self.selected_wonders.add(self.last_object)
+            else:
+                self.built_wonders.add(self.last_object)
 
     def handle_starttag(self, tag, attrs):
         if tag != 'div':
@@ -145,7 +129,12 @@ class BGAParser(HTMLParser):
         self.obj_stack.pop()
 
     def handle_data(self, data):
-        if data is None or data.strip() == '':
+        if data is None:
+            return
+
+        data = sanitize(data)
+
+        if data == '':
             return
 
         if len(self.obj_stack) > 0 and self.obj_stack[-1] is not None:
@@ -246,35 +235,35 @@ class BGAGame:
         self.driver.get("https://boardgamearena.com/lobby")
 
     def select_by_finder(self, finder) -> None:
-        while True:
-            try:
-                WebDriverWait(self.driver, 120).until(EC.element_to_be_clickable(finder)).click()
-                return
-            except Exception:
-                pass
+        element = self.driver.find_element(*finder)
+        # self.driver.execute_script("arguments[0].scrollIntoView();", element)
+        element.click()
 
     def select_by_id(self, id: str) -> None:
         self.select_by_finder((By.ID, id))
 
     def select_by_name(self, name: str) -> None:
-        self.select_by_id(self.parser.object_finders[self.parser.name_objects[name]])
+        self.select_by_finder(self.parser.object_finders[self.parser.name_objects[name]])
 
-    def create_game(self) -> None:
+    def create_game_btn(self) -> None:
         self.select_by_id('joingame_create_1266')
 
-    def open_table(self) -> None:
+    def open_table_btn(self) -> None:
         self.select_by_id('open_table_now')
 
-    def accept_game(self) -> None:
-        self.select_by_id('ags_start_game_accept')
+    def start_game_btn(self) -> None:
+        self.select_by_id('startgame')
 
-    def discard_card(self, name: str) -> None:
-        self.select_by_name(name)
-        self.select_by_id('buttonDiscardBuilding')
+    def accept_game_btn(self) -> None:
+        self.select_by_id('ags_start_game_accept')
 
     def build_card(self, name: str) -> None:
         self.select_by_name(name)
         self.select_by_id('buttonConstructBuilding')
+
+    def discard_card(self, name: str) -> None:
+        self.select_by_name(name)
+        self.select_by_id('buttonDiscardBuilding')
 
     def build_wonder(self, name: str, wonder_name: str) -> None:
         self.select_by_name(name)
@@ -290,15 +279,36 @@ class BGAGame:
     def start_game(self) -> None:
         self.reset_state()
         self.open_bga_page()
-        self.create_game()
-        self.open_table()
-        self.accept_game()
+        while True:
+            try:
+                self.create_game_btn()
+            except Exception:
+                pass
+            try:
+                self.open_table_btn()
+            except Exception:
+                pass
+            try:
+                self.start_game_btn()
+            except Exception:
+                pass
+            try:
+                self.accept_game_btn()
+            except Exception:
+                pass
+            try:
+                title_text = self.find_title_text()
+                if title_text != '':
+                    return
+            except Exception:
+                pass
 
     def reset_state(self) -> None:
         self.curr_age = -1
         self.found_first_player = False
         self.found_start_player = True
         self.state = {}
+        self.state_changed = False
         self.parser.reset_state()
 
     def update_state(self, curr_state: dict[set]) -> None:
@@ -465,30 +475,116 @@ class BGAGame:
             actions.append(f'Reveal wonder, {wonder}')
 
         for action in actions:
+            print(f'< {action}')
             self.pipe.write(action)
-            print(action)
+
+        self.state_changed = \
+            curr_state != self.state or \
+            next_found_first_player != self.found_first_player or \
+            next_age != self.curr_age or \
+            next_found_start_player != self.found_start_player
 
         self.state = curr_state
-
         self.found_first_player = next_found_first_player
         self.curr_age = next_age
         self.found_start_player = next_found_start_player
 
+    def read_message(self) -> str:
+        message = sanitize(self.pipe.read())
+        if message != '':
+            print(f'> {message}')
+        return message
+
+    def wait_to_start(self) -> None:
+        while True:
+            if self.read_message() == sanitize('Start game'):
+                return
+
+    def process_action(self, action: str) -> None:
+        act_type, *args = list(map(sanitize, action.split(',')))
+
+        self.state_changed = False
+        while not self.state_changed:
+            print(f'Action: {act_type} {args}', file=sys.stderr)
+            try:
+                self.select_by_id('pagemaintitletext')
+            except Exception as e:
+                print(e, file=sys.stderr)
+
+            try:
+                if act_type == sanitize('build card'):
+                    print(f'Build card', file=sys.stderr)
+                    self.build_card(args[0])
+                elif act_type == sanitize('discard card'):
+                    print(f'Discard card', file=sys.stderr)
+                    self.discard_card(args[0])
+                elif act_type == sanitize('build wonder'):
+                    print(f'Build wonder', file=sys.stderr)
+                    self.build_wonder(args[0], args[1])
+                elif act_type == sanitize('build token'):
+                    print(f'Build token', file=sys.stderr)
+                    self.select_by_name(args[0])
+                elif act_type == sanitize('build box token'):
+                    print(f'Build box token', file=sys.stderr)
+                    self.select_by_name(args[0])
+                elif act_type == sanitize('build discarded'):
+                    print(f'Build discarded', file=sys.stderr)
+                    self.select_by_name(args[0])
+                elif sanitize('destroy') in act_type:
+                    print(f'Destroy card', file=sys.stderr)
+                    self.select_by_name(args[0])
+                elif act_type == sanitize('select wonder'):
+                    if args[0] not in self.state['revealed_wonders']:
+                        break
+                    print(f'Select wonder', file=sys.stderr)
+                    self.select_by_name(args[0])
+                elif act_type == sanitize('choose start player'):
+                    print(f'Choose start player', file=sys.stderr)
+                    if args[0] == sanitize(BGAGame.PLAYER_ME):
+                        self.choose_go_first()
+                    elif args[0] == sanitize(BGAGame.PLAYER_OTHER()):
+                        self.choose_go_second()
+                    else:
+                        print(f'Unknown player: {args[0]}', file=sys.stderr)
+                else:
+                    print(f'Unknown action type: {act_type}', file=sys.stderr)
+            except Exception as e:
+                print(e, file=sys.stderr)
+                pass
+
+            try:
+                self.check_update_state()
+            except Exception as e:
+                print(e, file=sys.stderr)
+                pass
+
+            print(f'State changed: {self.state_changed}', file=sys.stderr)
+
+    def check_update_state(self) -> None:
+        self.state_changed = False
+        self.parser.start_parse()
+        self.parser.feed(self.driver.page_source)
+        curr_state = self.parser.get_state()
+        self.update_state(curr_state)
+
     def play_game(self) -> None:
         while True:
             try:
-                self.parser.start_parse()
-                self.parser.feed(self.driver.page_source)
-                curr_state = self.parser.get_state()
-                self.update_state(curr_state)
-            except Exception:
+                self.check_update_state()
+                message = self.read_message()
+                if message == sanitize('End game'):
+                    return
+                if message != '':
+                    self.process_action(message)
+            except Exception as e:
+                print(e, file=sys.stderr)
                 pass
-
 
 def main() -> None:
     pipe = PipeReaderWriter('//./pipe/7wdai')
 
     game = BGAGame(pipe)
+    game.wait_to_start()
     game.start_game()
     game.play_game()
 
