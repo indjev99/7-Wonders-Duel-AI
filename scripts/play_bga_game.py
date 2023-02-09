@@ -11,7 +11,7 @@ from selenium.webdriver.firefox.service import Service
 import sys
 
 def sanitize(name: str) -> str:
-    return (''.join(filter(lambda x: x.isalpha() or x == ',' or x == ' ', name.lower()))).strip()
+    return (''.join(filter(lambda x: x.isalpha() or x.isdigit() or x == ',' or x == ' ', name.lower()))).strip()
 
 def sanitize_all(names: set[str]) -> set[str]:
     return set(map(sanitize, names))
@@ -44,8 +44,13 @@ class BGAParser(HTMLParser):
             return
 
         container = self.stack[-3]
-        self.last_object = 'card_' + self.stack[-1]['data-building-id']
-        self.object_finders[self.last_object] = (By.ID, self.stack[-1]['id'])
+        building_id = self.stack[-1]['data-building-id']
+        self.last_object = f'card_{building_id}'
+
+        if self.stack[-1]['id'] != '':
+            self.object_finders[self.last_object] = (By.ID, self.stack[-1]['id'])
+        else:
+            self.object_finders[self.last_object] = (By.XPATH, f'//*[@id="" and @data-building-id="{building_id}"]')
 
         if 'data-building-type' in self.stack[-1]:
             card_type = sanitize(self.stack[-1]['data-building-type'])
@@ -64,12 +69,11 @@ class BGAParser(HTMLParser):
                 self.pyramid_poses_cards.add((pos, self.last_object))
         elif container['id'] == 'discarded_cards_container':
             self.discarded_cards.add(self.last_object)
-            building_id = self.stack[-1]['data-building-id']
-            self.object_finders[self.last_object] = (By.XPATH, f'//*[@data-location="-1" and @data-building-id="{building_id}"]')
 
     def handle_token(self):
         container = self.stack[-3]
-        self.last_object = 'token_' + self.stack[-1]['data-progress-token-id']
+        token_id = self.stack[-1]['data-progress-token-id']
+        self.last_object = f'token_{token_id}'
         self.object_finders[self.last_object] = (By.ID, self.stack[-1]['id'])
 
         if 'id' not in container:
@@ -86,7 +90,8 @@ class BGAParser(HTMLParser):
             return
 
         built = self.stack[-1]['data-constructed']
-        self.last_object = 'wonder_' + self.stack[-1]['data-wonder-id']
+        wonder_id = self.stack[-1]['data-wonder-id']
+        self.last_object = f'wonder_{wonder_id}'
         self.object_finders[self.last_object] = (By.ID, self.stack[-1]['id'])
 
         if container['id'] == 'wonder_selection_container':
@@ -541,7 +546,7 @@ class BGAGame:
                     print(f'Choose start player', file=sys.stderr)
                     if args[0] == sanitize(BGAGame.PLAYER_ME):
                         self.choose_go_first()
-                    elif args[0] == sanitize(BGAGame.PLAYER_OTHER()):
+                    elif args[0] == sanitize(BGAGame.PLAYER_OTHER):
                         self.choose_go_second()
                     else:
                         print(f'Unknown player: {args[0]}', file=sys.stderr)
@@ -556,6 +561,9 @@ class BGAGame:
             except Exception as e:
                 print(e, file=sys.stderr)
                 pass
+
+            if act_type == sanitize('choose start player') and not self.found_start_player:
+                self.state_changed = False
 
             print(f'State changed: {self.state_changed}', file=sys.stderr)
 
@@ -581,11 +589,12 @@ class BGAGame:
 
 def main() -> None:
     pipe = PipeReaderWriter('//./pipe/7wdai')
-
     game = BGAGame(pipe)
-    game.wait_to_start()
-    game.start_game()
-    game.play_game()
+
+    while True:
+        game.wait_to_start()
+        game.start_game()
+        game.play_game()
 
 if __name__ == '__main__':
     main()

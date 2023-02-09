@@ -84,8 +84,6 @@ void playGame(Agent* agent1, Agent* agent2, bool advanceButton = false)
 
 void playExternalGame(Agent* agent1, const std::string& pipeName = "//./pipe/7wdai", bool advanceButton = false)
 {
-    ListenerGUI gui(advanceButton);
-
     ListenerPrettyPrinter pretty;
 
     std::ofstream log = makeLog();
@@ -102,8 +100,12 @@ void playExternalGame(Agent* agent1, const std::string& pipeName = "//./pipe/7wd
     AgentReader agent2(arbiter);
     ListenerWriter sender(arbiter);
 
-    GameRunner runner(&revealer, {agent1, &agent2}, {&logger, &pretty, &sender, &arbiter, &gui});
-    runner.playGame();
+    GameRunner runner(&revealer, {agent1, &agent2}, {&logger, &pretty, &sender, &arbiter});
+
+    while (true)
+    {
+        runner.playGame();
+    }
 }
 
 int main()
