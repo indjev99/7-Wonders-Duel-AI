@@ -23,7 +23,23 @@ def sanitize(name: str) -> str:
 def sanitize_all(names: set[str]) -> set[str]:
     return set(map(sanitize, names))
 
+def make_player_sets():
+    return {
+        BGAGame.PLAYER_ME: set(),
+        BGAGame.PLAYER_OPP: set()
+    }
+
 class BGAParser(HTMLParser):
+
+    def deduce_owner(self, container):
+        if 'me' in container['class']:
+            return BGAGame.PLAYER_ME
+        elif 'opponent' in container['class']:
+            return BGAGame.PLAYER_OPP
+        else:
+            debug_print(f'Unknown owner for: {self.last_object}')
+            return None
+
     def reset_state(self):
         self.object_names = {}
         self.name_objects = {}
@@ -38,14 +54,14 @@ class BGAParser(HTMLParser):
         self.last_object = None
         self.pyramid_poses_cards = set()
         self.guild_poses = set()
-        self.built_cards = set()
+        self.built_cards = make_player_sets()
         self.discarded_cards = set()
         self.game_tokens = set()
         self.box_tokens = set()
-        self.built_tokens = set()
+        self.built_tokens = make_player_sets()
         self.revealed_wonders = set()
-        self.selected_wonders = set()
-        self.built_wonders = set()
+        self.selected_wonders = make_player_sets()
+        self.built_wonders = make_player_sets()
 
     def handle_card(self):
         if 'data-building-id' not in self.stack[-1]:
@@ -67,7 +83,11 @@ class BGAParser(HTMLParser):
             self.card_types[self.last_object] = card_type
 
         if 'building building_small' not in self.stack[-1]['class']:
-            self.built_cards.add(self.last_object)
+            prev_container = self.stack[-4]
+            owner = self.deduce_owner(prev_container)
+            if owner is None:
+                return
+            self.built_cards[owner].add(self.last_object)
         elif container['id'] == 'draftpool_container':
             pos = int(self.stack[-1]['data-location'])
             type = self.stack[-1]['data-building-type']
@@ -77,6 +97,9 @@ class BGAParser(HTMLParser):
                 self.pyramid_poses_cards.add((pos, self.last_object))
         elif container['id'] == 'discarded_cards_container':
             self.discarded_cards.add(self.last_object)
+        else:
+            debug_print(f'Unknown container for: {self.last_object}')
+            return
 
     def handle_token(self):
         container = self.stack[-3]
@@ -85,11 +108,18 @@ class BGAParser(HTMLParser):
         self.object_finders[self.last_object] = (By.ID, self.stack[-1]['id'])
 
         if 'id' not in container:
-            self.built_tokens.add(self.last_object)
+            prev_container = self.stack[-4]
+            owner = self.deduce_owner(prev_container)
+            if owner is None:
+                return
+            self.built_tokens[owner].add(self.last_object)
         elif container['id'] == 'board_progress_tokens':
             self.game_tokens.add(self.last_object)
         elif container['id'] == 'progress_token_from_box_container':
             self.box_tokens.add(self.last_object)
+        else:
+            debug_print(f'Unknown container for: {self.last_object}')
+            return
 
     def handle_wonder(self):
         container = self.stack[-4]
@@ -105,10 +135,20 @@ class BGAParser(HTMLParser):
         if container['id'] == 'wonder_selection_container':
             self.revealed_wonders.add(self.last_object)
         elif 'player_wonders' in container['id']:
+            owner = self.deduce_owner(container)
+            if owner is None:
+                return
+
             if built == '0':
-                self.selected_wonders.add(self.last_object)
-            else:
+                self.selected_wonders[owner].add(self.last_object)
+            elif built == '1':
                 self.built_wonders.add(self.last_object)
+            else:
+                debug_print(f'Unknown built status: {self.last_object}')
+                return
+        else:
+            debug_print(f'Unknown container for: {self.last_object}')
+            return
 
     def handle_starttag(self, tag, attrs):
         if tag != 'div':
@@ -165,6 +205,18 @@ class BGAParser(HTMLParser):
             res.add(name)
         return res
 
+    def map_player_object_names(self, player_obj_set):
+        res = make_player_sets()
+        for player in BGAGame.ALL_PLAYERS:
+            for obj in player_obj_set[player]:
+                name = self.object_names.get(obj)
+                if name is None:
+                    debug_print(f'No name known for {obj}')
+                    continue
+                self.name_objects[name] = obj
+                res[player].add(name)
+        return res
+
     def map_pos_object_names(self, obj_set):
         res = set()
         for pos, obj in obj_set:
@@ -177,24 +229,26 @@ class BGAParser(HTMLParser):
         return res
 
     def get_state(self):
-        if len(self.selected_wonders) > 0 and len(self.built_wonders) > 0:
-            self.can_have_built_wonders = True
+        for player in BGAGame.ALL_PLAYERS:
+            if len(self.selected_wonders[player]) > 0 and len(self.built_wonders[player]) > 0:
+                self.can_have_built_wonders = True
 
-        if not self.can_have_built_wonders:
-            self.selected_wonders.update(self.built_wonders)
-            self.built_wonders = set()
+        for player in BGAGame.ALL_PLAYERS:
+            if not self.can_have_built_wonders:
+                self.selected_wonders[player].update(self.built_wonders[player])
+                self.built_wonders[player] = set()
 
         return {
             'pyramid_poses_cards' : self.map_pos_object_names(self.pyramid_poses_cards),
             'guild_poses' : self.guild_poses,
-            'built_cards' : self.map_object_names(self.built_cards),
+            'built_cards' : self.map_player_object_names(self.built_cards),
             'discarded_cards' : self.map_object_names(self.discarded_cards),
             'game_tokens' : self.map_object_names(self.game_tokens),
             'box_tokens' : self.map_object_names(self.box_tokens),
-            'built_tokens' : self.map_object_names(self.built_tokens),
+            'built_tokens' : self.map_player_object_names(self.built_tokens),
             'revealed_wonders' : self.map_object_names(self.revealed_wonders),
-            'selected_wonders' : self.map_object_names(self.selected_wonders),
-            'built_wonders' : self.map_object_names(self.built_wonders)
+            'selected_wonders' : self.map_player_object_names(self.selected_wonders),
+            'built_wonders' : self.map_player_object_names(self.built_wonders)
         }
 
 class BGAGame:
@@ -202,12 +256,17 @@ class BGAGame:
     NONE = -100
 
     PLAYER_ME = 'Player 1'
-    PLAYER_OTHER = 'Player 2'
+    PLAYER_OPP = 'Player 2'
 
     OTHER_PLAYER = {
-        'Player 1' : 'Player 2',
-        'Player 2' : 'Player 1'
+        PLAYER_ME : PLAYER_OPP,
+        PLAYER_OPP : PLAYER_ME
     }
+
+    ALL_PLAYERS = [
+        PLAYER_ME,
+        PLAYER_OPP
+    ]
 
     ALL_TOKENS = {
         'Agriculture',
@@ -253,7 +312,7 @@ class BGAGame:
         elif 'you' in title_text:
             return BGAGame.PLAYER_ME
         else:
-            return BGAGame.PLAYER_OTHER
+            return BGAGame.PLAYER_OPP
 
     def open_bga_page(self) -> None:
         self.driver.get("https://boardgamearena.com/lobby")
@@ -367,6 +426,13 @@ class BGAGame:
                 return set()
             return prev_elems(name).difference(curr_elems(name))
 
+        def add_new_elems(name: str) -> None:
+            elems = new_elems(name)
+            if name not in self.state:
+                self.state[name] = elems
+            else:
+                self.state[name].update(elems)
+
         actions = []
 
         for game_token in new_elems('game_tokens'):
@@ -386,12 +452,11 @@ class BGAGame:
 
         state_changed = len(actions) > 0
 
-        if len(self.state) > 0:
-            self.state['game_tokens'].update(new_elems('game_tokens'))
-            self.state['box_tokens'].update(new_elems('box_tokens'))
-            self.state['guild_poses'].update(new_elems('guild_poses'))
-            self.state['pyramid_poses_cards'].update(new_elems('pyramid_poses_cards'))
-            self.state['revealed_wonders'].update(new_elems('revealed_wonders'))
+        add_new_elems('game_tokens')
+        add_new_elems('box_tokens')
+        add_new_elems('guild_poses')
+        add_new_elems('pyramid_poses_cards')
+        add_new_elems('revealed_wonders')
 
         for action in actions:
             self.pipe.write(action)
@@ -598,7 +663,7 @@ class BGAGame:
                     debug_print(f'Choose start player')
                     if args[0] == sanitize(BGAGame.PLAYER_ME):
                         self.choose_go_first()
-                    elif args[0] == sanitize(BGAGame.PLAYER_OTHER):
+                    elif args[0] == sanitize(BGAGame.PLAYER_OPP):
                         self.choose_go_second()
                     else:
                         debug_print(f'Unknown player: {args[0]}')
