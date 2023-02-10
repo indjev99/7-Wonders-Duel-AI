@@ -602,8 +602,10 @@ class BGAGame:
                         self.choose_go_second()
                     else:
                         debug_print(f'Unknown player: {args[0]}')
+                        break
                 else:
                     debug_print(f'Unknown action type: {act_type}')
+                    break
             except Exception as e:
                 debug_print(e)
                 pass

@@ -3,6 +3,7 @@
 #include "mc.h"
 
 #include "game/lang.h"
+#include "game/results.h"
 #include "time/timer.h"
 
 #include <algorithm>
@@ -71,7 +72,7 @@ double mctsIteration(std::vector<MctsNode>& nodes, int curr, GameStateFast& game
     if (game.isTerminal())
     {        
         nodes[curr].numGames++;
-        return game.getResult(player);
+        return resultSign(game.getResult(player));
     }
 
     int currAge = game.getCurrAge();
