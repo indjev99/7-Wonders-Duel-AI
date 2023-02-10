@@ -1,21 +1,24 @@
-#include "ai/agent_mc.h"
-#include "ai/agent_mc_ucb.h"
-#include "ai/agent_mcts_ucb.h"
-#include "ai/agent_uniform.h"
+#include "agents/agent_mc.h"
+#include "agents/agent_mc_ucb.h"
+#include "agents/agent_mcts_ucb.h"
+#include "agents/agent_uniform.h"
 #include "game/results.h"
 #include "gui/agent_gui.h"
 #include "gui/listener_gui.h"
 #include "io/make_log.h"
-#include "io/action_arbiter_reader_writer.h"
 #include "io/pipe_reader_writer.h"
 #include "io/stream_reader.h"
 #include "io/stream_writer.h"
-#include "runner/game_runner.h"
-#include "runner/revealer_uniform.h"
-#include "text/agent_reader.h"
-#include "text/listener_pretty_printer.h"
-#include "text/listener_writer.h"
-#include "text/revealer_reader.h"
+#include "system/agent_ignorer_wrapper.h"
+#include "system/game_runner.h"
+#include "system/revealer_uniform.h"
+#include "system_io/agent_writer_wrapper.h"
+#include "system_io/listener_possible_action_reader.h"
+#include "system_io/listener_start_end_notifier.h"
+#include "system_io/agent_reader.h"
+#include "system_io/listener_pretty_printer.h"
+#include "system_io/listener_writer.h"
+#include "system_io/revealer_reader.h"
 #include "utils/random.h"
 
 #include <cmath>
@@ -91,16 +94,22 @@ void playExternalGame(Agent* agent1, const std::string& pipeName = "//./pipe/7wd
     ListenerWriter logger(logWriter);
 
     PipeReaderWriter pipe(pipeName);
-    ActionArbiterReaderWriter arbiter(pipe, pipe, true);
 
-    AgentReader defAgent1(arbiter);
-    if (agent1 == nullptr) agent1 = &defAgent1;
+    ListenerStartEndNotifier startEndNotifier(pipe);
+    ListenerPossibleActionReader possibleActionReader(pipe);
 
-    RevealerReader revealer(arbiter);
-    AgentReader agent2(arbiter);
-    ListenerWriter sender(arbiter);
+    RevealerReader revealer(possibleActionReader);
+    AgentReader agent1Base(possibleActionReader);
+    AgentReader agent2(possibleActionReader);
 
-    GameRunner runner(&revealer, {agent1, &agent2}, {&logger, &pretty, &sender, &arbiter});
+    AgentWriterWrapper agent1Writer(agent1, pipe);
+
+    std::vector<Agent*> ignored;
+    if (agent1 != nullptr) ignored.push_back(&agent1Writer);
+
+    AgentIgnorerWrapper agent1Ignorer(&agent1Base, ignored);
+
+    GameRunner runner(&revealer, {&agent1Ignorer, &agent2}, {&logger, &pretty, &startEndNotifier, &possibleActionReader});
 
     while (true)
     {

@@ -23,6 +23,7 @@ class BGAParser(HTMLParser):
         self.name_objects = {}
         self.object_finders = {}
         self.card_types = {}
+        self.can_have_built_wonders = False
         self.start_parse()
 
     def start_parse(self):
@@ -170,7 +171,10 @@ class BGAParser(HTMLParser):
         return res
 
     def get_state(self):
-        if len(self.selected_wonders) == 0:
+        if len(self.selected_wonders) > 0 and len(self.built_wonders) > 0:
+            self.can_have_built_wonders = True
+
+        if not self.can_have_built_wonders:
             self.selected_wonders = self.built_wonders
             self.built_wonders = set()
 
@@ -241,8 +245,9 @@ class BGAGame:
         self.driver.get("https://boardgamearena.com/lobby")
 
     def select_by_finder(self, finder) -> None:
+        time.sleep(0.1)
         element = self.driver.find_element(*finder)
-        element.click()
+        self.driver.execute_script("if (window.getComputedStyle(arguments[0]).display !== 'none') { arguments[0].click(); }", element)
 
     def select_by_id(self, id: str) -> None:
         self.select_by_finder((By.ID, id))
@@ -261,9 +266,6 @@ class BGAGame:
 
     def accept_game_btn(self) -> None:
         self.select_by_id('ags_start_game_accept')
-
-    def access_game_btn(self) -> None:
-        self.select_by_id('access_game_normal')
 
     def build_card(self, name: str) -> None:
         self.select_by_name(name)
@@ -305,10 +307,6 @@ class BGAGame:
             except Exception:
                 pass
             try:
-                self.access_game_btn()
-            except Exception:
-                pass
-            try:
                 title_text = self.find_title_text()
                 if title_text != '':
                     return
@@ -319,10 +317,13 @@ class BGAGame:
         self.found_first_player = False
         self.found_start_player = True
         self.state = {}
-        self.state_changed = False
         self.parser.reset_state()
 
-    def update_state(self, curr_state: dict[set]) -> None:
+    STATE_CHANGED = 1
+    STATE_UNCHANGED = 0
+    STATE_INVALID = -1
+
+    def update_state(self, curr_state: dict[set]) -> int:
 
         def prev_elems(name: str) -> set:
             if name not in self.state:
@@ -361,14 +362,14 @@ class BGAGame:
             curr_player = self.parse_curr_player(title_text)
             if curr_player is None or len(revealed_wonders) + len(selected_wonders) < 4:
                 print(f'Unknown first player', file=sys.stderr)
-                return
+                return BGAGame.STATE_INVALID
             if len(selected_wonders) == 0:
                 actions.append(f'Reveal first player, {curr_player}')
             elif len(selected_wonders) == 1:
                 actions.append(f'Reveal first player, {BGAGame.OTHER_PLAYER[curr_player]}')
             else:
                 print(f'Unexpected starting number of selected wonders, {selected_wonders}', file=sys.stderr)
-                return
+                return BGAGame.STATE_INVALID
             next_found_first_player = True
 
         next_found_start_player = self.found_start_player
@@ -379,7 +380,7 @@ class BGAGame:
             curr_player = self.parse_curr_player(title_text)
             if curr_player is None:
                 print(f'Unknown start player', file=sys.stderr)
-                return
+                return BGAGame.STATE_INVALID
             else:
                 actions.append(f'Choose start player, {curr_player}')
             next_found_start_player = True
@@ -394,7 +395,7 @@ class BGAGame:
                 gone_built_cards.remove(card)
             else:
                 print(f'Unexplained discarded card, {card}', file=sys.stderr)
-                return
+                return BGAGame.STATE_INVALID
 
         for card in new_elems('built_cards'):
             if card in gone_pyramid_cards:
@@ -405,7 +406,7 @@ class BGAGame:
                 gone_discarded_cards.remove(card)
             else:
                 print(f'Unexplained built card, {card}', file=sys.stderr)
-                return
+                return BGAGame.STATE_INVALID
 
         for wonder in new_elems('built_wonders'):
             if len(gone_pyramid_cards) > 0:
@@ -413,7 +414,7 @@ class BGAGame:
                 actions.append(f'Build wonder, {card}, {wonder}')
             else:
                 print(f'Unexplained built wonder, {wonder}', file=sys.stderr)
-                return
+                return BGAGame.STATE_INVALID
 
         for token in new_elems('built_tokens'):
             if token in gone_game_tokens:
@@ -435,7 +436,7 @@ class BGAGame:
                 actions.append(f'Build box token, {token}')
             else:
                 print(f'Unexplained built token, {token}', file=sys.stderr)
-                return
+                return BGAGame.STATE_INVALID
 
         for wonder in new_elems('selected_wonders'):
             if wonder in gone_revealed_wonders:
@@ -446,27 +447,27 @@ class BGAGame:
                 actions.append(f'Select wonder, {wonder}')
             else:
                 print(f'Unexplained selected wonder, {wonder}', file=sys.stderr)
-                return
+                return BGAGame.STATE_INVALID
 
         if len(gone_pyramid_cards) > 0:
             print(f'Unexplained gone pyramid cards, {gone_pyramid_cards}', file=sys.stderr)
-            return
+            return BGAGame.STATE_INVALID
 
         if len(gone_built_cards) > 0:
             print(f'Unexplained gone built cards, {gone_built_cards}', file=sys.stderr)
-            return
+            return BGAGame.STATE_INVALID
 
         if len(gone_discarded_cards) > 0:
             print(f'Unexplained gone discarded cards, {gone_discarded_cards}', file=sys.stderr)
-            return
+            return BGAGame.STATE_INVALID
 
         if len(gone_game_tokens) > 0:
             print(f'Unexplained gone tokens, {gone_game_tokens}', file=sys.stderr)
-            return
+            return BGAGame.STATE_INVALID
 
         if len(gone_revealed_wonders) > 0:
             print(f'Unexplained gone revealed wonders, {gone_revealed_wonders}', file=sys.stderr)
-            return
+            return BGAGame.STATE_INVALID
 
         for game_token in new_elems('game_tokens'):
             actions.append(f'Reveal token, {game_token}')
@@ -484,10 +485,9 @@ class BGAGame:
             actions.append(f'Reveal wonder, {wonder}')
 
         for action in actions:
-            print(f'< {action}')
             self.pipe.write(action)
 
-        self.state_changed = \
+        state_changed = \
             curr_state != self.state or \
             next_found_first_player != self.found_first_player or \
             next_found_start_player != self.found_start_player
@@ -496,11 +496,14 @@ class BGAGame:
         self.found_first_player = next_found_first_player
         self.found_start_player = next_found_start_player
 
+        if state_changed:
+            return BGAGame.STATE_CHANGED
+        else:
+            return BGAGame.STATE_UNCHANGED
+
     def read_message(self) -> str:
-        message = sanitize(self.pipe.read())
-        if message != '':
-            print(f'> {message}')
-        return message
+        message = self.pipe.read()
+        return sanitize(message)
 
     def wait_to_start(self) -> None:
         while True:
@@ -513,16 +516,10 @@ class BGAGame:
         if act_type == sanitize('choose start player'):
             self.found_start_player = False
 
-        self.state_changed = False
-        while not self.state_changed:
+        while True:
             print(self.state, file=sys.stderr)
             print(self.found_first_player, self.found_start_player, file=sys.stderr)
             print(f'Action: {act_type} {args}', file=sys.stderr)
-
-            try:
-                self.select_by_id('pagemaintitletext')
-            except Exception as e:
-                print(e, file=sys.stderr)
 
             try:
                 if act_type == sanitize('build card'):
@@ -566,18 +563,16 @@ class BGAGame:
                 pass
 
             try:
-                self.check_update_state()
+                res = self.check_update_state()
+                if act_type == sanitize('choose start player') and not self.found_start_player:
+                    continue
+                if res != BGAGame.STATE_UNCHANGED:
+                    return
             except Exception as e:
                 print(e, file=sys.stderr)
                 pass
 
-            if act_type == sanitize('choose start player') and not self.found_start_player:
-                self.state_changed = False
-
-            print(f'State changed: {self.state_changed}', file=sys.stderr)
-
     def check_update_state(self) -> None:
-        self.state_changed = False
         self.parser.start_parse()
         self.parser.feed(self.driver.page_source)
         curr_state = self.parser.get_state()

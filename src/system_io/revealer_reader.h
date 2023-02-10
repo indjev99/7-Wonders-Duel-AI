@@ -1,7 +1,7 @@
 #pragma once
 
 #include "io/string_reader.h"
-#include "runner/revealer.h"
+#include "system/revealer.h"
 
 #include <iostream>
 

@@ -17,6 +17,9 @@ struct GameRunner
 
 private:
 
+    void addListener(Listener* listener, int actor);
+    void addListeners(std::vector<Listener*> newListeners, int actor);
+
     Revealer* revealer;
     std::array<Agent*, NUM_PLAYERS> agents;
     std::vector<Listener*> listeners;

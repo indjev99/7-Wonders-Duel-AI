@@ -1,6 +1,6 @@
 #pragma once
 
-#include "runner/agent.h"
+#include "system/agent.h"
 
 struct AgentUniform final : Agent
 {

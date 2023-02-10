@@ -2,7 +2,7 @@
 
 #include "mc_config.h"
 
-#include "runner/agent.h"
+#include "system/agent.h"
 
 struct AgentMc final : Agent
 {

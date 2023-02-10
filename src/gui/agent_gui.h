@@ -2,7 +2,7 @@
 
 #include "listener_gui.h"
 
-#include "runner/agent.h"
+#include "system/agent.h"
 
 struct AgentGUI final : Agent
 {

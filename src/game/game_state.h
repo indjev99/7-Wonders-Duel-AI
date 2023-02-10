@@ -155,4 +155,4 @@ private:
 };
 
 using GameState = GameStateT<true>;
-using GameStateFast = GameStateT<false>;
+using GameStateFast = GameStateT<true>;

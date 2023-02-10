@@ -6,16 +6,32 @@ GameRunner::GameRunner(Revealer* revealer_, const std::array<Agent*, NUM_PLAYERS
     : revealer(revealer_)
     , agents(agents_)
 {
-    listeners.push_back(revealer);
-    std::copy(agents.begin(), agents.end(), std::back_inserter(listeners));
-    std::copy(listeners_.begin(), listeners_.end(), std::back_inserter(listeners));
-    for (auto listener : listeners)
-    {
-        listener->setGame(game);
-    }
+    addListener(revealer, ACTOR_GAME);
+    addListeners(listeners_, ACTOR_GAME);
     for (int i = 0; i < NUM_PLAYERS; i++)
     {
-        agents[i]->setPlayer(i);
+        addListener(agents[i], i);
+    }
+}
+
+void GameRunner::addListener(Listener* listener, int actor)
+{
+    if (std::find(listeners.begin(), listeners.end(), listener) != listeners.end()) return;
+
+    listener->setGame(game);
+
+    Agent* agent = dynamic_cast<Agent*>(listener);
+    if (agent != nullptr) agent->setPlayer(actor);
+
+    listeners.push_back(listener);
+    addListeners(listener->getSubListeners(), actor);
+}
+
+void GameRunner::addListeners(std::vector<Listener*> newListeners, int actor)
+{
+    for (Listener* listener : newListeners)
+    {
+        addListener(listener, actor);
     }
 }
 

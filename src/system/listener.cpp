@@ -9,3 +9,8 @@ void Listener::notifyStart() {}
 void Listener::notifyActionPre(const Action& action) {}
 void Listener::notifyActionPost(const Action& action) {}
 void Listener::notifyEnd() {}
+
+std::vector<Listener*> Listener::getSubListeners() const
+{
+    return {};
+}

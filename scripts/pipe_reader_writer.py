@@ -24,7 +24,7 @@ class PipeReaderWriter():
                 if e.args[0] == 2:
                     time.sleep(1)
                 else:
-                    print('Unexpected error:', e.args[0])
+                    print('Unexpected error:', e.args[0], file=sys.stderr)
                     exit(-1)
 
         win32pipe.SetNamedPipeHandleState(self.pipe_handle, win32pipe.PIPE_READMODE_MESSAGE | win32pipe.PIPE_NOWAIT, None, None)
@@ -33,14 +33,19 @@ class PipeReaderWriter():
         s_bytes = str.encode(s)
         code, bytes_written = win32file.WriteFile(self.pipe_handle, s_bytes)
 
+        print(f'< {s}', file=sys.stderr)
+
         if code != 0 or bytes_written != len(s):
-            print('Failed WriteFile.')
+            print('Failed WriteFile.', file=sys.stderr)
             exit(-1)
 
     def read(self) -> str:
         try:
             _, s_bytes = win32file.ReadFile(self.pipe_handle, PipeReaderWriter.BUF_SIZE)
             s = s_bytes.decode()
+
+            if s != '':
+                print(f'> {s}', file=sys.stderr)
 
             return s
         except Exception:

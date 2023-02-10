@@ -1,6 +1,6 @@
 #pragma once
 
-#include "runner/listener.h"
+#include "system/listener.h"
 
 struct ListenerPrettyPrinter final : Listener
 {

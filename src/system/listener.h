@@ -2,6 +2,8 @@
 
 #include "game/game_state.h"
 
+#include <vector>
+
 struct Listener
 {
     void setGame(const GameState& game);
@@ -10,6 +12,8 @@ struct Listener
     virtual void notifyActionPre(const Action& action);
     virtual void notifyActionPost(const Action& action);
     virtual void notifyEnd();
+
+    virtual std::vector<Listener*> getSubListeners() const;
 
     virtual ~Listener() = default;
 

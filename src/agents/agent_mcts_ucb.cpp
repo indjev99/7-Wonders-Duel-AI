@@ -102,6 +102,7 @@ double mctsIteration(std::vector<MctsNode>& nodes, int curr, GameStateFast& game
 Action AgentMctsUcb::getAction()
 {
     const std::vector<Action>& possible = game->getPossibleActions();
+
     if (possible.size() == 1) return possible[0];
 
     int numSims = config.numSims(possible.size());
