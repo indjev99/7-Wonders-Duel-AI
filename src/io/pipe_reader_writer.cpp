@@ -37,8 +37,6 @@ void PipeReaderWriter::write(const std::string& s)
         &bytesWritten,
         NULL);
 
-    std::cerr << "< " << s << std::endl;
-
     if (!succ || bytesWritten != s.size())
     {
         std::cerr << "Failed WriteFile" << std::endl;
@@ -66,8 +64,6 @@ std::string PipeReaderWriter::read()
 
     std::string s;
     s.assign(response.get(), bytesRead);
-
-    std::cerr << "> " << s << std::endl;
 
     return s;
 }

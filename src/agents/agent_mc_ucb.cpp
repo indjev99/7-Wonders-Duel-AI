@@ -2,6 +2,8 @@
 
 #include "mc.h"
 
+#include "time/timer.h"
+
 #include <cmath>
 #include <numeric>
 
@@ -14,18 +16,19 @@ Action AgentMcUcb::getAction()
     const std::vector<Action>& possible = game->getPossibleActions();
     if (possible.size() == 1) return possible[0];
 
-    int numSims = config.numSims(possible.size());
-
     std::vector<BanditArm> arms = makeArms(possible);
 
-    for (int t = 0; t < numSims; t++)
+    int numGames = 0;
+
+    DO_FOR_SECS(config.secsPerMove)
     {
-        int chosen = findBestArm(arms, t, config.explrFactor);
+        int chosen = findBestArm(arms, numGames, config.explrFactor);
 
         GameStateFast runGame(game);
         runGame.doAction(arms[chosen].action);
         arms[chosen].totalReward += simRandGame(runGame, player, config);
         arms[chosen].numGames++;
+        numGames++;
     }
 
     return arms[findBestArm(arms)].action;

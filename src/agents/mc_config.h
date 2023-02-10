@@ -5,8 +5,7 @@ constexpr double AVG_BRANCHES = 5.75;
 
 struct MCConfig
 {
-    double avgNumSims = 1e5;
-    bool branchRelative = true;
+    double secsPerMove = 1.0;
 
     double explrFactor = 1.5;
 
@@ -17,6 +16,4 @@ struct MCConfig
     double simModeNormalProb = 0.5;
     double simModeScienceProb = 0.5;
     double simModeMilitaryProb = 0.0;
-
-    int numSims(int numBranches);
 };

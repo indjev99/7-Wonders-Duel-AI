@@ -7,6 +7,11 @@ ListenerPossibleActionReader::ListenerPossibleActionReader(StringReader& reader)
     : reader(reader)
 {}
 
+void ListenerPossibleActionReader::notifyStart()
+{
+    pendingActions.clear();
+}
+
 std::string ListenerPossibleActionReader::read()
 {
     std::vector<Action> possible = game->getPossibleActions();

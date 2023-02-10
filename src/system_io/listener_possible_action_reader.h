@@ -11,6 +11,8 @@ struct ListenerPossibleActionReader final : Listener, StringReader
 
     std::string read() override;
 
+    void notifyStart() override;
+
 private:
 
     StringReader& reader;

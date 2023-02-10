@@ -135,18 +135,18 @@ int main()
     AgentMcUcb mcUcb2;
 
     MCConfig config;
-    config.avgNumSims = 3e5;
+    config.secsPerMove = 7;
 
     AgentMctsUcb mctsUcb1(config);
     AgentMctsUcb mctsUcb2;
 
-    // playGame(nullptr, &mctsUcb1);
+    // playGame(nullptr, &mctsUcb2);
 
     playExternalGame(&mctsUcb1);
 
     // benchmark(&mctsUcb1, &mctsUcb2);
 
-    // replayGame("logs/1675800280.log");
+    // replayGame("logs/XXXXXXXXX.log");
 
     return 0;
 }

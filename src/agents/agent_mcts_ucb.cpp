@@ -3,6 +3,7 @@
 #include "mc.h"
 
 #include "game/lang.h"
+#include "time/timer.h"
 
 #include <algorithm>
 #include <cmath>
@@ -105,21 +106,23 @@ Action AgentMctsUcb::getAction()
 
     if (possible.size() == 1) return possible[0];
 
-    int numSims = config.numSims(possible.size());
-
     std::vector<MctsNode> nodes;
     nodes.push_back(MctsNode(GameStateFast(game)));
 
     int root = 0;
 
-    for (int t = 0; t < numSims; t++)
+    DO_FOR_SECS(config.secsPerMove)
     {
         GameStateFast runGame(game);
         mctsIteration(nodes, root, runGame, config, player);
     }
 
+    int chosen = findBestArm(nodes[0].arms);
+
+    std::cerr << "Expected outcome: " << nodes[root].arms[chosen].avgReward() << std::endl << std::endl;
+
     // GameStateFast runGame(game);
     // debugPrintNode(nodes, root, runGame, player);
 
-    return nodes[root].arms[findBestArm(nodes[0].arms)].action;
+    return nodes[root].arms[chosen].action;
 }
