@@ -62,6 +62,7 @@ class BGAParser(HTMLParser):
         self.revealed_wonders = set()
         self.selected_wonders = make_player_sets()
         self.built_wonders = make_player_sets()
+        self.game_ended = False
 
     def handle_card(self):
         if 'data-building-id' not in self.stack[-1]:
@@ -151,13 +152,16 @@ class BGAParser(HTMLParser):
             return
 
     def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+
+        if attrs.get('id') == 'backMetasite_btn':
+            self.game_ended = True
+
         if tag != 'div':
             return
 
-        attrs = dict(attrs)
-        self.stack.append(attrs)
-
         self.last_object = None
+        self.stack.append(attrs)
         self.obj_stack.append(None)
 
         if 'class' not in attrs:
@@ -286,6 +290,7 @@ class BGAGame:
     STATE_CHANGED = 1
     STATE_UNCHANGED = 0
     STATE_INVALID = -1
+    STATE_ABORTED = -20
 
     MAX_INVALID_CNT = 30
 
@@ -401,6 +406,7 @@ class BGAGame:
         self.found_start_player = True
         self.state = {}
         self.invalid_cnt = 0
+        self.aborted_game = False
         self.parser.reset_state()
 
     def assume_invalid(self) -> bool:
@@ -700,6 +706,8 @@ class BGAGame:
             try:
                 res = self.check_update_state()
                 debug_print(f'check_update_state res: {res}')
+                if res == BGAGame.STATE_ABORTED:
+                    return
                 if act_type == sanitize('choose start player') and not self.found_start_player:
                     continue
                 if res != BGAGame.STATE_UNCHANGED:
@@ -714,6 +722,11 @@ class BGAGame:
         self.parser.start_parse()
         self.parser.feed(self.driver.page_source)
         curr_state = self.parser.get_state()
+        if self.parser.game_ended:
+            if not self.aborted_game:
+                self.pipe.write('Abort game')
+            self.aborted_game = True
+            return self.STATE_ABORTED
         res = self.update_state(curr_state)
         if res == BGAGame.STATE_INVALID:
             debug_print(f'Old state: {old_state}')

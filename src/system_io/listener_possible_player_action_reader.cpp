@@ -53,6 +53,7 @@ std::string ListenerPossiblePlayerActionReader::read()
 bool ListenerPossiblePlayerActionReader::isPossible(int actor, const Action& action)
 {
     std::vector<Action> possible = game->getPossibleActions();
-    return ((actor == ACTOR_UNKNOWN || actor == game->getCurrActor()) &&
-            (std::find(possible.begin(), possible.end(), action) != possible.end()));
+    return action.type == ACT_ABORT_GAME ||
+        ((actor == ACTOR_UNKNOWN || actor == game->getCurrActor()) &&
+        std::find(possible.begin(), possible.end(), action) != possible.end());
 }

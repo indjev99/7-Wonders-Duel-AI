@@ -15,6 +15,8 @@
 #define ACT_REVEAL_WONDER -5 // id
 #define ACT_REVEAL_FIRST_PLAYER -6 // player
 
+#define ACT_ABORT_GAME -20
+
 #define ACT_ARG2_BUILD -1
 #define ACT_ARG2_DISCARD -2
 

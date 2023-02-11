@@ -135,7 +135,7 @@ int main()
     AgentMcUcb mcUcb2;
 
     MCConfig config;
-    config.secsPerMove = 8;
+    config.secsPerMove = 10;
 
     AgentMctsUcb mctsUcb1(config);
     AgentMctsUcb mctsUcb2;

@@ -36,6 +36,8 @@ const std::string S_REVEAL_BOX_TOKEN = "Reveal box token";
 const std::string S_REVEAL_WONDER = "Reveal wonder";
 const std::string S_REVEAL_FIRST_PLAYER = "Reveal first player";
 
+const std::string S_ABORT_GAME = "Abort game";
+
 const std::string S_RESULT_DRAW = "Draw";
 const std::string S_RESULT_WIN = "victory";
 const std::string S_RESULT_LOSS = "defeat";
@@ -196,6 +198,9 @@ std::string actionToString(const Action& action)
     case ACT_REVEAL_FIRST_PLAYER:
         return joinActionStr({S_REVEAL_FIRST_PLAYER, actorToString(action.arg1)});
 
+    case ACT_ABORT_GAME:
+        return joinActionStr({S_ABORT_GAME});
+
     default:
         throw GameException("Unknown action type.", {{"actionType", action.type}});
     }
@@ -302,6 +307,12 @@ Action actionFromString(const std::string& actionStr)
         if (tokens.size() != 2)
             throw GameException("Incorrect number of tokens in action string.", {});
         return Action(ACT_REVEAL_FIRST_PLAYER, actorFromString(tokens[1]));
+    }
+    if (name == sanitizeName(S_ABORT_GAME))
+    {
+        if (tokens.size() != 1)
+            throw GameException("Incorrect number of tokens in action string.", {});
+        return Action(ACT_ABORT_GAME);
     }
 
     throw GameException("Unknown action name.", {});

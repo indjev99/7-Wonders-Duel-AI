@@ -405,6 +405,12 @@ void GameStateT<CheckValid>::doAction(const Action& action)
 {
     if constexpr (CheckValid)
     {
+        if (action.type == ACT_ABORT_GAME)
+        {
+            queuedActions = {};
+            return;
+        }
+
         if (isTerminal())
             throw GameException("Game already ended.", {});
 
@@ -538,7 +544,7 @@ void GameStateT<CheckValid>::doAction(const Action& action)
 
     if (state.getResult(false) != RESULT_DRAW)
     {
-        queuedActions = std::deque<Action>();
+        queuedActions = {};
         return;
     }
 
