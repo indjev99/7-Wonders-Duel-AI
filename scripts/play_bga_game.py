@@ -459,6 +459,10 @@ class BGAGame:
 
         actions = []
 
+        title_text = self.find_title_text()
+        if 'must choose who begins' in title_text:
+            self.found_start_player = False
+
         for game_token in new_elems('game_tokens'):
             actions.append(f'Reveal token, {game_token}')
 
@@ -470,6 +474,14 @@ class BGAGame:
 
         for pos, card in sorted(list(new_elems('pyramid_poses_cards'))):
             actions.append(f'Reveal card, {card}, {pos}')
+            if pos == 0 and (
+                len(prev_elems('discarded_cards')) > 0 or
+                len(prev_player_elems('built_cards', BGAGame.PLAYER_ME)) > 0 or
+                len(prev_player_elems('built_cards', BGAGame.PLAYER_OPP)) > 0 or
+                len(prev_player_elems('built_wonders', BGAGame.PLAYER_ME)) > 0 or
+                len(prev_player_elems('built_wonders', BGAGame.PLAYER_OPP)) > 0
+            ):
+                self.found_start_player = False
 
         for wonder in new_elems('revealed_wonders'):
             actions.append(f'Reveal wonder, {wonder}')
@@ -495,8 +507,6 @@ class BGAGame:
 
         gone_built_cards = set.union(*[old_player_elems('built_cards', player) for player in BGAGame.ALL_PLAYERS])
 
-        title_text = self.find_title_text()
-
         next_found_first_player = self.found_first_player
 
         if not self.found_first_player:
@@ -517,9 +527,7 @@ class BGAGame:
 
         next_found_start_player = self.found_start_player
 
-        if 'must choose who begins' in title_text:
-            next_found_start_player = False
-        elif not self.found_start_player:
+        if not self.found_start_player and 'must choose who begins' not in title_text:
             curr_player = self.parse_curr_player(title_text)
             if curr_player is None:
                 debug_print(f'Unknown start player')
