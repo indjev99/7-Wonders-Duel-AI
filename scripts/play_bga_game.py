@@ -142,7 +142,7 @@ class BGAParser(HTMLParser):
             if built == '0':
                 self.selected_wonders[owner].add(self.last_object)
             elif built == '1':
-                self.built_wonders.add(self.last_object)
+                self.built_wonders[owner].add(self.last_object)
             else:
                 debug_print(f'Unknown built status: {self.last_object}')
                 return
@@ -406,7 +406,7 @@ class BGAGame:
     def assume_invalid(self) -> bool:
         return self.invalid_cnt >= BGAGame.MAX_INVALID_CNT
 
-    def update_state(self, curr_state: dict[set]) -> int:
+    def update_state(self, curr_state: dict) -> int:
 
         def prev_elems(name: str) -> set:
             if name not in self.state:
@@ -425,6 +425,24 @@ class BGAGame:
             if name not in self.state:
                 return set()
             return prev_elems(name).difference(curr_elems(name))
+
+        def prev_player_elems(name: str, player: str) -> set:
+            if name not in self.state:
+                return set()
+            return self.state[name][player]
+
+        def curr_player_elems(name: str, player: str) -> set:
+            if name not in curr_state:
+                return set()
+            return curr_state[name][player]
+
+        def new_player_elems(name: str, player: str) -> set:
+            return curr_player_elems(name, player).difference(prev_player_elems(name, player))
+
+        def old_player_elems(name: str, player: str) -> set:
+            if name not in self.state:
+                return set()
+            return prev_player_elems(name, player).difference(curr_player_elems(name, player))
 
         def add_new_elems(name: str) -> None:
             elems = new_elems(name)
@@ -464,11 +482,12 @@ class BGAGame:
         actions = []
 
         gone_pyramid_cards = set(map(lambda pos_card: pos_card[1], old_elems('pyramid_poses_cards')))
-        gone_built_cards = old_elems('built_cards')
         gone_discarded_cards = old_elems('discarded_cards')
         gone_game_tokens = old_elems('game_tokens')
         gone_box_tokens = old_elems('box_tokens')
         gone_revealed_wonders = old_elems('revealed_wonders')
+
+        gone_built_cards = set.union(*[old_player_elems('built_cards', player) for player in BGAGame.ALL_PLAYERS])
 
         title_text = self.find_title_text()
 
@@ -476,7 +495,7 @@ class BGAGame:
 
         if not self.found_first_player:
             revealed_wonders = curr_elems('revealed_wonders')
-            selected_wonders = curr_elems('selected_wonders')
+            selected_wonders = set.union(*[curr_player_elems('selected_wonders', player) for player in BGAGame.ALL_PLAYERS])
             curr_player = self.parse_curr_player(title_text)
             if curr_player is None or len(revealed_wonders) + len(selected_wonders) < 4:
                 debug_print(f'Unknown first player')
@@ -519,61 +538,64 @@ class BGAGame:
                 debug_print(f'Unexplained discarded card, {card}')
                 return BGAGame.STATE_INVALID
 
-        for card in new_elems('built_cards'):
-            if card in gone_pyramid_cards:
-                actions.append(f'Build card, {card}')
-                gone_pyramid_cards.remove(card)
-            elif card in gone_discarded_cards:
-                actions.append(f'Build discarded, {card}')
-                gone_discarded_cards.remove(card)
-            elif self.assume_invalid():
-                for pos in range(BGAGame.PYRAMID_SIZE):
-                    actions.append(f'Reveal card, {card}, {pos}')
-                actions.append(f'Build card, {card}')
-            else:
-                debug_print(f'Unexplained built card, {card}')
-                return BGAGame.STATE_INVALID
+        for player in BGAGame.ALL_PLAYERS:
 
-        for wonder in new_elems('built_wonders'):
-            if len(gone_pyramid_cards) > 0:
-                card = gone_pyramid_cards.pop()
-                actions.append(f'Build wonder, {card}, {wonder}')
-            else:
-                debug_print(f'Unexplained built wonder, {wonder}')
-                return BGAGame.STATE_INVALID
+            for card in new_player_elems('built_cards', player):
+                if card in gone_pyramid_cards:
+                    actions.append(f'{player}: Build card, {card}')
+                    gone_pyramid_cards.remove(card)
+                elif card in gone_discarded_cards:
+                    actions.append(f'{player}: Build discarded, {card}')
+                    gone_discarded_cards.remove(card)
+                elif self.assume_invalid():
+                    for pos in range(BGAGame.PYRAMID_SIZE):
+                        actions.append(f'Reveal card, {card}, {pos}')
+                    actions.append(f'{player}: Build card, {card}')
+                else:
+                    debug_print(f'Unexplained built card, {card}')
+                    return BGAGame.STATE_INVALID
 
-        for token in new_elems('built_tokens'):
-            if token in gone_game_tokens:
-                actions.append(f'Build token, {token}')
-                gone_game_tokens.remove(token)
-            elif token in gone_box_tokens:
-                actions.append(f'Build box token, {token}')
-                gone_box_tokens.remove(token)
-            elif len(prev_elems('box_tokens')) == 0 and len(curr_elems('box_tokens')) == 0:
-                possible = sanitize_all(BGAGame.ALL_TOKENS)
-                possible.difference_update(sanitize_all(curr_elems('game_tokens')))
-                possible.difference_update(sanitize_all(curr_elems('built_tokens')))
-                possible.discard(sanitize(token))
-                actions.append(f'Reveal box token, {token}')
-                if len(possible) > 0:
-                    actions.append(f'Reveal box token, {possible.pop()}')
-                if len(possible) > 0:
-                    actions.append(f'Reveal box token, {possible.pop()}')
-                actions.append(f'Build box token, {token}')
-            else:
-                debug_print(f'Unexplained built token, {token}')
-                return BGAGame.STATE_INVALID
+            for wonder in new_player_elems('built_wonders', player):
+                if len(gone_pyramid_cards) > 0:
+                    card = gone_pyramid_cards.pop()
+                    actions.append(f'{player}: Build wonder, {card}, {wonder}')
+                else:
+                    debug_print(f'Unexplained built wonder, {wonder}')
+                    return BGAGame.STATE_INVALID
 
-        for wonder in new_elems('selected_wonders'):
-            if wonder in gone_revealed_wonders:
-                actions.append(f'Select wonder, {wonder}')
-                gone_revealed_wonders.remove(wonder)
-            elif self.assume_invalid() and wonder not in prev_elems('revealed_wonders') and wonder not in curr_elems('revealed_wonders'):
-                actions.append(f'Reveal wonder, {wonder}')
-                actions.append(f'Select wonder, {wonder}')
-            else:
-                debug_print(f'Unexplained selected wonder, {wonder}')
-                return BGAGame.STATE_INVALID
+            for token in new_player_elems('built_tokens', player):
+                if token in gone_game_tokens:
+                    actions.append(f'{player}: Build token, {token}')
+                    gone_game_tokens.remove(token)
+                elif token in gone_box_tokens:
+                    actions.append(f'{player}: Build box token, {token}')
+                    gone_box_tokens.remove(token)
+                elif len(prev_elems('box_tokens')) == 0 and len(curr_elems('box_tokens')) == 0:
+                    possible = sanitize_all(BGAGame.ALL_TOKENS)
+                    possible.difference_update(sanitize_all(curr_elems('game_tokens')))
+                    built_tokens = set.union(*[curr_player_elems('built_tokens', player) for player in BGAGame.ALL_PLAYERS])
+                    possible.difference_update(sanitize_all(built_tokens))
+                    possible.discard(sanitize(token))
+                    actions.append(f'Reveal box token, {token}')
+                    if len(possible) > 0:
+                        actions.append(f'Reveal box token, {possible.pop()}')
+                    if len(possible) > 0:
+                        actions.append(f'Reveal box token, {possible.pop()}')
+                    actions.append(f'{player}: Build box token, {token}')
+                else:
+                    debug_print(f'Unexplained built token, {token}')
+                    return BGAGame.STATE_INVALID
+
+            for wonder in new_player_elems('selected_wonders', player):
+                if wonder in gone_revealed_wonders:
+                    actions.append(f'{player}: Select wonder, {wonder}')
+                    gone_revealed_wonders.remove(wonder)
+                elif self.assume_invalid() and wonder not in prev_elems('revealed_wonders') and wonder not in curr_elems('revealed_wonders'):
+                    actions.append(f'Reveal wonder, {wonder}')
+                    actions.append(f'{player}: Select wonder, {wonder}')
+                else:
+                    debug_print(f'Unexplained selected wonder, {wonder}')
+                    return BGAGame.STATE_INVALID
 
         if not self.assume_invalid():
             if len(gone_pyramid_cards) > 0:

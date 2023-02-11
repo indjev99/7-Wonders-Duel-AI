@@ -13,7 +13,7 @@
 #include "system/game_runner.h"
 #include "system/revealer_uniform.h"
 #include "system_io/agent_writer_wrapper.h"
-#include "system_io/listener_possible_action_reader.h"
+#include "system_io/listener_possible_player_action_reader.h"
 #include "system_io/listener_start_end_notifier.h"
 #include "system_io/agent_reader.h"
 #include "system_io/listener_pretty_printer.h"
@@ -96,11 +96,11 @@ void playExternalGame(Agent* agent1, const std::string& pipeName = "//./pipe/7wd
     PipeReaderWriter pipe(pipeName);
 
     ListenerStartEndNotifier startEndNotifier(pipe);
-    ListenerPossibleActionReader possibleActionReader(pipe);
+    ListenerPossiblePlayerActionReader possibleReader(pipe);
 
-    RevealerReader revealer(possibleActionReader);
-    AgentReader agent1Base(possibleActionReader);
-    AgentReader agent2(possibleActionReader);
+    RevealerReader revealer(possibleReader);
+    AgentReader agent1Base(possibleReader);
+    AgentReader agent2(possibleReader);
 
     AgentWriterWrapper agent1Writer(agent1, pipe);
 
@@ -109,7 +109,7 @@ void playExternalGame(Agent* agent1, const std::string& pipeName = "//./pipe/7wd
 
     AgentIgnorerWrapper agent1Ignorer(&agent1Base, ignored);
 
-    GameRunner runner(&revealer, {&agent1Ignorer, &agent2}, {&logger, &pretty, &startEndNotifier, &possibleActionReader});
+    GameRunner runner(&revealer, {&agent1Ignorer, &agent2}, {&logger, &pretty, &startEndNotifier, &possibleReader});
 
     while (true)
     {
@@ -135,7 +135,7 @@ int main()
     AgentMcUcb mcUcb2;
 
     MCConfig config;
-    config.secsPerMove = 7;
+    config.secsPerMove = 8;
 
     AgentMctsUcb mctsUcb1(config);
     AgentMctsUcb mctsUcb2;
