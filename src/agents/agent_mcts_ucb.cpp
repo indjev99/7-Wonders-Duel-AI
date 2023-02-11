@@ -1,7 +1,5 @@
 #include "agent_mcts_ucb.h"
 
-#include "mc.h"
-
 #include "game/lang.h"
 #include "game/results.h"
 #include "time/timer.h"
@@ -11,18 +9,6 @@
 #include <iostream>
 #include <numeric>
 
-struct MctsNode
-{
-    std::vector<BanditArm> arms;
-
-    int numGames;
-
-    MctsNode(const GameStateFast& game)
-        : arms(makeArms(!game.isTerminal() ? game.getPossibleActions() : std::vector<Action>()))
-        , numGames(0)
-    {}
-};
-
 void debugPrintIdent(int depth)
 {
     for (int i = 0 ; i < depth; i++)
@@ -31,20 +17,20 @@ void debugPrintIdent(int depth)
     }
 }
 
-void debugPrintNode(const std::vector<MctsNode>& nodes, int curr, const GameStateFast& game, int player, int expandLimit = 1000, int depth = 1)
+void AgentMctsUcb::debugPrintNode(int curr, int expandLimit, int depth)
 {
     if (depth == 1) std::cerr << std::endl;
 
     debugPrintIdent(depth);
     std::cerr << "Depth: " << depth << ", ";
 
-    if (game.isTerminal())
+    if (runGame.isTerminal())
     {
-        std::cerr << "Terminal: " << resultToString(game.getResult(player)) << std::endl;
+        std::cerr << "Terminal: " << resultToString(runGame.getResult(player)) << std::endl;
         return;
     }
 
-    std::cerr << "Actor: " << actorToString(game.getCurrActor()) << std::endl;
+    std::cerr << "Actor: " << actorToString(runGame.getCurrActor()) << std::endl;
 
     std::vector<BanditArm> armsSorted = nodes[curr].arms;
 
@@ -56,9 +42,10 @@ void debugPrintNode(const std::vector<MctsNode>& nodes, int curr, const GameStat
         std::cerr << actionToString(arm.action) << " : " << arm.numGames << " with " << (arm.numGames > 0 ? arm.avgReward() : 0) << std::endl;
         if (arm.numGames >= expandLimit && arm.child != CHILD_NONE)
         {
-            GameStateFast runGame(&game);
+            GameStateFast backupGame(&runGame);
             runGame.doAction(arm.action);
-            debugPrintNode(nodes, arm.child, runGame, player, expandLimit, depth + 1);
+            debugPrintNode(arm.child, expandLimit, depth + 1);
+            runGame.clone(&backupGame);
         }
     }
 }
@@ -67,33 +54,34 @@ AgentMctsUcb::AgentMctsUcb(const MCConfig& config)
     : config(config)
 {}
 
-double mctsIteration(std::vector<MctsNode>& nodes, int curr, GameStateFast& game, const MCConfig& config, int player)
+double AgentMctsUcb::mctsIteration(int curr)
 {
-    if (game.isTerminal())
+    if (runGame.isTerminal())
     {        
         nodes[curr].numGames++;
-        return resultSign(game.getResult(player));
+        return resultSign(runGame.getResult(player));
     }
 
-    int currAge = game.getCurrAge();
-    int currActor = game.getCurrActor();
+    if (runGame.isAgeStart())
+    {
+        return simRandGame(runGame, player, config);
+    }
+
+    int currActor = runGame.getCurrActor();
     int chosen = findBestArm(nodes[curr].arms, nodes[curr].numGames, config.explrFactor);
     BanditArm& arm = nodes[curr].arms[chosen];
 
-    game.doAction(arm.action);
-
-    int newAge = game.getCurrAge();
+    runGame.doAction(arm.action);
 
     double reward;
 
-    if(arm.child != CHILD_NONE) reward = mctsIteration(nodes, arm.child, game, config, player);
-    else if (newAge != currAge) reward = simRandGame(game, player, config);
+    if (arm.child != CHILD_NONE) reward = mctsIteration(arm.child);
     else
     {
         arm.child = nodes.size();
-        nodes.push_back(MctsNode(game));
+        nodes.push_back(MctsNode(runGame));
         nodes.back().numGames++;
-        reward = simRandGame(game, player, config);
+        reward = simRandGame(runGame, player, config);
     }
 
     nodes[curr].numGames++;
@@ -107,23 +95,29 @@ Action AgentMctsUcb::getAction()
 
     if (possible.size() == 1) return possible[0];
 
-    std::vector<MctsNode> nodes;
+    nodes.clear();
     nodes.push_back(MctsNode(GameStateFast(game)));
 
     int root = 0;
 
     DO_FOR_SECS(config.secsPerMove)
     {
-        GameStateFast runGame(game);
-        mctsIteration(nodes, root, runGame, config, player);
+        runGame.clone(game);
+        mctsIteration(root);
     }
 
     int chosen = findBestArm(nodes[0].arms);
 
-    std::cerr << "Expected outcome: " << nodes[root].arms[chosen].avgReward() << std::endl << std::endl;
+    if (config.verbosity > 0)
+        std::cerr << "Expected outcome: " << nodes[root].arms[chosen].avgReward() << std::endl << std::endl;
 
-    // GameStateFast runGame(game);
-    // debugPrintNode(nodes, root, runGame, player);
+    std::cerr << nodes[root].numGames << std::endl;
+
+    if (config.verbosity > 1)
+    {
+        runGame.clone(game);
+        debugPrintNode(root);
+    }
 
     return nodes[root].arms[chosen].action;
 }

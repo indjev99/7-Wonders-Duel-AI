@@ -5,10 +5,6 @@
 
 #include <algorithm>
 
-constexpr int SIM_MODE_NORMAL = 0;
-constexpr int SIM_MODE_SCIENCE = 1;
-constexpr int SIM_MODE_MILITARY = 2;
-
 GameSimulator::GameSimulator(GameStateFast& game, const MCConfig& config)
     : game(game)
     , config(config)
@@ -16,9 +12,15 @@ GameSimulator::GameSimulator(GameStateFast& game, const MCConfig& config)
     for (int i = 0; i < NUM_PLAYERS; i++)
     {
         double roll = uniformReal(0, 1);
-        if (roll < config.simModeNormalProb) simModes[i] = SIM_MODE_NORMAL;
-        else if (roll < config.simModeNormalProb + config.simModeScienceProb) simModes[i] = SIM_MODE_SCIENCE;
-        else simModes[i] = SIM_MODE_MILITARY;
+        for (int i = 0; i < NUM_SIM_MODES; i++)
+        {
+            roll -= config.simModeProbs[i];
+            if (roll < 0)
+            {
+                simModes[i] = i;
+                break;
+            } 
+        }
     }
 }
 

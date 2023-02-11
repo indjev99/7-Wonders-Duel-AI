@@ -1,7 +1,13 @@
 #pragma once
 
+#include <array>
+
 constexpr double INF = 1e9;
-constexpr double AVG_BRANCHES = 5.75;
+
+constexpr int NUM_SIM_MODES = 3;
+constexpr int SIM_MODE_NORMAL = 0;
+constexpr int SIM_MODE_SCIENCE = 1;
+constexpr int SIM_MODE_MILITARY = 2;
 
 struct MCConfig
 {
@@ -13,7 +19,7 @@ struct MCConfig
     double simBuildProb = 0.45;
     double simWonderProb = 0.45;
 
-    double simModeNormalProb = 0.5;
-    double simModeScienceProb = 0.5;
-    double simModeMilitaryProb = 0.0;
+    std::array<double, NUM_SIM_MODES> simModeProbs = {0.5, 0.5, 0.0};
+
+    int verbosity = 0;
 };

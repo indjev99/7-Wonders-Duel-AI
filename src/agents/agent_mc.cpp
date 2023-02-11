@@ -6,6 +6,8 @@
 #include "time/timer.h"
 #include "utils/random.h"
 
+#include <iostream>
+
 AgentMc::AgentMc(const MCConfig& config)
     : config(config)
 {}
@@ -43,6 +45,9 @@ Action AgentMc::getAction()
             bestAction = action;
         }
     }
+
+    if (config.verbosity)
+        std::cerr << "Expected outcome: " << bestScore << std::endl << std::endl;
 
     return bestAction;
 }

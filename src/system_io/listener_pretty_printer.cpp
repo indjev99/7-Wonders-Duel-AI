@@ -14,38 +14,43 @@ void ListenerPrettyPrinter::printSummary()
 
 void ListenerPrettyPrinter::notifyStart()
 {
-    currAge = AGE_SETUP;
-
     std::cout << std::endl;
     std::cout << "Starting new game" << std::endl;
+    std::cout << std::endl;
+
+    printSummary();
     std::cout << std::endl;
 }
 
 void ListenerPrettyPrinter::notifyActionPre(const Action& action)
 {
-    if (game->getCurrAge() != currAge)
+    if (game->isAgeStart())
     {
-        currAge = game->getCurrAge();
-
-        std::cout << "Starting: " << ageToString(currAge) << std::endl;
+        std::cout << "Starting: " << ageToString(game->getCurrAge()) << std::endl;
         std::cout << std::endl;
     }
+
+    std::cout << actorToString(game->getCurrActor()) << ": " << actionToString(action) << std::endl;
+    std::cout << std::endl;
 
     if (game->getCurrActor() != ACTOR_GAME && game->getCurrAge() >= 0)
     {
         printSummary();
         std::cout << std::endl;
     }
+}
 
-    std::cout << actorToString(game->getCurrActor()) << ": " << actionToString(action) << std::endl;
-    std::cout << std::endl;
+void ListenerPrettyPrinter::notifyActionPost(const Action& action)
+{
+    if (action.isPlayerMove() && action.type != ACT_MOVE_SELECT_WONDER)
+    {
+        printSummary();
+        std::cout << std::endl;
+    }
 }
 
 void ListenerPrettyPrinter::notifyEnd()
 {
-    printSummary();
-    std::cout << std::endl;
-
     int res = game->getResult(0);
 
     if (res > 0) std::cout << actorToString(0) << ": " << resultToString(res) << std::endl;

@@ -5,6 +5,7 @@
 #include "time/timer.h"
 
 #include <cmath>
+#include <iostream>
 #include <numeric>
 
 AgentMcUcb::AgentMcUcb(const MCConfig& config)
@@ -31,5 +32,10 @@ Action AgentMcUcb::getAction()
         numGames++;
     }
 
-    return arms[findBestArm(arms)].action;
+    int chosen = findBestArm(arms);
+
+    if (config.verbosity > 0)
+        std::cerr << "Expected outcome: " << arms[chosen].avgReward() << std::endl << std::endl;
+
+    return arms[chosen].action;
 }

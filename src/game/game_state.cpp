@@ -759,6 +759,12 @@ int GameStateT<CheckValid>::getFirstPlayer() const
 }
 
 template <bool CheckValid>
+bool GameStateT<CheckValid>::isAgeStart() const
+{
+    return !isTerminal() && getExpectedAction() == Action(ACT_REVEAL_PYRAMID_CARD, ACT_ARG_NONE, 0);
+}
+
+template <bool CheckValid>
 int GameStateT<CheckValid>::getCurrAge() const
 {
     return currAge;

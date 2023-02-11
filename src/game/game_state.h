@@ -54,6 +54,7 @@ struct GameStateT
     int getResult(int player) const;
 
     int getFirstPlayer() const;
+    bool isAgeStart() const;
     int getCurrAge() const;
     int getCurrActor() const;
     Action getExpectedAction() const;
@@ -155,4 +156,4 @@ private:
 };
 
 using GameState = GameStateT<true>;
-using GameStateFast = GameStateT<true>;
+using GameStateFast = GameStateT<false>;
