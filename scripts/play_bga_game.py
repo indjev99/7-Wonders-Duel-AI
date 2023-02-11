@@ -328,12 +328,13 @@ class BGAGame:
             self.driver.find_element(By.ID, 'pagemaintitletext').click()
         except Exception:
             pass
-        debug_print(f'Trying to select: {finder}')
+        debug_print(f'Finding element: {finder}')
         element = self.driver.find_element(*finder)
-        debug_print(f'Got element: {finder}')
         if random.random() < 0.5:
+            debug_print(f'JS clicking element: {finder}')
             self.driver.execute_script("if (window.getComputedStyle(arguments[0]).display !== 'none') { arguments[0].click(); }", element)
         else:
+            debug_print(f'Selenium clicking element: {finder}')
             element.click()
         debug_print(f'Done trying to click: {finder}')
 
@@ -342,6 +343,9 @@ class BGAGame:
 
     def select_by_name(self, name: str) -> None:
         self.select_by_finder(self.parser.object_finders[self.parser.name_objects[name]])
+
+    def play_game_btn(self) -> None:
+        self.select_by_id('Xutton_play_1266')
 
     def create_game_btn(self) -> None:
         self.select_by_id('joingame_create_1266')
@@ -354,6 +358,15 @@ class BGAGame:
 
     def accept_game_btn(self) -> None:
         self.select_by_id('ags_start_game_accept')
+
+    def skip_player_btn(self) -> None:
+        self.select_by_id('skip_player_turn')
+
+    def expel_player_btn(self) -> None:
+        self.select_by_id('fireplayer_confirm')
+
+    def normal_quit_btn(self) -> None:
+        self.select_by_id('neutralized_quit')
 
     def build_card(self, name: str) -> None:
         self.select_by_name(name)
@@ -375,9 +388,14 @@ class BGAGame:
         self.select_by_id('buttonPlayerRight')
 
     def start_game(self) -> None:
+        debug_print('Starting game')
         self.reset_state()
         self.open_bga_page()
         while True:
+            try:
+                self.play_game_btn()
+            except Exception:
+                pass
             try:
                 self.create_game_btn()
             except Exception:
@@ -749,6 +767,19 @@ class BGAGame:
     def play_game(self) -> None:
         while True:
             try:
+                try:
+                    self.skip_player_btn()
+                except Exception:
+                    pass
+                try:
+                    self.expel_player_btn()
+                except Exception:
+                    pass
+                try:
+                    self.normal_quit_btn()
+                    self.pipe.write('Abort game')
+                except Exception:
+                    pass
                 res = self.check_update_state()
                 if res == BGAGame.STATE_INVALID:
                     continue
