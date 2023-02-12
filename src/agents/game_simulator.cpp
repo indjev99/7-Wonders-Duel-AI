@@ -18,6 +18,11 @@ GameSimulator::GameSimulator(GameStateFast& game, const MCConfig& config)
     }
 }
 
+int GameSimulator::randDeckObject(int deck) const
+{
+    return game.getDeckElem(deck, uniformInt(0, game.getDeckSize(deck)));
+}
+
 int GameSimulator::modeToken(int deck) const
 {
     int currPlayer = game.getCurrActor();
@@ -74,11 +79,6 @@ int GameSimulator::modeWonder() const
     }
 
     return OBJ_NONE;
-}
-
-int GameSimulator::randDeckObject(int deck) const
-{
-    return game.getDeckElem(deck, uniformInt(0, game.getDeckSize(deck)));
 }
 
 Action GameSimulator::fromDeckAction(const Action& expected, int deck) const
@@ -147,7 +147,7 @@ Action GameSimulator::playPyramidCardAction() const
     {
         action.arg1 = randDeckObject(DECK_PYRAMID_PLAYABLE);
 
-        double roll = uniformReal(0, 1 - (canBeWonder ? 0 : config.simWonderProb));
+        float roll = uniformReal(0, 1 - (canBeWonder ? 0 : config.simWonderProb));
         if (roll < config.simDiscardProb)
         {
             action.arg2 = ACT_ARG2_DISCARD;

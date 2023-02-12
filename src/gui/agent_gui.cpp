@@ -1,5 +1,7 @@
 #include "agent_gui.h"
 
+#include <algorithm>
+
 AgentGUI::AgentGUI(ListenerGUI& gui)
     : gui(gui)
 {}

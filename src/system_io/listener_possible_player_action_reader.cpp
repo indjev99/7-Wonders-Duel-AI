@@ -3,6 +3,8 @@
 #include "game/game_exception.h"
 #include "game/lang.h"
 
+#include <algorithm>
+
 constexpr int ACTOR_UNKNOWN = -10;
 const std::string ACTOR_ACTION_SEP = ":";
 

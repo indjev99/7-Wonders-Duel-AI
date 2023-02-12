@@ -5,6 +5,8 @@
 #include "resources.h"
 #include "sciences.h"
 
+#include "utils/defines.h"
+
 #include <array>
 
 struct PlayerState
@@ -36,14 +38,42 @@ struct PlayerState
     PlayerState();
 
     void buildObject(const Object& object);
+    void destroyObject(const Object& object);
     void payForAndBuildObject(const Object& object);
     void discardCard();
-    void destroyObject(const Object& object);
 
-    int getCost(const Object& object) const;
-    bool canPayFor(const Object& object) const;
+    FORCE_INLINE int getCost(const Object& object) const;
+    FORCE_INLINE bool canPayFor(const Object& object) const;
 
-    int militaryLead() const;
+    FORCE_INLINE int militaryLead() const;
     int getScore(int onlyType = OT_NONE) const;
     int getResult(bool terminal) const;
+
+private:
+
+    mutable int cachedCoinCostObj;
+    mutable int cachedCoinCost;
 };
+
+
+int PlayerState::getCost(const Object& object) const
+{
+    int calculateCoinCost(const PlayerState& state, const Object& object);
+
+    if (object.id != cachedCoinCostObj)
+    {
+        cachedCoinCostObj = object.id;
+        cachedCoinCost = calculateCoinCost(*this, object);
+    }
+    return cachedCoinCost;
+}
+
+bool PlayerState::canPayFor(const Object& object) const
+{
+    return getCost(object) <= coins;
+}
+
+int PlayerState::militaryLead() const
+{
+    return military - otherPlayer->military;
+}

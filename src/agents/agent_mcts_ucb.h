@@ -29,7 +29,7 @@ private:
         {}
     };
 
-    double mctsIteration(int curr);
+    float mctsIteration(int curr);
 
     void debugPrintNode(int curr, int expandLimit = 1000, int depth = 1);
 

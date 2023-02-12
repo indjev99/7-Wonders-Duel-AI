@@ -1,6 +1,5 @@
 #include "player_state.h"
 
-#include "coin_cost_calculator.h"
 #include "constants.h"
 #include "game_exception.h"
 #include "results.h"
@@ -14,6 +13,7 @@ PlayerState::PlayerState()
 
     coins = INITIAL_COINS;
     shouldDestroyType = OBJ_NONE;
+    cachedCoinCostObj = OBJ_NONE;
 }
 
 void PlayerState::buildObject(const Object& object)
@@ -32,25 +32,8 @@ void PlayerState::buildObject(const Object& object)
     int mLead = militaryLead();
     if (mLead >= MILITARY_THRESHOLD_2 && !objectsBuilt[O_LOOTING_LOOTING_1]) buildObject(objects[O_LOOTING_LOOTING_1]);
     if (mLead >= MILITARY_THRESHOLD_3 && !objectsBuilt[O_LOOTING_LOOTING_2]) buildObject(objects[O_LOOTING_LOOTING_2]);
-}
 
-void PlayerState::payForAndBuildObject(const Object& object)
-{
-    int resourceCoinCost = calculateResourceCoinCost(*this, object);
-    int coinCost = object.cost.coins + resourceCoinCost;
-
-    if (coinCost > coins)
-        throw GameException("Not enough coins.", {{"objectId", object.id}, {"coinCost", coinCost}, {"coins", coins}});
-
-    coins -= coinCost;
-    if (otherPlayer->objectsBuilt[O_TOKEN_ECONOMY]) otherPlayer->coins += std::max(0, resourceCoinCost);
-
-    buildObject(object);
-}
-
-void PlayerState::discardCard()
-{
-    coins += BASE_DISCARD_COINS + typeCounts[OT_YELLOW];
+    cachedCoinCostObj = OBJ_NONE;
 }
 
 void PlayerState::destroyObject(const Object& object)
@@ -69,21 +52,26 @@ void PlayerState::destroyObject(const Object& object)
     int mLead = militaryLead();
     if (mLead <= - MILITARY_THRESHOLD_2 && !otherPlayer->objectsBuilt[O_LOOTING_LOOTING_1]) otherPlayer->buildObject(objects[O_LOOTING_LOOTING_1]);
     if (mLead <= - MILITARY_THRESHOLD_3 && !otherPlayer->objectsBuilt[O_LOOTING_LOOTING_2]) otherPlayer->buildObject(objects[O_LOOTING_LOOTING_2]);
+
+    cachedCoinCostObj = OBJ_NONE;
 }
 
-int PlayerState::getCost(const Object& object) const
+void PlayerState::payForAndBuildObject(const Object& object)
 {
-    return calculateResourceCoinCost(*this, object) + object.cost.coins;
+    int coinCost = getCost(object);
+
+    if (coinCost > coins)
+        throw GameException("Not enough coins.", {{"objectId", object.id}, {"coinCost", coinCost}, {"coins", coins}});
+
+    coins -= coinCost;
+    if (otherPlayer->objectsBuilt[O_TOKEN_ECONOMY]) otherPlayer->coins += std::max(0, coinCost - object.cost.coins);
+
+    buildObject(object);
 }
 
-bool PlayerState::canPayFor(const Object& object) const
+void PlayerState::discardCard()
 {
-    return getCost(object) <= coins;
-}
-
-int PlayerState::militaryLead() const
-{
-    return military - otherPlayer->military;
+    coins += BASE_DISCARD_COINS + typeCounts[OT_YELLOW];
 }
 
 int PlayerState::getScore(int onlyType) const

@@ -1,6 +1,9 @@
+#pragma once
+
 #include "mc_config.h"
 
 #include "game/game_state.h"
+#include "utils/defines.h"
 
 struct GameSimulator
 {
@@ -10,13 +13,13 @@ struct GameSimulator
 
 private:
 
-    int randDeckObject(int deck) const;
+    FORCE_INLINE int randDeckObject(int deck) const;
 
-    int modeCard(int deck, bool needToPay) const;
-    int modeToken(int deck) const;
-    int modeWonder() const;
+    FORCE_INLINE int modeCard(int deck, bool needToPay) const;
+    FORCE_INLINE int modeToken(int deck) const;
+    FORCE_INLINE int modeWonder() const;
 
-    Action fromDeckAction(const Action& expected, int deck) const;
+    FORCE_INLINE Action fromDeckAction(const Action& expected, int deck) const;
     Action playPyramidCardAction() const;
     Action destroyObjectAction(int type) const;
     Action chooseStartPlayerAction() const;

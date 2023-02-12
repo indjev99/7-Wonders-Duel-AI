@@ -3,4 +3,4 @@
 #include "object.h"
 #include "player_state.h"
 
-int calculateResourceCoinCost(const PlayerState& state, const Object& object);
+int calculateCoinCost(const PlayerState& state, const Object& object);

@@ -1,18 +1,33 @@
 #pragma once
 
+#include "defines.h"
+
 #include <algorithm>
 #include <random>
 
 extern std::mt19937 generator;
 
-void setSeed(int seed);
-int uniformInt(int from, int to);
-double uniformReal(double from, double to);
+FORCE_INLINE void setSeed(int seed)
+{
+    generator.seed(seed);
+}
+
+FORCE_INLINE int uniformInt(int from, int to)
+{
+    std::uniform_int_distribution<int> distribution(from, to - 1);
+    return distribution(generator);
+}
+
+FORCE_INLINE float uniformReal(float from, float to)
+{
+    std::uniform_real_distribution<float> distribution(from, to);
+    return distribution(generator);
+}
 
 template <class T>
-double sampleIntDistr(const T& probs)
+FORCE_INLINE float sampleIntDistr(const T& probs)
 {
-    double roll = uniformReal(0, 1);
+    float roll = uniformReal(0, 1);
     for (int i = 0; i < (int) probs.size(); i++)
     {
         roll -= probs[i];
@@ -22,13 +37,13 @@ double sampleIntDistr(const T& probs)
 }
 
 template <class T>
-const auto& uniformElem(const T& seq)
+FORCE_INLINE const auto& uniformElem(const T& seq)
 {
     return seq[uniformInt(0, seq.size())];
 }
 
 template <class T>
-void randShuffle(T& seq)
+FORCE_INLINE void randShuffle(T& seq)
 {
     return std::shuffle(seq.begin(), seq.end(), generator);
 }

@@ -55,7 +55,7 @@ AgentMctsUcb::AgentMctsUcb(const MCConfig& config)
     : config(config)
 {}
 
-double AgentMctsUcb::mctsIteration(int curr)
+float AgentMctsUcb::mctsIteration(int curr)
 {
     if (runGame.isTerminal())
     {        
@@ -69,12 +69,12 @@ double AgentMctsUcb::mctsIteration(int curr)
     }
 
     int currActor = runGame.getCurrActor();
-    int chosen = findBestArm(nodes[curr].arms, nodes[curr].numGames, config.explrFactor);
+    int chosen = currActor != ACTOR_GAME ? findBestArm(nodes[curr].arms, nodes[curr].numGames, config.explrFactor) : findLeastGamesArm(nodes[curr].arms);
     BanditArm<Action>& arm = nodes[curr].arms[chosen];
 
     runGame.doAction(arm.action);
 
-    double reward;
+    float reward;
 
     if (arm.child != CHILD_NONE) reward = mctsIteration(arm.child);
     else
@@ -128,7 +128,7 @@ Action AgentMctsUcb::getAction()
         }
 
         runGame.clone(game);
-        double reward = mctsIteration(root);
+        float reward = mctsIteration(root);
 
         if (config.simModesUcb)
         {

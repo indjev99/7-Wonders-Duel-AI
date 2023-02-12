@@ -18,13 +18,13 @@ Action AgentMc::getAction()
     if (possible.size() == 1) return possible[0];
 
     Action bestAction;
-    double bestScore = -INF;
+    float bestScore = -INF;
 
     for (int i = 0; i < (int) possible.size(); i++)
     {
         const Action& action = possible[i];
 
-        double score = 0;
+        float score = 0;
         int numGames = 0;
 
         DO_FOR_SECS(config.secsPerMove / possible.size())

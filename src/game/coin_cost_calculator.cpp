@@ -23,12 +23,12 @@ void chooseMostExpensive(std::array<int, NUM_RESOURCES>& remaining, const std::a
     }
 }
 
-int calculateResourceCoinCost(const PlayerState& state, const Object& object)
+int calculateCoinCost(const PlayerState& state, const Object& object)
 {
     if (object.cost.chain != OBJ_NONE && state.objectsBuilt[object.cost.chain])
     {
-        if (state.objectsBuilt[O_TOKEN_URBANISM]) return - (URBANISM_COINS_PER_CHAIN + object.cost.coins);
-        else return - object.cost.coins;
+        if (state.objectsBuilt[O_TOKEN_URBANISM]) return - URBANISM_COINS_PER_CHAIN;
+        else return 0;
     }
 
     std::array<int, NUM_RESOURCES> costs;
@@ -61,7 +61,7 @@ int calculateResourceCoinCost(const PlayerState& state, const Object& object)
         chooseMostExpensive(remaining, costs, R_ALL_LIST);
     }
 
-    int cost = 0;
+    int cost = object.cost.coins;
     for (int res : R_ALL_LIST)
     {
         cost += remaining[res] * costs[res];

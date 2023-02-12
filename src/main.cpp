@@ -56,7 +56,7 @@ void benchmark(Agent* agent1, Agent* agent2)
         {
             std::cout << " " << std::setprecision(2) << std::fixed << (double) resCnts[res] / cnt;
         }
-        std::cout << " )" << std::endl;
+        std::cout << " )  --  " << totalNumSims / cnt << std::endl;
     }
 }
 
@@ -169,7 +169,7 @@ int main()
 
     benchmark(&mctsUcb1, &mctsUcb2);
 
-    // replayGame("IMPORTANT.log", &mctsUcb1);
+    // replayGame("badlog.log", nullptr, &mctsUcb1);
 
     return 0;
 }

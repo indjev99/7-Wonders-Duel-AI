@@ -1,55 +1,8 @@
 #include "game_state.h"
 
-#include "constants.h"
-#include "game_exception.h"
-#include "objects.h"
-#include "object_decks.h"
-#include "object_location.h"
-#include "player_state.h"
-#include "pyramid_slot.h"
 #include "results.h"
 
 #include <algorithm>
-
-#define NO_PLAYER -100
-
-template <bool CheckValid>
-void GameStateT<CheckValid>::verifyPlayer(int player) const
-{
-    if constexpr (!CheckValid) return;
-
-    if (player < 0 || player >= NUM_PLAYERS)
-        throw GameException("Invalid player.", {{"player", player}});
-}
-
-template <bool CheckValid>
-void GameStateT<CheckValid>::verifyPos(int pos, int deck) const
-{
-    if constexpr (!CheckValid) return;
-
-    int start = deck == DECK_PYRAMID ? 0 : deckStarts[deck];
-    int end = deck == DECK_PYRAMID ? PYRAMID_SIZE : deckEnds[deck];
-
-    if (pos < start || pos >= end)
-        throw GameException("Position not in deck.", {{"pos", pos}, {"deck", deck}, {"deckStart", start}, {"deckEnd", end}});
-}
-
-template <bool CheckValid>
-void GameStateT<CheckValid>::verifyObject(int id) const
-{
-    if constexpr (!CheckValid) return;
-
-    if (id < 0 || id >= NUM_OBJECTS)
-        throw GameException("Invalid object id.", {{"objectId", id}});
-}
-
-template <bool CheckValid>
-int GameStateT<CheckValid>::getOpponent(int player) const
-{
-    if constexpr (CheckValid) verifyPlayer(player);
-
-    return 1 - player;
-}
 
 template <bool CheckValid>
 int GameStateT<CheckValid>::otherPlayer() const
@@ -662,9 +615,9 @@ GameStateT<CheckValid>::GameStateT()
 {
     linkPlayers();
 
-    firstPlayer = NO_PLAYER;
+    firstPlayer = ACTOR_NONE;
     currAge = AGE_SETUP;
-    currPlayer = NO_PLAYER;
+    currPlayer = ACTOR_NONE;
     wondersBuilt = 0;
     correctPossibleActions = false;
 
@@ -729,197 +682,6 @@ void GameStateT<CheckValid>::linkPlayers()
 }
 
 template <bool CheckValid>
-bool GameStateT<CheckValid>::isTerminal() const
-{
-    return queuedActions.empty();
-}
-
-template <bool CheckValid>
-int GameStateT<CheckValid>::getResult(int player) const
-{
-    if constexpr (CheckValid)
-    {
-        verifyPlayer(player);
-
-        if (!isTerminal())
-            throw GameException("Game has not ended yet.", {});
-    }
-
-    return playerStates[player].getResult(true);
-}
-
-template <bool CheckValid>
-int GameStateT<CheckValid>::getFirstPlayer() const
-{
-    if constexpr (CheckValid)
-    {
-        if (firstPlayer == NO_PLAYER)
-            throw GameException("First player has not been set yet.", {});
-    }
-
-    return firstPlayer;
-}
-
-template <bool CheckValid>
-bool GameStateT<CheckValid>::isAgeStart() const
-{
-    return !isTerminal() && getExpectedAction() == Action(ACT_REVEAL_PYRAMID_CARD, ACT_ARG_NONE, 0);
-}
-
-template <bool CheckValid>
-int GameStateT<CheckValid>::getCurrAge() const
-{
-    return currAge;
-}
-
-template <bool CheckValid>
-int GameStateT<CheckValid>::getCurrActor() const
-{
-    if (getExpectedAction().isPlayerMove()) return currPlayer;
-    else return ACTOR_GAME;
-}
-
-template <bool CheckValid>
-Action GameStateT<CheckValid>::getExpectedAction() const
-{
-    if constexpr (CheckValid)
-    {
-        if (isTerminal())
-            throw GameException("Game has already ended.", {});
-    }
-
-    return queuedActions.front();
-}
-
-template <bool CheckValid>
-const std::vector<Action>& GameStateT<CheckValid>::getPossibleActions() const
-{
-    GameStateT<CheckValid>& thisMut = const_cast<GameStateT<CheckValid>&>(*this);
-
-    if (!thisMut.correctPossibleActions)
-    {
-        getPossibleActions(thisMut.possibleActions);
-        thisMut.correctPossibleActions = true;
-    }
-
-    return thisMut.possibleActions;
-}
-
-template <bool CheckValid>
-void GameStateT<CheckValid>::getPossibleActions(std::vector<Action>& possible) const
-{
-    possibleActionsUnchecked(possible);
-
-    if constexpr (CheckValid)
-    {
-        if (possible.empty())
-            throw GameException("No possible actions.", {{"expectedType", getExpectedAction().type}});
-    }
-}
-
-template <bool CheckValid>
-int GameStateT<CheckValid>::getCoins(int player) const
-{
-    return playerStates[player].coins;
-}
-
-template <bool CheckValid>
-int GameStateT<CheckValid>::getScore(int player, int onlyType) const
-{
-    if constexpr (CheckValid) verifyPlayer(player);
-
-    return playerStates[player].getScore(onlyType);
-}
-
-template <bool CheckValid>
-int GameStateT<CheckValid>::getDistinctSciences(int player) const
-{
-    if constexpr (CheckValid) verifyPlayer(player);
-
-    return playerStates[player].distincSciences;
-}
-
-template <bool CheckValid>
-int GameStateT<CheckValid>::getMilitary(int player) const
-{
-    if constexpr (CheckValid) verifyPlayer(player);
-
-    return playerStates[player].military;
-}
-
-template <bool CheckValid>
-int GameStateT<CheckValid>::getMilitaryLead(int player) const
-{
-    if constexpr (CheckValid) verifyPlayer(player);
-
-    return playerStates[player].militaryLead();
-}
-
-template <bool CheckValid>
-int GameStateT<CheckValid>::getWondersBuilt() const
-{
-    return wondersBuilt;
-}
-
-template <bool CheckValid>
-int GameStateT<CheckValid>::getDeckSize(int deck) const
-{
-    return deckEnds[deck] - deckStarts[deck];
-}
-
-template <bool CheckValid>
-bool GameStateT<CheckValid>::isDeckEmpty(int deck) const
-{
-    return getDeckSize(deck) <= 0;
-}
-
-template <bool CheckValid>
-const PyramidSlot& GameStateT<CheckValid>::getPyramidSlot(int pos) const
-{
-    if constexpr (CheckValid) verifyPos(pos, DECK_PYRAMID);
-
-    return cardPyramid[pos];
-}
-
-template <bool CheckValid>
-const PlayerState& GameStateT<CheckValid>::getPlayerState(int player) const
-{
-    if constexpr (CheckValid) verifyPlayer(player);
-
-    return playerStates[player];
-}
-
-template <bool CheckValid>
-int GameStateT<CheckValid>::getDeckElem(int deck, int pos) const
-{
-    pos += deckStarts[deck];
-
-    if constexpr (CheckValid) verifyPos(pos, deck);
-
-    return deckObjects[pos];
-}
-
-template <bool CheckValid>
-int GameStateT<CheckValid>::getObjectDeck(int id) const
-{
-    if constexpr (CheckValid) verifyObject(id);
-
-    return objectLocations[id].deck;
-}
-
-template <bool CheckValid>
-bool GameStateT<CheckValid>::isPlayableCard(int id) const
-{
-    if constexpr (CheckValid) verifyObject(id);
-
-    const ObjectLocation& loc = objectLocations[id];
-
-    if (loc.deck != DECK_PYRAMID) return false;
-    if (cardPyramid[loc.pos].coveredBy > 0) return false;
-    return true;
-}
-
-template <bool CheckValid>
 void GameStateT<CheckValid>::possibleFromDeckActions(std::vector<Action>& possible, const Action& expected, int deck) const
 {
     possible.reserve(getDeckSize(deck));
@@ -961,8 +723,6 @@ void GameStateT<CheckValid>::possibleDestroyObjectActions(std::vector<Action>& p
 template <bool CheckValid>
 void GameStateT<CheckValid>::possiblePlayPyramidCardActions(std::vector<Action>& possible) const
 {
-    std::vector<int>& possibleWonders = const_cast<std::vector<int>&>(this->possibleWonders);
-
     const PlayerState& state = playerStates[currPlayer];
 
     possibleWonders.clear();
