@@ -15,3 +15,8 @@ bool operator==(const Action& left, const Action& right)
 {
     return left.type == right.type && left.arg1 == right.arg1 && left.arg2 == right.arg2;
 }
+
+bool operator!=(const Action& left, const Action& right)
+{
+    return !(left == right);
+}
