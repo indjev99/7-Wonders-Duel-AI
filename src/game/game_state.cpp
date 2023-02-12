@@ -709,6 +709,7 @@ GameStateT<CheckValid>::GameStateT(const GameStateT<OtherCheckValid>* other)
 template <bool CheckValid>
 void GameStateT<CheckValid>::reset()
 {
+    this->~GameStateT();
     new (this) GameStateT<CheckValid>();
 }
 
@@ -716,6 +717,7 @@ template <bool CheckValid>
 template <bool OtherCheckValid>
 void GameStateT<CheckValid>::clone(const GameStateT<OtherCheckValid>* other)
 {
+    this->~GameStateT();
     new (this) GameStateT<CheckValid>(other);
 }
 
