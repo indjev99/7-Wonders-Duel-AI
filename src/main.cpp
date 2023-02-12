@@ -144,30 +144,22 @@ int main()
 
     setSeed(seed);
 
-    AgentUniform u1;
-    AgentUniform u2;
-
-    AgentMc mc1;
-    AgentMc mc2;
-
-    AgentMcUcb mcUcb1;
-    AgentMcUcb mcUcb2;
-
     MCConfig config1;
-    config1.secsPerMove = 0.02;
-    config1.testMode = true;
+    config1.secsPerMove = 10;
+    config1.verbosity = 1;
 
     MCConfig config2;
-    config2.secsPerMove = 0.02;
+    config2.secsPerMove = 1;
+    config1.verbosity = 1;
 
     AgentMctsUcb mctsUcb1(config1);
     AgentMctsUcb mctsUcb2(config2);
 
     // playGame(nullptr, &mctsUcb2);
 
-    // playExternalGame(&mctsUcb1);
+    playExternalGame(&mctsUcb1);
 
-    benchmark(&mctsUcb1, &mctsUcb2);
+    // benchmark(&mctsUcb1, &mctsUcb2);
 
     // replayGame("badlog.log", nullptr, &mctsUcb1);
 

@@ -746,8 +746,6 @@ class BGAGame:
 
     def check_update_state(self) -> int:
         source = self.driver.page_source
-        if random.random() < 0.1:
-            debug_print(f'Source: {source}')
         old_state = copy.deepcopy(self.state)
         self.parser.start_parse()
         self.parser.feed(source)
@@ -759,12 +757,10 @@ class BGAGame:
             return self.STATE_ABORTED
         res = self.update_state(curr_state)
         if res == BGAGame.STATE_INVALID:
-            debug_print(f'Source: {source}')
             debug_print(f'Old state: {old_state}')
             debug_print(f'Bad state: {curr_state}')
             self.invalid_cnt += 1
         elif res == BGAGame.STATE_CHANGED:
-            debug_print(f'Source: {source}')
             debug_print(f'Old state: {old_state}')
             debug_print(f'New state: {curr_state}')
             self.invalid_cnt = 0
