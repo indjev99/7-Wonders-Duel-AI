@@ -295,7 +295,7 @@ class BGAGame:
     STATE_INVALID = -1
     STATE_ABORTED = -20
 
-    MAX_INVALID_CNT = 20
+    MAX_INVALID_CNT = 40
 
     def __init__(self, pipe : PipeReaderWriter):
         self.pipe = pipe
@@ -393,10 +393,11 @@ class BGAGame:
         self.reset_state()
         self.open_bga_page()
         while True:
-            try:
-                self.play_game_btn()
-            except Exception:
-                pass
+            if random.random() < 0.33:
+                try:
+                    self.play_game_btn()
+                except Exception:
+                    pass
             try:
                 self.create_game_btn()
             except Exception:
@@ -431,17 +432,17 @@ class BGAGame:
     def assume_invalid(self) -> bool:
         return self.invalid_cnt >= BGAGame.MAX_INVALID_CNT
 
-    def update_state(self, curr_state: dict) -> int:
+    def update_state(self, curr_state: dict[set]) -> int:
 
         def prev_elems(name: str) -> set:
             if name not in self.state:
                 return set()
-            return self.state[name]
+            return copy.deepcopy(self.state[name])
 
         def curr_elems(name: str) -> set:
             if name not in curr_state:
                 return set()
-            return curr_state[name]
+            return copy.deepcopy(curr_state[name])
 
         def new_elems(name: str) -> set:
             return curr_elems(name).difference(prev_elems(name))
@@ -454,12 +455,12 @@ class BGAGame:
         def prev_player_elems(name: str, player: str) -> set:
             if name not in self.state:
                 return set()
-            return self.state[name][player]
+            return copy.deepcopy(self.state[name][player])
 
         def curr_player_elems(name: str, player: str) -> set:
             if name not in curr_state:
                 return set()
-            return curr_state[name][player]
+            return copy.deepcopy(curr_state[name][player])
 
         def new_player_elems(name: str, player: str) -> set:
             return curr_player_elems(name, player).difference(prev_player_elems(name, player))
@@ -518,6 +519,7 @@ class BGAGame:
 
         actions = []
 
+        curr_pyramid_cards = set(map(lambda pos_card: pos_card[1], curr_elems('pyramid_poses_cards')))
         gone_pyramid_cards = set(map(lambda pos_card: pos_card[1], old_elems('pyramid_poses_cards')))
         gone_discarded_cards = old_elems('discarded_cards')
         gone_game_tokens = old_elems('game_tokens')
@@ -564,8 +566,13 @@ class BGAGame:
                 actions.append(f'Destroy {card_type}, {card}')
                 gone_built_cards.remove(card)
             elif self.assume_invalid():
-                for pos in range(BGAGame.PYRAMID_SIZE):
-                    actions.append(f'Reveal card, {card}, {pos}')
+                if card in curr_pyramid_cards:
+                    curr_pyramid_cards.discard(card)
+                    for pos in range(BGAGame.PYRAMID_SIZE):
+                        curr_state['pyramid_poses_cards'].discard((pos, card))
+                else:
+                    for pos in range(BGAGame.PYRAMID_SIZE):
+                        actions.append(f'Reveal card, {card}, {pos}')
                 actions.append(f'Discard card, {card}')
             else:
                 debug_print(f'Unexplained discarded card, {card}')
@@ -581,9 +588,18 @@ class BGAGame:
                     actions.append(f'{player}: Build discarded, {card}')
                     gone_discarded_cards.remove(card)
                 elif self.assume_invalid():
-                    for pos in range(BGAGame.PYRAMID_SIZE):
-                        actions.append(f'Reveal card, {card}, {pos}')
-                    actions.append(f'{player}: Build card, {card}')
+                    if card in curr_elems('discarded_cards'):
+                        curr_state['discarded_cards'].discard(card)
+                        actions.append(f'{player}: Build discarded, {card}')
+                    else:
+                        if card in curr_pyramid_cards:
+                            curr_pyramid_cards.discard(card)
+                            for pos in range(BGAGame.PYRAMID_SIZE):
+                                curr_state['pyramid_poses_cards'].discard((pos, card))
+                        else:
+                            for pos in range(BGAGame.PYRAMID_SIZE):
+                                actions.append(f'Reveal card, {card}, {pos}')
+                        actions.append(f'{player}: Build card, {card}')
                 else:
                     debug_print(f'Unexplained built card, {card}')
                     return BGAGame.STATE_INVALID
