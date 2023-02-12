@@ -154,16 +154,16 @@ int main()
     AgentMcUcb mcUcb2;
 
     MCConfig config1;
-    config1.secsPerMove = 0.01;
+    config1.secsPerMove = 0.02;
     config1.testMode = true;
 
     MCConfig config2;
-    config2.secsPerMove = 0.01;
+    config2.secsPerMove = 0.02;
 
     AgentMctsUcb mctsUcb1(config1);
     AgentMctsUcb mctsUcb2(config2);
 
-    // playGame(nullptr, &mctsUcb1);
+    // playGame(nullptr, &mctsUcb2);
 
     // playExternalGame(&mctsUcb1);
 

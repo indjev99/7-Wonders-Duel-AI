@@ -17,15 +17,16 @@ private:
 
     FORCE_INLINE int modeCard(int deck, bool needToPay) const;
     FORCE_INLINE int modeToken(int deck) const;
-    FORCE_INLINE int modeWonder() const;
+
+    FORCE_INLINE Action lookAheadWonderAction();
 
     FORCE_INLINE Action fromDeckAction(const Action& expected, int deck) const;
-    Action playPyramidCardAction() const;
+    Action playPyramidCardAction();
     Action destroyObjectAction(int type) const;
     Action chooseStartPlayerAction() const;
     Action revealGuildAction() const;
     Action revealFirstPlayerAction() const;
-    Action action() const;
+    Action action();
 
     GameStateFast& game;
     MCConfig config;

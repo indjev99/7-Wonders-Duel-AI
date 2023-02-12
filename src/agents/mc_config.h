@@ -20,12 +20,14 @@ struct MCConfig
 
     double explrFactor = 1.5;
 
-    double simDiscardProb = 0.1;
-    double simBuildProb = 0.45;
-    double simWonderProb = 0.45;
+    double simDiscardProb = 0.15;
+    double simBuildProb = 0.35;
+    double simWonderProb = 0.5;
 
     bool simModesUcb = true;
     bool simPacifist = true;
+    bool simLAWonder = true;
+    bool simAge1Rsrc = true;
 
     std::array<double, NUM_SIM_MODES> simModeProbs = {0.5, 0.5, 0.0};
 

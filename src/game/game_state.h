@@ -76,6 +76,7 @@ struct GameStateT
     FORCE_INLINE bool isDeckEmpty(int deck) const;
     FORCE_INLINE int getDeckElem(int deck, int pos) const;
     FORCE_INLINE int getObjectDeck(int id) const;
+    FORCE_INLINE int getObjectPos(int id) const;
     FORCE_INLINE bool isPlayableCard(int id) const;
 
     FORCE_INLINE const PyramidSlot& getPyramidSlot(int pos) const;
@@ -159,7 +160,7 @@ private:
 };
 
 using GameState = GameStateT<true>;
-using GameStateFast = GameStateT<false>;
+using GameStateFast = GameStateT<true>;
 
 
 
@@ -376,6 +377,14 @@ int GameStateT<CheckValid>::getObjectDeck(int id) const
     if constexpr (CheckValid) verifyObject(id);
 
     return objectLocations[id].deck;
+}
+
+template <bool CheckValid>
+int GameStateT<CheckValid>::getObjectPos(int id) const
+{
+    if constexpr (CheckValid) verifyObject(id);
+
+    return objectLocations[id].pos;
 }
 
 template <bool CheckValid>

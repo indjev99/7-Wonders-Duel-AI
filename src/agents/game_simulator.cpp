@@ -50,6 +50,7 @@ int GameSimulator::modeCard(int deck, bool needToPay) const
     static std::vector<int> perm;
     perm.resize(game.getDeckSize(deck));
     std::iota(perm.begin(), perm.end(), 0);
+    std::shuffle(perm.begin(), perm.end(), generator);
 
     for (int i : perm)
     {
@@ -60,25 +61,80 @@ int GameSimulator::modeCard(int deck, bool needToPay) const
     return OBJ_NONE;
 }
 
-int GameSimulator::modeWonder() const
+Action GameSimulator::lookAheadWonderAction()
 {
     int currPlayer = game.getCurrActor();
     const PlayerState& state = game.getPlayerState(currPlayer);
     int mode = simModes[currPlayer];
 
-    if (mode == SIM_MODE_NORMAL) return OBJ_NONE;
+    if (mode == SIM_MODE_NORMAL) return Action();
 
     int deck = DECK_SELECTED_WONDERS + currPlayer;
 
-    int discWonder = O_WONDER_THE_MAUSOLEUM;
+    static constexpr int discWonder = O_WONDER_THE_MAUSOLEUM;
 
-    if (game.getCurrAge() == NUM_AGES - 1 && game.getObjectDeck(discWonder) == deck &&
-        state.canPayFor(objects[discWonder]) && modeCard(DECK_DISCARDED, false) != OT_NONE)
+    if (game.getCurrAge() == NUM_AGES - 1 && game.getObjectDeck(discWonder) == deck && state.canPayFor(objects[discWonder]))
     {
-        return discWonder;
+        int card = modeCard(DECK_DISCARDED, false);
+        if (card != OT_NONE)
+        {
+            game.doAction(Action(ACT_MOVE_PLAY_PYRAMID_CARD, randDeckObject(DECK_PYRAMID_PLAYABLE), discWonder));
+            return Action(ACT_MOVE_BUILD_DISCARDED, card);
+        }
     }
 
-    return OBJ_NONE;
+    static constexpr std::array<int, 5> turnWonders = {
+        O_WONDER_THE_APPIAN_WAY, O_WONDER_THE_HANGING_GARDENS, O_WONDER_PIRAEUS, O_WONDER_THE_SPHINX, O_WONDER_THE_TEMPLE_OF_ARTEMIS
+    };
+
+    static std::vector<int> perm;
+    perm.resize(turnWonders.size());
+    std::iota(perm.begin(), perm.end(), 0);
+    std::shuffle(perm.begin(), perm.end(), generator);
+
+    int wonder = OBJ_NONE;
+
+    for (int i : perm)
+    {
+        int id = turnWonders[i];
+        if (game.getObjectDeck(id) == deck && state.canPayFor(objects[id]))
+        {
+            wonder = id;
+            break;
+        }
+    }
+
+    if (wonder == OBJ_NONE) return Action();
+
+    PlayerState nextState = state;
+    nextState.payForAndBuildObject(objects[wonder]);
+
+    int type = mode == SIM_MODE_SCIENCE ? OT_GREEN : OT_RED;
+
+    perm.resize(game.getDeckSize(DECK_PYRAMID_PLAYABLE));
+    std::iota(perm.begin(), perm.end(), 0);
+    std::shuffle(perm.begin(), perm.end(), generator);
+
+    for (int i : perm)
+    {
+        int id = game.getDeckElem(DECK_PYRAMID_PLAYABLE, i);
+        for (int pos : pyramidSchemes[game.getCurrAge()][game.getObjectPos(id)].covering)
+        {
+            const PyramidSlot& other = game.getPyramidSlot(pos);
+            int otherId = other.objectId;
+            if (other.coveredBy == 1 && otherId != OBJ_NONE && objects[otherId].type == type && nextState.canPayFor(objects[other.objectId]))
+            {
+                game.doAction(Action(ACT_MOVE_PLAY_PYRAMID_CARD, id, wonder));
+                while (game.getExpectedAction().type == ACT_REVEAL_PYRAMID_CARD)
+                {
+                    game.doAction(fromDeckAction(game.getExpectedAction(), game.getPyramidSlot(game.getExpectedAction().arg2).deck));
+                }
+                return Action(ACT_MOVE_PLAY_PYRAMID_CARD, otherId, ACT_ARG2_BUILD);
+            }
+        }
+    }
+
+    return Action();
 }
 
 Action GameSimulator::fromDeckAction(const Action& expected, int deck) const
@@ -117,7 +173,7 @@ Action GameSimulator::destroyObjectAction(int type) const
     return Action(ACT_MOVE_DESTROY_OBJECT, id, type);
 }
 
-Action GameSimulator::playPyramidCardAction() const
+Action GameSimulator::playPyramidCardAction()
 {
     Action action(ACT_MOVE_PLAY_PYRAMID_CARD);
 
@@ -133,14 +189,29 @@ Action GameSimulator::playPyramidCardAction() const
 
     bool canBeWonder = game.getWondersBuilt() < MAX_WONDERS_BUILT && game.getDeckSize(DECK_SELECTED_WONDERS + currPlayer) > 0;
 
-    if (canBeWonder)
+    if (canBeWonder && config.simLAWonder)
     {
-        action.arg2 = modeWonder();
-        if (action.arg2 != OBJ_NONE)
+        Action laAction = lookAheadWonderAction();
+        if (laAction.type != ACT_NONE) return laAction;
+    }
+
+    if (config.simAge1Rsrc && game.getCurrAge() == 0)
+    {
+        static std::vector<int> perm;
+        perm.resize(game.getDeckSize(DECK_PYRAMID_PLAYABLE));
+        std::iota(perm.begin(), perm.end(), 0);
+        std::shuffle(perm.begin(), perm.end(), generator);
+
+        for (int i : perm)
         {
-            action.arg1 = randDeckObject(DECK_PYRAMID_PLAYABLE);
-            return action;
-        } 
+            int id = game.getDeckElem(DECK_PYRAMID_PLAYABLE, i);
+            if ((objects[id].type == OT_BROWN || objects[id].type == OT_GRAY || objects[id].type == OT_GRAY) && state.canPayFor(objects[id]))
+            {
+                action.arg1 = id;
+                action.arg2 = ACT_ARG2_BUILD;
+                return action;
+            }
+        }
     }
 
     do
@@ -187,7 +258,7 @@ Action GameSimulator::revealFirstPlayerAction() const
     return Action(ACT_REVEAL_FIRST_PLAYER, uniformInt(0, NUM_PLAYERS));
 }
 
-Action GameSimulator::action() const
+Action GameSimulator::action()
 {
     const Action& expected = game.getExpectedAction();
 
