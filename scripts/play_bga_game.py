@@ -9,6 +9,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.firefox.service import Service
 
+import copy
 import sys
 import time
 import random
@@ -238,6 +239,8 @@ class BGAParser(HTMLParser):
                 self.can_have_built_wonders = True
 
         for player in BGAGame.ALL_PLAYERS:
+            self.revealed_wonders.difference_update(self.selected_wonders[player])
+            self.revealed_wonders.difference_update(self.built_wonders[player])
             if not self.can_have_built_wonders:
                 self.selected_wonders[player].update(self.built_wonders[player])
                 self.built_wonders[player] = set()
@@ -292,7 +295,7 @@ class BGAGame:
     STATE_INVALID = -1
     STATE_ABORTED = -20
 
-    MAX_INVALID_CNT = 30
+    MAX_INVALID_CNT = 20
 
     def __init__(self, pipe : PipeReaderWriter):
         self.pipe = pipe
@@ -328,7 +331,6 @@ class BGAGame:
             self.driver.find_element(By.ID, 'pagemaintitletext').click()
         except Exception:
             pass
-        debug_print(f'Finding element: {finder}')
         element = self.driver.find_element(*finder)
         if random.random() < 0.5:
             debug_print(f'JS clicking element: {finder}')
@@ -336,7 +338,6 @@ class BGAGame:
         else:
             debug_print(f'Selenium clicking element: {finder}')
             element.click()
-        debug_print(f'Done trying to click: {finder}')
 
     def select_by_id(self, id: str) -> None:
         self.select_by_finder((By.ID, id))
@@ -744,9 +745,12 @@ class BGAGame:
                 pass
 
     def check_update_state(self) -> int:
-        old_state = self.state
+        source = self.driver.page_source
+        if random.random() < 0.1:
+            debug_print(f'Source: {source}')
+        old_state = copy.deepcopy(self.state)
         self.parser.start_parse()
-        self.parser.feed(self.driver.page_source)
+        self.parser.feed(source)
         curr_state = self.parser.get_state()
         if self.parser.game_ended:
             if not self.aborted_game:
@@ -755,31 +759,38 @@ class BGAGame:
             return self.STATE_ABORTED
         res = self.update_state(curr_state)
         if res == BGAGame.STATE_INVALID:
+            debug_print(f'Source: {source}')
             debug_print(f'Old state: {old_state}')
-            debug_print(f'Invalid state: {curr_state}')
+            debug_print(f'Bad state: {curr_state}')
             self.invalid_cnt += 1
         elif res == BGAGame.STATE_CHANGED:
+            debug_print(f'Source: {source}')
             debug_print(f'Old state: {old_state}')
             debug_print(f'New state: {curr_state}')
             self.invalid_cnt = 0
         return res
 
+    def try_expel(self) -> None:
+        try:
+            self.skip_player_btn()
+        except Exception:
+            pass
+        try:
+            self.expel_player_btn()
+        except Exception:
+            pass
+        try:
+            self.normal_quit_btn()
+            self.pipe.write('Abort game')
+            self.aborted_game = True
+        except Exception:
+            pass
+
     def play_game(self) -> None:
         while True:
             try:
-                try:
-                    self.skip_player_btn()
-                except Exception:
-                    pass
-                try:
-                    self.expel_player_btn()
-                except Exception:
-                    pass
-                try:
-                    self.normal_quit_btn()
-                    self.pipe.write('Abort game')
-                except Exception:
-                    pass
+                if random.random() < 0.2:
+                    self.try_expel()
                 res = self.check_update_state()
                 if res == BGAGame.STATE_INVALID:
                     continue
