@@ -24,6 +24,8 @@
 #include <cmath>
 #include <ctime>
 #include <iostream>
+#include <iomanip>
+#include <map>
 
 void benchmark(Agent* agent1, Agent* agent2)
 {
@@ -34,6 +36,8 @@ void benchmark(Agent* agent1, Agent* agent2)
     int sum = 0;
     int sumSq = 0;
 
+    std::map<int, int> resCnts;
+
     while (true)
     {
         int res = runner.playGame();
@@ -42,15 +46,21 @@ void benchmark(Agent* agent1, Agent* agent2)
         cnt++;
         sum += resSign;
         sumSq += resSign * resSign;
+        resCnts[res]++;
 
         double mean = (double) sum / cnt;
         double meanStd = sqrt(((double) sumSq / cnt - mean * mean) / std::max(1, cnt - 1));
 
-        std::cout << cnt << ": " << mean << " +- " << meanStd << std::endl;
+        std::cout << cnt << ": " << mean << " +- " << meanStd << "  (";
+        for (int res = -RESULT_WIN_MILITARY; res <= RESULT_WIN_MILITARY; res++)
+        {
+            std::cout << " " << std::setprecision(2) << std::fixed << (double) resCnts[res] / cnt;
+        }
+        std::cout << " )" << std::endl;
     }
 }
 
-void replayGame(const std::string& logName, bool advanceButton = true)
+void replayGame(const std::string& logName, Agent* agent1 = nullptr, Agent* agent2 = nullptr, bool advanceButton = true)
 {
     ListenerGUI gui(advanceButton);
 
@@ -58,10 +68,19 @@ void replayGame(const std::string& logName, bool advanceButton = true)
     StreamReader logReader(log);
 
     RevealerReader revealer(logReader);
-    AgentReader agent1(logReader);
-    AgentReader agent2(logReader);
+    AgentReader agent1Base(logReader);
+    AgentReader agent2Base(logReader);
 
-    GameRunner runner(&revealer, {&agent1, &agent2}, {&gui});
+    std::vector<Agent*> ignored1;
+    std::vector<Agent*> ignored2;
+
+    if (agent1 != nullptr) ignored1.push_back(agent1);
+    if (agent2 != nullptr) ignored2.push_back(agent2);
+
+    AgentIgnorerWrapper agent1Ignorer(&agent1Base, ignored1);
+    AgentIgnorerWrapper agent2Ignorer(&agent2Base, ignored2);
+
+    GameRunner runner(&revealer, {&agent1Ignorer, &agent2Ignorer}, {&gui});
     runner.playGame();
 }
 
@@ -134,19 +153,23 @@ int main()
     AgentMcUcb mcUcb1;
     AgentMcUcb mcUcb2;
 
-    MCConfig config;
-    config.secsPerMove = 10;
+    MCConfig config1;
+    config1.secsPerMove = 0.01;
+    config1.testMode = true;
 
-    AgentMctsUcb mctsUcb1(config);
-    AgentMctsUcb mctsUcb2;
+    MCConfig config2;
+    config2.secsPerMove = 0.01;
 
-    // playGame(nullptr, &mctsUcb2);
+    AgentMctsUcb mctsUcb1(config1);
+    AgentMctsUcb mctsUcb2(config2);
 
-    playExternalGame(&mctsUcb1);
+    // playGame(nullptr, &mctsUcb1);
 
-    // benchmark(&mctsUcb1, &mctsUcb2);
+    // playExternalGame(&mctsUcb1);
 
-    // replayGame("logs/XXXXXXXXX.log");
+    benchmark(&mctsUcb1, &mctsUcb2);
+
+    // replayGame("IMPORTANT.log", &mctsUcb1);
 
     return 0;
 }

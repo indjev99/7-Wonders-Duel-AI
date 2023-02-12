@@ -12,8 +12,9 @@ private:
 
     int randDeckObject(int deck) const;
 
-    int modeCard(int deck) const;
+    int modeCard(int deck, bool needToPay) const;
     int modeToken(int deck) const;
+    int modeWonder() const;
 
     Action fromDeckAction(const Action& expected, int deck) const;
     Action playPyramidCardAction() const;
@@ -26,5 +27,6 @@ private:
     GameStateFast& game;
     MCConfig config;
 
-    int simModes[NUM_PLAYERS];
+    std::array<int, NUM_PLAYERS> simModes;
+    int aggressor;
 };

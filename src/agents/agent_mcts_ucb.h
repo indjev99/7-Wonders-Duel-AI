@@ -13,11 +13,13 @@ struct AgentMctsUcb final : Agent
 
     Action getAction() override;
 
+    void notifyActionPost(const Action& action) override;
+
 private:
 
     struct MctsNode
     {
-        std::vector<BanditArm> arms;
+        std::vector<BanditArm<Action>> arms;
 
         int numGames;
 
@@ -35,4 +37,7 @@ private:
 
     GameStateFast runGame;
     std::vector<MctsNode> nodes;
+    std::array<std::vector<BanditArm<int>>, NUM_PLAYERS> modeArms;
+
+    Action lastAction;
 };

@@ -19,6 +19,7 @@ void debugPrintIdent(int depth)
 
 void AgentMctsUcb::debugPrintNode(int curr, int expandLimit, int depth)
 {
+    expandLimit = 100;
     if (depth == 1) std::cerr << std::endl;
 
     debugPrintIdent(depth);
@@ -32,14 +33,14 @@ void AgentMctsUcb::debugPrintNode(int curr, int expandLimit, int depth)
 
     std::cerr << "Actor: " << actorToString(runGame.getCurrActor()) << std::endl;
 
-    std::vector<BanditArm> armsSorted = nodes[curr].arms;
+    std::vector<BanditArm<Action>> armsSorted = nodes[curr].arms;
 
-    std::sort(armsSorted.begin(), armsSorted.end(), [](auto& left, auto& right){ return left.numGames > right.numGames; });
+    std::sort(armsSorted.begin(), armsSorted.end(), [](auto& left, auto& right){ return left.safeAvgReward() > right.safeAvgReward(); });
 
-    for (const BanditArm& arm : armsSorted)
+    for (const BanditArm<Action>& arm : armsSorted)
     {
         debugPrintIdent(depth + 1);
-        std::cerr << actionToString(arm.action) << " : " << arm.numGames << " with " << (arm.numGames > 0 ? arm.avgReward() : 0) << std::endl;
+        std::cerr << actionToString(arm.action) << " : " << arm.safeAvgReward() << " with " << arm.numGames << std::endl;
         if (arm.numGames >= expandLimit && arm.child != CHILD_NONE)
         {
             GameStateFast backupGame(&runGame);
@@ -69,7 +70,7 @@ double AgentMctsUcb::mctsIteration(int curr)
 
     int currActor = runGame.getCurrActor();
     int chosen = findBestArm(nodes[curr].arms, nodes[curr].numGames, config.explrFactor);
-    BanditArm& arm = nodes[curr].arms[chosen];
+    BanditArm<Action>& arm = nodes[curr].arms[chosen];
 
     runGame.doAction(arm.action);
 
@@ -89,6 +90,11 @@ double AgentMctsUcb::mctsIteration(int curr)
     return reward;
 }
 
+void AgentMctsUcb::notifyActionPost(const Action& action)
+{
+    lastAction = action;
+}
+
 Action AgentMctsUcb::getAction()
 {
     const std::vector<Action>& possible = game->getPossibleActions();
@@ -98,26 +104,67 @@ Action AgentMctsUcb::getAction()
     nodes.clear();
     nodes.push_back(MctsNode(GameStateFast(game)));
 
+    if (config.simModesUcb)
+    {
+        std::vector<int> modes(NUM_SIM_MODES);
+        std::iota(modes.begin(), modes.end(), 0);
+        for (int i = 0; i < NUM_PLAYERS; i++)
+        {
+            modeArms[i] = makeArms(modes);
+        }
+    }
+
     int root = 0;
 
     DO_FOR_SECS(config.secsPerMove)
     {
+        if (config.simModesUcb)
+        {
+            for (int i = 0; i < NUM_PLAYERS; i++)
+            {
+                int chosen = findBestArm(modeArms[i], nodes[root].numGames, config.explrFactor);
+                config.simModes[i] = modeArms[i][chosen].action;
+            }
+        }
+
         runGame.clone(game);
-        mctsIteration(root);
+        double reward = mctsIteration(root);
+
+        if (config.simModesUcb)
+        {
+            for (int i = 0; i < NUM_PLAYERS; i++)
+            {
+                modeArms[i][config.simModes[i]].update(i == player ? reward : -reward);
+            }
+        }
     }
 
-    int chosen = findBestArm(nodes[0].arms);
+    int chosen = findBestArm(nodes[root].arms);
 
     if (config.verbosity > 0)
-        std::cerr << "Expected outcome: " << nodes[root].arms[chosen].avgReward() << std::endl << std::endl;
-
-    std::cerr << nodes[root].numGames << std::endl;
+    {
+        std::cerr << "Expected outcome: " << nodes[root].arms[chosen].safeAvgReward() << " with " << nodes[root].numGames << std::endl << std::endl;
+    }
 
     if (config.verbosity > 1)
     {
+        if (config.simModesUcb)
+        {
+            for (int i = 0; i < NUM_PLAYERS; i++)
+            {
+                for (int j = 0; j < NUM_SIM_MODES; j++)
+                {
+                    std::cerr << actorToString(i) << " " << j << " : " << modeArms[i][j].numGames << " with " << modeArms[i][j].avgReward() << std::endl;
+                }
+                std::cerr << std::endl;
+            }
+        }
+
         runGame.clone(game);
         debugPrintNode(root);
     }
 
-    return nodes[root].arms[chosen].action;
+    Action action = nodes[root].arms[chosen].action;
+
+    return action;
 }

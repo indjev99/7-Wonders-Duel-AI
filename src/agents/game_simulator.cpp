@@ -9,18 +9,12 @@ GameSimulator::GameSimulator(GameStateFast& game, const MCConfig& config)
     : game(game)
     , config(config)
 {
+    aggressor = ACTOR_NONE;
     for (int i = 0; i < NUM_PLAYERS; i++)
     {
-        double roll = uniformReal(0, 1);
-        for (int i = 0; i < NUM_SIM_MODES; i++)
-        {
-            roll -= config.simModeProbs[i];
-            if (roll < 0)
-            {
-                simModes[i] = i;
-                break;
-            } 
-        }
+        simModes[i] = config.simModes[i];
+        if (simModes[i] != SIM_MODE_NONE) simModes[i] = sampleIntDistr(config.simModeProbs);
+        if (game.getMilitaryLead(i) > 0) aggressor = i;
     }
 }
 
@@ -38,7 +32,7 @@ int GameSimulator::modeToken(int deck) const
     return OBJ_NONE;
 }
 
-int GameSimulator::modeCard(int deck) const
+int GameSimulator::modeCard(int deck, bool needToPay) const
 {
     int currPlayer = game.getCurrActor();
     const PlayerState& state = game.getPlayerState(currPlayer);
@@ -55,7 +49,28 @@ int GameSimulator::modeCard(int deck) const
     for (int i : perm)
     {
         int id = game.getDeckElem(deck, i);
-        if (objects[id].type == type && state.canPayFor(objects[id])) return id;
+        if (objects[id].type == type && (!needToPay || state.canPayFor(objects[id]))) return id;
+    }
+
+    return OBJ_NONE;
+}
+
+int GameSimulator::modeWonder() const
+{
+    int currPlayer = game.getCurrActor();
+    const PlayerState& state = game.getPlayerState(currPlayer);
+    int mode = simModes[currPlayer];
+
+    if (mode == SIM_MODE_NORMAL) return OBJ_NONE;
+
+    int deck = DECK_SELECTED_WONDERS + currPlayer;
+
+    int discWonder = O_WONDER_THE_MAUSOLEUM;
+
+    if (game.getCurrAge() == NUM_AGES - 1 && game.getObjectDeck(discWonder) == deck &&
+        state.canPayFor(objects[discWonder]) && modeCard(DECK_DISCARDED, false) != OT_NONE)
+    {
+        return discWonder;
     }
 
     return OBJ_NONE;
@@ -77,7 +92,7 @@ Action GameSimulator::fromDeckAction(const Action& expected, int deck) const
     }
     else if (expected.type == ACT_MOVE_BUILD_DISCARDED)
     {
-        action.arg1 = modeCard(deck);
+        action.arg1 = modeCard(deck, false);
         if (action.arg1 != OBJ_NONE) return action;
     }
 
@@ -106,7 +121,7 @@ Action GameSimulator::playPyramidCardAction() const
 {
     Action action(ACT_MOVE_PLAY_PYRAMID_CARD);
 
-    action.arg1 = modeCard(DECK_PYRAMID_PLAYABLE);
+    action.arg1 = modeCard(DECK_PYRAMID_PLAYABLE, true);
     if (action.arg1 != OBJ_NONE)
     {
         action.arg2 = ACT_ARG2_BUILD;
@@ -117,6 +132,16 @@ Action GameSimulator::playPyramidCardAction() const
     const PlayerState& state = game.getPlayerState(currPlayer);
 
     bool canBeWonder = game.getWondersBuilt() < MAX_WONDERS_BUILT && game.getDeckSize(DECK_SELECTED_WONDERS + currPlayer) > 0;
+
+    if (canBeWonder)
+    {
+        action.arg2 = modeWonder();
+        if (action.arg2 != OBJ_NONE)
+        {
+            action.arg1 = randDeckObject(DECK_PYRAMID_PLAYABLE);
+            return action;
+        } 
+    }
 
     do
     {
@@ -130,6 +155,8 @@ Action GameSimulator::playPyramidCardAction() const
         }
         else if (roll < config.simDiscardProb + config.simBuildProb)
         {
+            if (config.simPacifist && objects[action.arg1].type == OT_RED && currPlayer != aggressor && game.getMilitaryLead(currPlayer) >= 0)
+                continue;
             action.arg2 = ACT_ARG2_BUILD;
             if (state.canPayFor(objects[action.arg1])) break;
         }

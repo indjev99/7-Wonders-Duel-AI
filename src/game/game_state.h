@@ -22,6 +22,7 @@
 #define AGE_WONDER_SELECTION -1
 
 #define ACTOR_GAME -1
+#define ACTOR_NONE -100
 
 template <bool CheckValid>
 struct GameStateT

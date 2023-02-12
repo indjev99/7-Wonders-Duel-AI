@@ -17,7 +17,7 @@ Action AgentMcUcb::getAction()
     const std::vector<Action>& possible = game->getPossibleActions();
     if (possible.size() == 1) return possible[0];
 
-    std::vector<BanditArm> arms = makeArms(possible);
+    std::vector<BanditArm<Action>> arms = makeArms(possible);
 
     int numGames = 0;
 
