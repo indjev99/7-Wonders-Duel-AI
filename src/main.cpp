@@ -145,7 +145,7 @@ int main()
     setSeed(seed);
 
     MCConfig config1;
-    config1.secsPerMove = 10;
+    config1.secsPerMove = 9;
     config1.verbosity = 1;
 
     MCConfig config2;

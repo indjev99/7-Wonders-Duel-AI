@@ -295,7 +295,7 @@ class BGAGame:
     STATE_INVALID = -1
     STATE_ABORTED = -20
 
-    MAX_INVALID_CNT = 40
+    MAX_INVALID_CNT = 50
 
     def __init__(self, pipe : PipeReaderWriter):
         self.pipe = pipe
@@ -801,8 +801,8 @@ class BGAGame:
     def play_game(self) -> None:
         while True:
             try:
-                if random.random() < 0.2:
-                    self.try_expel()
+                # if random.random() < 0.2:
+                #     self.try_expel()
                 res = self.check_update_state()
                 if res == BGAGame.STATE_INVALID:
                     continue

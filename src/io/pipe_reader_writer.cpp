@@ -29,6 +29,8 @@ void PipeReaderWriter::write(const std::string& s)
 {
     std::unique_ptr<char[]> sChars = toChars(s);
 
+    std::cerr << "< " << s << std::endl << std::endl;
+
     DWORD bytesWritten;
     bool succ = WriteFile( 
         pipeHandle,
@@ -64,6 +66,8 @@ std::string PipeReaderWriter::read()
 
     std::string s;
     s.assign(response.get(), bytesRead);
+
+    std::cerr << "> " << s << std::endl << std::endl;
 
     return s;
 }
