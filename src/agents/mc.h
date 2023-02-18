@@ -1,3 +1,5 @@
+#pragma once
+
 #include "mc_config.h"
 
 #include "game/game_state.h"
@@ -5,9 +7,7 @@
 
 #include <vector>
 
-#define CHILD_NONE -1
-
-extern long long totalNumSims;
+#define CHILD_NONE -100
 
 template <class ActionT>
 struct BanditArm
@@ -19,7 +19,7 @@ struct BanditArm
     int numGames;
     float totalReward;
 
-    BanditArm(const ActionT& action, int child = CHILD_NONE);
+    BanditArm(const ActionT& action);
 
     float avgReward() const;
     float safeAvgReward() const;
@@ -31,21 +31,22 @@ template <class ActionT>
 std::vector<BanditArm<ActionT>> makeArms(const std::vector<ActionT>& possible);
 
 template <class ActionT>
-float armScore(const BanditArm<ActionT>& arms, float logTotalGames = 0, float explrFactor = 0);
+float armScore(const BanditArm<ActionT>& arm, int numGamesAvailable = 1, float explrFactor = 0);
 
 template <class ActionT>
-int findBestArm(const std::vector<BanditArm<ActionT>>& arms, int totalNumGames = 0, float explrFactor = 0);
+float armScoreImpl(const BanditArm<ActionT>& arm, float logGamesAvailable = 0, float explrFactor = 0);
+
+template <class ActionT>
+int findBestArm(const std::vector<BanditArm<ActionT>>& arms, int totalNumGames = 1, float explrFactor = 0);
 
 template <class ActionT>
 int findLeastGamesArm(const std::vector<BanditArm<ActionT>>& arms);
 
-int simRandGame(GameStateFast& game, int player, const MCConfig& config);
-
 
 template <class ActionT>
-BanditArm<ActionT>::BanditArm(const ActionT& action, int child)
+BanditArm<ActionT>::BanditArm(const ActionT& action)
     : action(action)
-    , child(child)
+    , child(CHILD_NONE)
     , numGames(0)
     , totalReward(0)
 {}
@@ -85,9 +86,16 @@ std::vector<BanditArm<ActionT>> makeArms(const std::vector<ActionT>& possible)
 }
 
 template <class ActionT>
-float armScore(const BanditArm<ActionT>& arm, float logTotalGames, float explrFactor)
+float armScore(const BanditArm<ActionT>& arm, int numGamesAvailable, float explrFactor)
 {
-    return arm.avgReward() + explrFactor * sqrtf(logTotalGames / arm.numGames);
+    if (arm.numGames == 0) return INF;
+    return armScoreImpl(arm, logf(numGamesAvailable), explrFactor);
+}
+
+template <class ActionT>
+float armScoreImpl(const BanditArm<ActionT>& arm, float logGamesAvailable, float explrFactor)
+{
+    return arm.avgReward() + explrFactor * sqrtf(logGamesAvailable / arm.numGames);
 }
 
 template <class ActionT>
@@ -96,7 +104,7 @@ int findBestArm(const std::vector<BanditArm<ActionT>>& arms, int totalNumGames, 
     int bestArm = -1;
     float bestScore = -INF;
 
-    float logTotalGames = totalNumGames > 0 ? logf(totalNumGames) : 0;
+    float logTotalGames = logf(totalNumGames);
 
     FOR_IN_UNIFORM_PERM(i, arms.size())
     {
@@ -106,7 +114,7 @@ int findBestArm(const std::vector<BanditArm<ActionT>>& arms, int totalNumGames, 
             break;
         }
 
-        float score = armScore(arms[i], logTotalGames, explrFactor);
+        float score = armScoreImpl(arms[i], logTotalGames, explrFactor);
 
         if (score > bestScore)
         {

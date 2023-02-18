@@ -1,5 +1,7 @@
 #include "agent_mcts.h"
 
+#include "game_simulator.h"
+
 #include "game/lang.h"
 #include "game/results.h"
 #include "utils/timer.h"
@@ -9,7 +11,7 @@
 #include <iostream>
 #include <numeric>
 
-void debugPrintIdent(int depth)
+static void debugPrintIdent(int depth)
 {
     for (int i = 0 ; i < depth; i++)
     {
@@ -19,9 +21,6 @@ void debugPrintIdent(int depth)
 
 void AgentMcts::debugPrintNode(int curr, int expandLimit, int depth)
 {
-    expandLimit = 100;
-    if (depth == 1) std::cerr << std::endl;
-
     debugPrintIdent(depth);
     std::cerr << "Depth: " << depth << ", ";
 
@@ -62,16 +61,10 @@ AgentMcts::AgentMcts(const MCConfig& config)
 
 float AgentMcts::mctsIterationRec(int curr)
 {
-    if (runGame.isTerminal())
-    {        
-        nodes[curr].numGames++;
-        return resultSign(runGame.getResult(player));
-    }
+    nodes[curr].numGames++;
 
-    if (runGame.isAgeStart())
-    {
-        return simRandGame(runGame, player, config);
-    }
+    if (runGame.isTerminal()) return resultSign(runGame.getResult(player));
+    if (runGame.isAgeStart()) return simRandGame(runGame, player, config);
 
     int currActor = runGame.getCurrActor();
     int chosen = currActor != ACTOR_GAME ? findBestArm(nodes[curr].arms, nodes[curr].numGames, config.explrFactor) : findLeastGamesArm(nodes[curr].arms);
@@ -90,7 +83,6 @@ float AgentMcts::mctsIterationRec(int curr)
         reward = simRandGame(runGame, player, config);
     }
 
-    nodes[curr].numGames++;
     arm.update(currActor != ACTOR_GAME ? (currActor == player ? reward : -reward) : 0);
     return reward;
 }
@@ -99,11 +91,13 @@ void AgentMcts::mctsIteration()
 {
     const int root = 0;
 
+    numGames++;
+
     if (config.simModesSmart)
     {
         for (int i = 0; i < NUM_PLAYERS; i++)
         {
-            int chosen = findBestArm(modeArms[i], nodes[root].numGames, config.explrFactor);
+            int chosen = findBestArm(modeArms[i], numGames, config.explrFactor);
             config.simModes[i] = modeArms[i][chosen].action;
         }
     }
@@ -120,16 +114,13 @@ void AgentMcts::mctsIteration()
     }
 }
 
-void AgentMcts::notifyActionPost(const Action& action)
-{
-    lastAction = action;
-}
-
 Action AgentMcts::getAction()
 {
     const std::vector<Action>& possible = game->getPossibleActions();
 
     if (possible.size() == 1) return possible[0];
+
+    numGames = 0;
 
     nodes.clear();
     nodes.push_back(TreeNode(GameStateFast(game)));
@@ -155,11 +146,13 @@ Action AgentMcts::getAction()
 
     if (config.verbosity > 0)
     {
-        std::cerr << "Expected outcome: " << nodes[root].arms[chosen].safeAvgReward() << " with " << nodes[root].numGames << std::endl << std::endl;
+        std::cerr << "Expected outcome: " << nodes[root].arms[chosen].safeAvgReward() << " with " << numGames << std::endl << std::endl;
     }
 
     if (config.verbosity > 1)
     {
+        std::cerr << std::endl;
+
         if (config.simModesSmart)
         {
             for (int i = 0; i < NUM_PLAYERS; i++)

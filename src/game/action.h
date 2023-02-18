@@ -36,3 +36,4 @@ struct Action
 
 bool operator==(const Action& left, const Action& right);
 bool operator!=(const Action& left, const Action& right);
+bool operator<(const Action& left, const Action& right);

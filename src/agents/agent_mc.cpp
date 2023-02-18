@@ -1,5 +1,7 @@
 #include "agent_mc.h"
 
+#include "game_simulator.h"
+
 #include "mc.h"
 
 #include "utils/timer.h"
@@ -23,13 +25,14 @@ Action AgentMc::getAction()
 
     DO_FOR_SECS(config.secsPerMove)
     {
+        numGames++;
+
         int chosen = findBestArm(arms, numGames, config.explrFactor);
 
         GameStateFast runGame(game);
         runGame.doAction(arms[chosen].action);
         arms[chosen].totalReward += simRandGame(runGame, player, config);
         arms[chosen].numGames++;
-        numGames++;
     }
 
     int chosen = findBestArm(arms);

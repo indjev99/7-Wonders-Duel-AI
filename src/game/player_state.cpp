@@ -34,6 +34,7 @@ void PlayerState::buildObject(const Object& object)
     if (mLead >= MILITARY_THRESHOLD_3 && !objectsBuilt[O_LOOTING_LOOTING_2]) buildObject(objects[O_LOOTING_LOOTING_2]);
 
     cachedCoinCostObj = OBJ_NONE;
+    otherPlayer->cachedCoinCostObj = OBJ_NONE;
 }
 
 void PlayerState::destroyObject(const Object& object)
@@ -54,6 +55,7 @@ void PlayerState::destroyObject(const Object& object)
     if (mLead <= - MILITARY_THRESHOLD_3 && !otherPlayer->objectsBuilt[O_LOOTING_LOOTING_2]) otherPlayer->buildObject(objects[O_LOOTING_LOOTING_2]);
 
     cachedCoinCostObj = OBJ_NONE;
+    otherPlayer->cachedCoinCostObj = OBJ_NONE;
 }
 
 void PlayerState::payForAndBuildObject(const Object& object)

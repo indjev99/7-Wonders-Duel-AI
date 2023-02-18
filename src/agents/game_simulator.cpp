@@ -1,9 +1,19 @@
 #include "game_simulator.h"
 
 #include "game/game_exception.h"
+#include "game/results.h"
 #include "utils/random.h"
 
 #include <algorithm>
+
+long long totalNumSims = 0;
+
+int simRandGame(GameStateFast& game, int player, const MCConfig& config)
+{
+    totalNumSims++;
+    GameSimulator simulator(game, config);
+    return resultSign(simulator.simGame(player));
+}
 
 GameSimulator::GameSimulator(GameStateFast& game, const MCConfig& config)
     : game(game)
@@ -289,11 +299,16 @@ Action GameSimulator::action()
     }
 }
 
+void GameSimulator::simAction()
+{
+    game.doAction(action());
+}
+
 int GameSimulator::simGame(int player)
 {
     while (!game.isTerminal())
     {
-        game.doAction(action());
+        simAction();
     }
     return game.getResult(player);
 }

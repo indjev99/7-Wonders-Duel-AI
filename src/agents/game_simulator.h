@@ -5,11 +5,16 @@
 #include "game/game_state.h"
 #include "utils/defines.h"
 
+extern long long totalNumSims;
+
+int simRandGame(GameStateFast& game, int player, const MCConfig& config);
+
 struct GameSimulator
 {
     GameSimulator(GameStateFast& game, const MCConfig& config);
 
     int simGame(int player);
+    void simAction();
 
 private:
 

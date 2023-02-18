@@ -55,6 +55,7 @@ private:
     mutable int cachedCoinCost;
 };
 
+#include <iostream>
 
 int PlayerState::getCost(const Object& object) const
 {

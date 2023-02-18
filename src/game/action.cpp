@@ -20,3 +20,11 @@ bool operator!=(const Action& left, const Action& right)
 {
     return !(left == right);
 }
+
+bool operator<(const Action& left, const Action& right)
+{
+    if (left.type != right.type) return left.type < right.type;
+    if (left.arg1 != right.arg1) return left.arg1 < right.arg1;
+    if (left.arg2 != right.arg2) return left.arg2 < right.arg2;
+    return false;
+}

@@ -1,6 +1,8 @@
 #include "agents/agent_mc.h"
 #include "agents/agent_mcts.h"
+#include "agents/agent_mcts_blind_reveals.h"
 #include "agents/agent_uniform.h"
+#include "agents/game_simulator.h"
 #include "game/results.h"
 #include "gui/agent_gui.h"
 #include "gui/listener_gui.h"
@@ -144,21 +146,24 @@ int main()
     setSeed(seed);
 
     MCConfig config1;
-    config1.secsPerMove = 9;
-    config1.verbosity = 1;
+    config1.secsPerMove = 0.1;
+    config1.verbosity = 0;
 
     MCConfig config2;
-    config2.secsPerMove = 1;
-    config1.verbosity = 1;
+    config2.secsPerMove = 0.1;
+    config2.verbosity = 0;
 
-    AgentMcts mctsUcb1(config1);
-    AgentMcts mctsUcb2(config2);
+    AgentMcts mcts1(config1);
+    AgentMcts mcts2(config2);
 
-    // playGame(nullptr, &mctsUcb2);
+    AgentMctsBlindReveals mctsBR1(config1);
+    AgentMctsBlindReveals mctsBR2(config2);
 
-    playExternalGame(&mctsUcb1);
+    // playGame(nullptr, &mctsBR2);
 
-    // benchmark(&mctsUcb1, &mctsUcb2);
+    // playExternalGame(&mctsUcb1);
+
+    benchmark(&mctsBR1, &mcts2);
 
     // replayGame("badlog.log", nullptr, &mctsUcb1);
 
