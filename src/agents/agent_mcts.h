@@ -7,9 +7,9 @@
 
 #include <vector>
 
-struct AgentMctsUcb final : Agent
+struct AgentMcts final : Agent
 {
-    AgentMctsUcb(const MCConfig& config = MCConfig());
+    AgentMcts(const MCConfig& config = MCConfig());
 
     Action getAction() override;
 

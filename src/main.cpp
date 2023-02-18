@@ -1,6 +1,5 @@
 #include "agents/agent_mc.h"
-#include "agents/agent_mc_ucb.h"
-#include "agents/agent_mcts_ucb.h"
+#include "agents/agent_mcts.h"
 #include "agents/agent_uniform.h"
 #include "game/results.h"
 #include "gui/agent_gui.h"
@@ -152,8 +151,8 @@ int main()
     config2.secsPerMove = 1;
     config1.verbosity = 1;
 
-    AgentMctsUcb mctsUcb1(config1);
-    AgentMctsUcb mctsUcb2(config2);
+    AgentMcts mctsUcb1(config1);
+    AgentMcts mctsUcb2(config2);
 
     // playGame(nullptr, &mctsUcb2);
 

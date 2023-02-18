@@ -2,11 +2,11 @@
 
 #include "mc.h"
 
-#include "game/results.h"
 #include "time/timer.h"
-#include "utils/random.h"
 
+#include <cmath>
 #include <iostream>
+#include <numeric>
 
 AgentMc::AgentMc(const MCConfig& config)
     : config(config)
@@ -17,37 +17,25 @@ Action AgentMc::getAction()
     const std::vector<Action>& possible = game->getPossibleActions();
     if (possible.size() == 1) return possible[0];
 
-    Action bestAction;
-    float bestScore = -INF;
+    std::vector<BanditArm<Action>> arms = makeArms(possible);
 
-    for (int i = 0; i < (int) possible.size(); i++)
+    int numGames = 0;
+
+    DO_FOR_SECS(config.secsPerMove)
     {
-        const Action& action = possible[i];
+        int chosen = findBestArm(arms, numGames, config.explrFactor);
 
-        float score = 0;
-        int numGames = 0;
-
-        DO_FOR_SECS(config.secsPerMove / possible.size())
-        {
-            GameStateFast runGame(game);
-            runGame.doAction(action);
-            score += simRandGame(runGame, player, config);
-            numGames++;
-        }
-
-        if (numGames == 0) continue;
-
-        score /= numGames;
-
-        if (score > bestScore)
-        {
-            bestScore = score;
-            bestAction = action;
-        }
+        GameStateFast runGame(game);
+        runGame.doAction(arms[chosen].action);
+        arms[chosen].totalReward += simRandGame(runGame, player, config);
+        arms[chosen].numGames++;
+        numGames++;
     }
 
-    if (config.verbosity)
-        std::cerr << "Expected outcome: " << bestScore << std::endl << std::endl;
+    int chosen = findBestArm(arms);
 
-    return bestAction;
+    if (config.verbosity > 0)
+        std::cerr << "Expected outcome: " << arms[chosen].avgReward() << std::endl << std::endl;
+
+    return arms[chosen].action;
 }

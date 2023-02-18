@@ -1,4 +1,4 @@
-#include "agent_mcts_ucb.h"
+#include "agent_mcts.h"
 
 #include "game/lang.h"
 #include "game/results.h"
@@ -17,7 +17,7 @@ void debugPrintIdent(int depth)
     }
 }
 
-void AgentMctsUcb::debugPrintNode(int curr, int expandLimit, int depth)
+void AgentMcts::debugPrintNode(int curr, int expandLimit, int depth)
 {
     expandLimit = 100;
     if (depth == 1) std::cerr << std::endl;
@@ -51,11 +51,11 @@ void AgentMctsUcb::debugPrintNode(int curr, int expandLimit, int depth)
     }
 }
 
-AgentMctsUcb::AgentMctsUcb(const MCConfig& config)
+AgentMcts::AgentMcts(const MCConfig& config)
     : config(config)
 {}
 
-float AgentMctsUcb::mctsIteration(int curr)
+float AgentMcts::mctsIteration(int curr)
 {
     if (runGame.isTerminal())
     {        
@@ -90,12 +90,12 @@ float AgentMctsUcb::mctsIteration(int curr)
     return reward;
 }
 
-void AgentMctsUcb::notifyActionPost(const Action& action)
+void AgentMcts::notifyActionPost(const Action& action)
 {
     lastAction = action;
 }
 
-Action AgentMctsUcb::getAction()
+Action AgentMcts::getAction()
 {
     const std::vector<Action>& possible = game->getPossibleActions();
 
