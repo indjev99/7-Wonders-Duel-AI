@@ -2,7 +2,7 @@
 
 #include "game/lang.h"
 #include "game/results.h"
-#include "time/timer.h"
+#include "utils/timer.h"
 
 #include <algorithm>
 #include <cmath>
@@ -51,11 +51,16 @@ void AgentMcts::debugPrintNode(int curr, int expandLimit, int depth)
     }
 }
 
+AgentMcts::TreeNode::TreeNode(const GameStateFast& game)
+    : arms(makeArms(!game.isTerminal() ? game.getPossibleActions() : std::vector<Action>()))
+    , numGames(0)
+{}
+
 AgentMcts::AgentMcts(const MCConfig& config)
     : config(config)
 {}
 
-float AgentMcts::mctsIteration(int curr)
+float AgentMcts::mctsIterationRec(int curr)
 {
     if (runGame.isTerminal())
     {        
@@ -76,11 +81,11 @@ float AgentMcts::mctsIteration(int curr)
 
     float reward;
 
-    if (arm.child != CHILD_NONE) reward = mctsIteration(arm.child);
+    if (arm.child != CHILD_NONE) reward = mctsIterationRec(arm.child);
     else
     {
         arm.child = nodes.size();
-        nodes.push_back(MctsNode(runGame));
+        nodes.push_back(TreeNode(runGame));
         nodes.back().numGames++;
         reward = simRandGame(runGame, player, config);
     }
@@ -88,6 +93,31 @@ float AgentMcts::mctsIteration(int curr)
     nodes[curr].numGames++;
     arm.update(currActor != ACTOR_GAME ? (currActor == player ? reward : -reward) : 0);
     return reward;
+}
+
+void AgentMcts::mctsIteration()
+{
+    const int root = 0;
+
+    if (config.simModesSmart)
+    {
+        for (int i = 0; i < NUM_PLAYERS; i++)
+        {
+            int chosen = findBestArm(modeArms[i], nodes[root].numGames, config.explrFactor);
+            config.simModes[i] = modeArms[i][chosen].action;
+        }
+    }
+
+    runGame.clone(game);
+    float reward = mctsIterationRec(root);
+
+    if (config.simModesSmart)
+    {
+        for (int i = 0; i < NUM_PLAYERS; i++)
+        {
+            modeArms[i][config.simModes[i]].update(i == player ? reward : -reward);
+        }
+    }
 }
 
 void AgentMcts::notifyActionPost(const Action& action)
@@ -102,9 +132,9 @@ Action AgentMcts::getAction()
     if (possible.size() == 1) return possible[0];
 
     nodes.clear();
-    nodes.push_back(MctsNode(GameStateFast(game)));
+    nodes.push_back(TreeNode(GameStateFast(game)));
 
-    if (config.simModesUcb)
+    if (config.simModesSmart)
     {
         std::vector<int> modes(NUM_SIM_MODES);
         std::iota(modes.begin(), modes.end(), 0);
@@ -114,30 +144,12 @@ Action AgentMcts::getAction()
         }
     }
 
-    int root = 0;
-
     DO_FOR_SECS(config.secsPerMove)
     {
-        if (config.simModesUcb)
-        {
-            for (int i = 0; i < NUM_PLAYERS; i++)
-            {
-                int chosen = findBestArm(modeArms[i], nodes[root].numGames, config.explrFactor);
-                config.simModes[i] = modeArms[i][chosen].action;
-            }
-        }
-
-        runGame.clone(game);
-        float reward = mctsIteration(root);
-
-        if (config.simModesUcb)
-        {
-            for (int i = 0; i < NUM_PLAYERS; i++)
-            {
-                modeArms[i][config.simModes[i]].update(i == player ? reward : -reward);
-            }
-        }
+        mctsIteration();
     }
+
+    const int root = 0;
 
     int chosen = findBestArm(nodes[root].arms);
 
@@ -148,7 +160,7 @@ Action AgentMcts::getAction()
 
     if (config.verbosity > 1)
     {
-        if (config.simModesUcb)
+        if (config.simModesSmart)
         {
             for (int i = 0; i < NUM_PLAYERS; i++)
             {

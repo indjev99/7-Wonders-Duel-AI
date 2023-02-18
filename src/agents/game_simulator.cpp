@@ -47,12 +47,7 @@ int GameSimulator::modeCard(int deck, bool needToPay) const
 
     int type = mode == SIM_MODE_SCIENCE ? OT_GREEN : OT_RED;
 
-    static std::vector<int> perm;
-    perm.resize(game.getDeckSize(deck));
-    std::iota(perm.begin(), perm.end(), 0);
-    std::shuffle(perm.begin(), perm.end(), generator);
-
-    for (int i : perm)
+    FOR_IN_UNIFORM_PERM(i, game.getDeckSize(deck))
     {
         int id = game.getDeckElem(deck, i);
         if (objects[id].type == type && (!needToPay || state.canPayFor(objects[id]))) return id;
@@ -87,14 +82,9 @@ Action GameSimulator::lookAheadWonderAction()
         O_WONDER_THE_APPIAN_WAY, O_WONDER_THE_HANGING_GARDENS, O_WONDER_PIRAEUS, O_WONDER_THE_SPHINX, O_WONDER_THE_TEMPLE_OF_ARTEMIS
     };
 
-    static std::vector<int> perm;
-    perm.resize(turnWonders.size());
-    std::iota(perm.begin(), perm.end(), 0);
-    std::shuffle(perm.begin(), perm.end(), generator);
-
     int wonder = OBJ_NONE;
 
-    for (int i : perm)
+    FOR_IN_UNIFORM_PERM(i, turnWonders.size())
     {
         int id = turnWonders[i];
         if (game.getObjectDeck(id) == deck && state.canPayFor(objects[id]))
@@ -111,11 +101,7 @@ Action GameSimulator::lookAheadWonderAction()
 
     int type = mode == SIM_MODE_SCIENCE ? OT_GREEN : OT_RED;
 
-    perm.resize(game.getDeckSize(DECK_PYRAMID_PLAYABLE));
-    std::iota(perm.begin(), perm.end(), 0);
-    std::shuffle(perm.begin(), perm.end(), generator);
-
-    for (int i : perm)
+    FOR_IN_UNIFORM_PERM(i, game.getDeckSize(DECK_PYRAMID_PLAYABLE))
     {
         int id = game.getDeckElem(DECK_PYRAMID_PLAYABLE, i);
         for (int pos : pyramidSchemes[game.getCurrAge()][game.getObjectPos(id)].covering)
@@ -189,20 +175,15 @@ Action GameSimulator::playPyramidCardAction()
 
     bool canBeWonder = game.getWondersBuilt() < MAX_WONDERS_BUILT && game.getDeckSize(DECK_SELECTED_WONDERS + currPlayer) > 0;
 
-    if (canBeWonder && config.simLAWonder)
+    if (canBeWonder && config.simLookAheadWonders)
     {
         Action laAction = lookAheadWonderAction();
         if (laAction.type != ACT_NONE) return laAction;
     }
 
-    if (config.simAge1Rsrc && game.getCurrAge() == 0)
+    if (config.simAge1Resources && game.getCurrAge() == 0)
     {
-        static std::vector<int> perm;
-        perm.resize(game.getDeckSize(DECK_PYRAMID_PLAYABLE));
-        std::iota(perm.begin(), perm.end(), 0);
-        std::shuffle(perm.begin(), perm.end(), generator);
-
-        for (int i : perm)
+        FOR_IN_UNIFORM_PERM(i, game.getDeckSize(DECK_PYRAMID_PLAYABLE))
         {
             int id = game.getDeckElem(DECK_PYRAMID_PLAYABLE, i);
             if ((objects[id].type == OT_BROWN || objects[id].type == OT_GRAY || objects[id].type == OT_GRAY) && state.canPayFor(objects[id]))

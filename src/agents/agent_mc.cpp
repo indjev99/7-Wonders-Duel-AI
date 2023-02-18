@@ -2,7 +2,7 @@
 
 #include "mc.h"
 
-#include "time/timer.h"
+#include "utils/timer.h"
 
 #include <cmath>
 #include <iostream>

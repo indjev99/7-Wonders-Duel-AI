@@ -31,7 +31,10 @@ template <class ActionT>
 std::vector<BanditArm<ActionT>> makeArms(const std::vector<ActionT>& possible);
 
 template <class ActionT>
-int findBestArm(const std::vector<BanditArm<ActionT>>& arms, int totalNumGames = 1, float explrFactor = 0);
+float armScore(const BanditArm<ActionT>& arms, float logTotalGames = 0, float explrFactor = 0);
+
+template <class ActionT>
+int findBestArm(const std::vector<BanditArm<ActionT>>& arms, int totalNumGames = 0, float explrFactor = 0);
 
 template <class ActionT>
 int findLeastGamesArm(const std::vector<BanditArm<ActionT>>& arms);
@@ -82,19 +85,20 @@ std::vector<BanditArm<ActionT>> makeArms(const std::vector<ActionT>& possible)
 }
 
 template <class ActionT>
+float armScore(const BanditArm<ActionT>& arm, float logTotalGames, float explrFactor)
+{
+    return arm.avgReward() + explrFactor * sqrtf(logTotalGames / arm.numGames);
+}
+
+template <class ActionT>
 int findBestArm(const std::vector<BanditArm<ActionT>>& arms, int totalNumGames, float explrFactor)
 {
     int bestArm = -1;
     float bestScore = -INF;
 
-    static std::vector<int> perm;
-    perm.resize(arms.size());
-    std::iota(perm.begin(), perm.end(), 0);
-    randShuffle(perm);
-
     float logTotalGames = totalNumGames > 0 ? logf(totalNumGames) : 0;
 
-    for (int i : perm)
+    FOR_IN_UNIFORM_PERM(i, arms.size())
     {
         if (arms[i].numGames == 0)
         {
@@ -102,7 +106,7 @@ int findBestArm(const std::vector<BanditArm<ActionT>>& arms, int totalNumGames, 
             break;
         }
 
-        float score = arms[i].avgReward() + explrFactor * sqrtf(logTotalGames / arms[i].numGames);
+        float score = armScore(arms[i], logTotalGames, explrFactor);
 
         if (score > bestScore)
         {
@@ -120,12 +124,7 @@ int findLeastGamesArm(const std::vector<BanditArm<ActionT>>& arms)
     int leastGamesArm = -1;
     int leastGames = INF;
 
-    static std::vector<int> perm;
-    perm.resize(arms.size());
-    std::iota(perm.begin(), perm.end(), 0);
-    randShuffle(perm);
-
-    for (int i : perm)
+    FOR_IN_UNIFORM_PERM(i, arms.size())
     {
         if (arms[i].numGames < leastGames)
         {

@@ -3,7 +3,15 @@
 #include "defines.h"
 
 #include <algorithm>
+#include <numeric>
 #include <random>
+
+#define FOR_IN_UNIFORM_PERM(i, n) \
+    static std::vector<int> LINE_NUM(perm_); \
+    LINE_NUM(perm_).resize(n); \
+    std::iota(LINE_NUM(perm_).begin(), LINE_NUM(perm_).end(), 0); \
+    randShuffle(LINE_NUM(perm_)); \
+    for (int i : LINE_NUM(perm_))
 
 extern std::mt19937 generator;
 

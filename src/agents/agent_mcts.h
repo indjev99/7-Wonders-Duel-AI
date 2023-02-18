@@ -17,26 +17,24 @@ struct AgentMcts final : Agent
 
 private:
 
-    struct MctsNode
+    struct TreeNode
     {
         std::vector<BanditArm<Action>> arms;
 
         int numGames;
 
-        MctsNode(const GameStateFast& game)
-            : arms(makeArms(!game.isTerminal() ? game.getPossibleActions() : std::vector<Action>()))
-            , numGames(0)
-        {}
+        TreeNode(const GameStateFast& game);
     };
 
-    float mctsIteration(int curr);
+    void mctsIteration();
+    float mctsIterationRec(int curr);
 
     void debugPrintNode(int curr, int expandLimit = 1000, int depth = 1);
 
     MCConfig config;
 
     GameStateFast runGame;
-    std::vector<MctsNode> nodes;
+    std::vector<TreeNode> nodes;
     std::array<std::vector<BanditArm<int>>, NUM_PLAYERS> modeArms;
 
     Action lastAction;
