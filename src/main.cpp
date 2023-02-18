@@ -146,11 +146,11 @@ int main()
     setSeed(seed);
 
     MCConfig config1;
-    config1.secsPerMove = 0.1;
+    config1.secsPerMove = 0.25;
     config1.verbosity = 0;
 
     MCConfig config2;
-    config2.secsPerMove = 0.1;
+    config2.secsPerMove = 0.25;
     config2.verbosity = 0;
 
     AgentMcts mcts1(config1);
@@ -163,7 +163,7 @@ int main()
 
     // playExternalGame(&mctsUcb1);
 
-    benchmark(&mctsBR1, &mcts2);
+    benchmark(&mcts1, &mctsBR2);
 
     // replayGame("badlog.log", nullptr, &mctsUcb1);
 

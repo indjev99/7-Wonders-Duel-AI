@@ -88,7 +88,7 @@ std::pair<Action, AgentMctsBlindReveals::BanditArmAvailCnt*> AgentMctsBlindRevea
     FOR_IN_UNIFORM_PERM(i, possible.size())
     {
         const Action& action = possible[i];
-        int pos = POS_NONE; // action.type == ACT_MOVE_PLAY_PYRAMID_CARD ? runGame.getObjectPos(action.arg1) : POS_NONE;
+        int pos = action.type == ACT_MOVE_PLAY_PYRAMID_CARD ? runGame.getObjectPos(action.arg1) : POS_NONE;
         std::pair<Action, int> actionPos(action, pos);
         BanditArmAvailCnt& arm = nodes[curr].arms[actionPos];
         arm.numGamesAvailable++;
