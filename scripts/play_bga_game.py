@@ -64,6 +64,7 @@ class BGAParser(HTMLParser):
         self.selected_wonders = make_player_sets()
         self.built_wonders = make_player_sets()
         self.game_ended = False
+        self.num_pyramid_cards = 0
 
     def handle_card(self):
         if 'data-building-id' not in self.stack[-1]:
@@ -93,6 +94,7 @@ class BGAParser(HTMLParser):
         elif container['id'] == 'draftpool_container':
             pos = int(self.stack[-1]['data-location'])
             type = self.stack[-1]['data-building-type']
+            self.num_pyramid_cards += 1
             if type == 'Purple' or 'background-position: -100% -700%' in self.stack[-1]['style']:
                 self.guild_poses.add(pos)
             if type != '':
@@ -553,8 +555,10 @@ class BGAGame:
             if curr_player is None:
                 debug_print(f'Unknown start player')
                 return BGAGame.STATE_INVALID
-            else:
+            elif self.parser.num_pyramid_cards == BGAGame.PYRAMID_SIZE:
                 actions.append(f'Choose start player, {curr_player}')
+            else:
+                actions.append(f'Choose start player, {BGAGame.OTHER_PLAYER[curr_player]}')
             next_found_start_player = True
 
         for card in new_elems('discarded_cards'):
