@@ -24,7 +24,7 @@ struct MCConfig
     double simBuildProb = 0.35;
     double simWonderProb = 0.5;
 
-    bool simModesSmart = true;
+    bool simModesSmart = false;
     bool simPacifist = true;
     bool simLookAheadWonders = true;
     bool simAge1Resources = true;

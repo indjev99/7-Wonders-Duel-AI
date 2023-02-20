@@ -144,15 +144,13 @@ Action AgentMcts::getAction()
 
     int chosen = findBestArm(nodes[root].arms);
 
-    if (config.verbosity > 0)
+    if (config.verbosity >= 1)
     {
         std::cerr << "Expected outcome: " << nodes[root].arms[chosen].safeAvgReward() << " with " << numGames << std::endl << std::endl;
     }
 
-    if (config.verbosity > 1)
+    if (config.verbosity >= 2)
     {
-        std::cerr << std::endl;
-
         if (config.simModesSmart)
         {
             for (int i = 0; i < NUM_PLAYERS; i++)
@@ -164,9 +162,13 @@ Action AgentMcts::getAction()
                 std::cerr << std::endl;
             }
         }
+    }
 
+    if (config.verbosity >= 3)
+    {
         runGame.clone(game);
         debugPrintNode(root);
+        std::cerr << std::endl;
     }
 
     Action action = nodes[root].arms[chosen].action;

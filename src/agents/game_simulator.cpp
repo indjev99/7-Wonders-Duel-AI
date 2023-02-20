@@ -8,6 +8,12 @@
 
 long long totalNumSims = 0;
 
+static constexpr int discWonder = O_WONDER_THE_MAUSOLEUM;
+
+static constexpr std::array<int, 5> turnWonders = {
+    O_WONDER_THE_APPIAN_WAY, O_WONDER_THE_HANGING_GARDENS, O_WONDER_PIRAEUS, O_WONDER_THE_SPHINX, O_WONDER_THE_TEMPLE_OF_ARTEMIS
+};
+
 int simRandGame(GameStateFast& game, int player, const MCConfig& config)
 {
     totalNumSims++;
@@ -23,7 +29,7 @@ GameSimulator::GameSimulator(GameStateFast& game, const MCConfig& config)
     for (int i = 0; i < NUM_PLAYERS; i++)
     {
         simModes[i] = config.simModes[i];
-        if (simModes[i] != SIM_MODE_NONE) simModes[i] = sampleIntDistr(config.simModeProbs);
+        if (simModes[i] == SIM_MODE_NONE) simModes[i] = sampleIntDistr(config.simModeProbs);
         if (game.getMilitaryLead(i) > 0) aggressor = i;
     }
 }
@@ -66,7 +72,7 @@ int GameSimulator::modeCard(int deck, bool needToPay) const
     return OBJ_NONE;
 }
 
-Action GameSimulator::lookAheadWonderAction()
+Action GameSimulator::lookAheadWonderAction() const
 {
     int currPlayer = game.getCurrActor();
     const PlayerState& state = game.getPlayerState(currPlayer);
@@ -76,21 +82,14 @@ Action GameSimulator::lookAheadWonderAction()
 
     int deck = DECK_SELECTED_WONDERS + currPlayer;
 
-    static constexpr int discWonder = O_WONDER_THE_MAUSOLEUM;
-
     if (game.getCurrAge() == NUM_AGES - 1 && game.getObjectDeck(discWonder) == deck && state.canPayFor(objects[discWonder]))
     {
         int card = modeCard(DECK_DISCARDED, false);
         if (card != OT_NONE)
         {
-            game.doAction(Action(ACT_MOVE_PLAY_PYRAMID_CARD, randDeckObject(DECK_PYRAMID_PLAYABLE), discWonder));
-            return Action(ACT_MOVE_BUILD_DISCARDED, card);
+            return Action(ACT_MOVE_PLAY_PYRAMID_CARD, randDeckObject(DECK_PYRAMID_PLAYABLE), discWonder);
         }
     }
-
-    static constexpr std::array<int, 5> turnWonders = {
-        O_WONDER_THE_APPIAN_WAY, O_WONDER_THE_HANGING_GARDENS, O_WONDER_PIRAEUS, O_WONDER_THE_SPHINX, O_WONDER_THE_TEMPLE_OF_ARTEMIS
-    };
 
     int wonder = OBJ_NONE;
 
@@ -106,7 +105,11 @@ Action GameSimulator::lookAheadWonderAction()
 
     if (wonder == OBJ_NONE) return Action();
 
+
     PlayerState nextState = state;
+    PlayerState nextStateOther = game.getPlayerState(1 - currPlayer);
+    nextState.otherPlayer = &nextStateOther;
+
     nextState.payForAndBuildObject(objects[wonder]);
 
     int type = mode == SIM_MODE_SCIENCE ? OT_GREEN : OT_RED;
@@ -120,12 +123,7 @@ Action GameSimulator::lookAheadWonderAction()
             int otherId = other.objectId;
             if (other.coveredBy == 1 && otherId != OBJ_NONE && objects[otherId].type == type && nextState.canPayFor(objects[other.objectId]))
             {
-                game.doAction(Action(ACT_MOVE_PLAY_PYRAMID_CARD, id, wonder));
-                while (game.getExpectedAction().type == ACT_REVEAL_PYRAMID_CARD)
-                {
-                    game.doAction(fromDeckAction(game.getExpectedAction(), game.getPyramidSlot(game.getExpectedAction().arg2).deck));
-                }
-                return Action(ACT_MOVE_PLAY_PYRAMID_CARD, otherId, ACT_ARG2_BUILD);
+                return Action(ACT_MOVE_PLAY_PYRAMID_CARD, id, wonder);
             }
         }
     }
@@ -169,7 +167,7 @@ Action GameSimulator::destroyObjectAction(int type) const
     return Action(ACT_MOVE_DESTROY_OBJECT, id, type);
 }
 
-Action GameSimulator::playPyramidCardAction()
+Action GameSimulator::playPyramidCardAction() const
 {
     Action action(ACT_MOVE_PLAY_PYRAMID_CARD);
 
@@ -196,7 +194,7 @@ Action GameSimulator::playPyramidCardAction()
         FOR_IN_UNIFORM_PERM(i, game.getDeckSize(DECK_PYRAMID_PLAYABLE))
         {
             int id = game.getDeckElem(DECK_PYRAMID_PLAYABLE, i);
-            if ((objects[id].type == OT_BROWN || objects[id].type == OT_GRAY || objects[id].type == OT_GRAY) && state.canPayFor(objects[id]))
+            if ((objects[id].type == OT_BROWN || objects[id].type == OT_GRAY || objects[id].type == OT_YELLOW) && state.canPayFor(objects[id]))
             {
                 action.arg1 = id;
                 action.arg2 = ACT_ARG2_BUILD;
@@ -249,7 +247,7 @@ Action GameSimulator::revealFirstPlayerAction() const
     return Action(ACT_REVEAL_FIRST_PLAYER, uniformInt(0, NUM_PLAYERS));
 }
 
-Action GameSimulator::action()
+Action GameSimulator::getAction() const
 {
     const Action& expected = game.getExpectedAction();
 
@@ -301,7 +299,7 @@ Action GameSimulator::action()
 
 void GameSimulator::simAction()
 {
-    game.doAction(action());
+    game.doAction(getAction());
 }
 
 int GameSimulator::simGame(int player)

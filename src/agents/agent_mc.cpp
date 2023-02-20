@@ -37,7 +37,7 @@ Action AgentMc::getAction()
 
     int chosen = findBestArm(arms);
 
-    if (config.verbosity > 0)
+    if (config.verbosity >= 1)
         std::cerr << "Expected outcome: " << arms[chosen].avgReward() << std::endl << std::endl;
 
     return arms[chosen].action;

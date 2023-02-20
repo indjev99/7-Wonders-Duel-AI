@@ -986,5 +986,8 @@ void ListenerGUI::notifyActionPost(const Action& action)
 
 void ListenerGUI::notifyEnd()
 {
-    drawState(false);
+    bool oldAdvanceButton = advanceButton;
+    advanceButton = true;
+    drawState(true);
+    advanceButton = oldAdvanceButton;
 }

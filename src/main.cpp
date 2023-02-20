@@ -3,6 +3,8 @@
 #include "agents/agent_mcts_blind_reveals.h"
 #include "agents/agent_uniform.h"
 #include "agents/game_simulator.h"
+#include "game/game_state.h"
+#include "game/lang.h"
 #include "game/results.h"
 #include "gui/agent_gui.h"
 #include "gui/listener_gui.h"
@@ -21,6 +23,7 @@
 #include "system_io/listener_writer.h"
 #include "system_io/revealer_reader.h"
 #include "utils/random.h"
+#include "utils/timer.h"
 
 #include <cmath>
 #include <ctime>
@@ -137,6 +140,66 @@ void playExternalGame(Agent* agent1, const std::string& pipeName = "//./pipe/7wd
     }
 }
 
+void simulateAfter(const std::string& logName)
+{
+    GameState game;
+    game.reset();
+
+    // ListenerGUI gui(true);
+    // gui.setGame(game);
+
+    std::ifstream log(logName.c_str());
+
+    while (log.good())
+    {
+        std::string actionStr;
+        std::getline(log, actionStr);
+        if (actionStr == "") break;
+
+        Action action = actionFromString(actionStr);
+
+        game.doAction(action);
+    }
+
+    GameState backup(&game);
+
+    MCConfig config;
+    config.simLookAheadWonders = false;
+    config.simModes = {SIM_MODE_NORMAL, SIM_MODE_SCIENCE};
+
+    int totalRes = 0;
+    int numGames = 0;
+
+    DO_FOR_SECS(1)
+    {
+        game.clone(&backup);
+        GameStateFast runGame(&backup);
+        GameSimulator sim(runGame, config);
+
+        // gui.notifyStart();
+
+        while (!runGame.isTerminal())
+        {
+            Action action = sim.getAction();
+
+            // gui.notifyActionPre(action);
+            game.doAction(action);
+            runGame.doAction(action);
+            // gui.notifyActionPost(action);
+        }
+
+        int res = game.getResult(0);
+        totalRes += resultSign(res);
+        numGames += 1;
+
+        // std::cout << numGames << " : " << (float) totalRes / numGames << " with " << res << std::endl;
+
+        // gui.notifyEnd();
+    }
+
+    std::cout << numGames << " : " << (float) totalRes / numGames << std::endl;
+}
+
 int main()
 {
     int seed = time(nullptr);
@@ -146,11 +209,12 @@ int main()
     setSeed(seed);
 
     MCConfig config1;
-    config1.secsPerMove = 0.25;
+    config1.secsPerMove = 0.05;
     config1.verbosity = 0;
+    config1.simPacifist = false;
 
     MCConfig config2;
-    config2.secsPerMove = 0.25;
+    config2.secsPerMove = 0.05;
     config2.verbosity = 0;
 
     AgentMcts mcts1(config1);
@@ -161,11 +225,13 @@ int main()
 
     // playGame(nullptr, &mctsBR2);
 
-    // playExternalGame(&mctsUcb1);
+    // playExternalGame(&mctsBR1);
 
-    benchmark(&mcts1, &mctsBR2);
+    benchmark(&mctsBR1, &mctsBR2);
 
-    // replayGame("badlog.log", nullptr, &mctsUcb1);
+    // replayGame("science_loss.log");
+
+    // simulateAfter("science_loss.log");
 
     return 0;
 }

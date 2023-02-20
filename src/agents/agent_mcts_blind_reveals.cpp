@@ -179,7 +179,7 @@ Action AgentMctsBlindReveals::getAction()
 
     if (config.simModesSmart)
     {
-        std::vector<int> modes(NUM_SIM_MODES);
+        std::vector<int> modes(NUM_SIM_MODES - 1);
         std::iota(modes.begin(), modes.end(), 0);
         for (int i = 0; i < NUM_PLAYERS; i++)
         {
@@ -199,12 +199,12 @@ Action AgentMctsBlindReveals::getAction()
     BanditArmAvailCnt& arm = *bestActionArm.second;
     Action action = bestActionArm.first;
 
-    if (config.verbosity > 0)
+    if (config.verbosity >= 1)
     {
         std::cerr << "Expected outcome: " << arm.safeAvgReward() << " with " << numGames << std::endl << std::endl;
     }
 
-    if (config.verbosity > 1)
+    if (config.verbosity >= 2)
     {
         if (config.simModesSmart)
         {
@@ -217,10 +217,12 @@ Action AgentMctsBlindReveals::getAction()
                 std::cerr << std::endl;
             }
         }
+    }
 
+    if (config.verbosity >= 3)
+    {
         runGame.clone(game);
         debugPrintNode(root);
-
         std::cerr << std::endl;
     }
 
