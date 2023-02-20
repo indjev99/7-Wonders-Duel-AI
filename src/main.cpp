@@ -209,9 +209,9 @@ int main()
     setSeed(seed);
 
     MCConfig config1;
-    config1.secsPerMove = 0.05;
+    config1.secsPerMove = 9;
     config1.verbosity = 0;
-    config1.simPacifist = false;
+    config1.testMode = true;
 
     MCConfig config2;
     config2.secsPerMove = 0.05;
@@ -225,9 +225,9 @@ int main()
 
     // playGame(nullptr, &mctsBR2);
 
-    // playExternalGame(&mctsBR1);
+    playExternalGame(&mctsBR1);
 
-    benchmark(&mctsBR1, &mctsBR2);
+    // benchmark(&mctsBR1, &mctsBR2);
 
     // replayGame("science_loss.log");
 
