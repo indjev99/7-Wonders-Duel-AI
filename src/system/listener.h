@@ -13,7 +13,7 @@ struct Listener
     virtual void notifyActionPost(const Action& action);
     virtual void notifyEnd();
 
-    virtual std::vector<Listener*> getSubListeners() const;
+    virtual std::vector<Listener*> getSubListeners();
 
     virtual ~Listener() = default;
 

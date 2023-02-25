@@ -9,7 +9,7 @@ struct AgentWriterWrapper final : Agent
 
     Action getAction() override;
 
-    std::vector<Listener*> getSubListeners() const override;
+    std::vector<Listener*> getSubListeners() override;
 
 private:
 

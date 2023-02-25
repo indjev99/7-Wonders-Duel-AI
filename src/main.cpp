@@ -8,7 +8,6 @@
 #include "game/results.h"
 #include "gui/agent_gui.h"
 #include "gui/listener_gui.h"
-#include "io/make_log.h"
 #include "io/pipe_reader_writer.h"
 #include "io/stream_reader.h"
 #include "io/stream_writer.h"
@@ -16,6 +15,7 @@
 #include "system/game_runner.h"
 #include "system/revealer_uniform.h"
 #include "system_io/agent_writer_wrapper.h"
+#include "system_io/listener_logger.h"
 #include "system_io/listener_possible_player_action_reader.h"
 #include "system_io/listener_start_end_notifier.h"
 #include "system_io/agent_reader.h"
@@ -98,9 +98,7 @@ void playGame(Agent* agent1, Agent* agent2, bool advanceButton = false)
     if (agent1 == nullptr) agent1 = &defAgent1;
     if (agent2 == nullptr) agent2 = &defAgent2;
 
-    std::ofstream log = makeLog();
-    StreamWriter logWriter(log);
-    ListenerWriter logger(logWriter);
+    ListenerLogger logger;
 
     RevealerUniform revealer;
 
@@ -112,9 +110,7 @@ void playExternalGame(Agent* agent1, const std::string& pipeName = "//./pipe/7wd
 {
     ListenerPrettyPrinter pretty;
 
-    std::ofstream log = makeLog();
-    StreamWriter logWriter(log);
-    ListenerWriter logger(logWriter);
+    ListenerLogger logger;
 
     PipeReaderWriter pipe(pipeName);
 
@@ -210,12 +206,12 @@ int main()
 
     MCConfig config1;
     config1.secsPerMove = 9;
-    config1.verbosity = 0;
+    config1.verbosity = 1;
     config1.testMode = true;
 
     MCConfig config2;
-    config2.secsPerMove = 0.05;
-    config2.verbosity = 0;
+    config2.secsPerMove = 2;
+    config2.verbosity = 1;
 
     AgentMcts mcts1(config1);
     AgentMcts mcts2(config2);
@@ -223,9 +219,9 @@ int main()
     AgentMctsBlindReveals mctsBR1(config1);
     AgentMctsBlindReveals mctsBR2(config2);
 
-    // playGame(nullptr, &mctsBR2);
+    playGame(nullptr, &mctsBR2);
 
-    playExternalGame(&mctsBR1);
+    // playExternalGame(&mctsBR1);
 
     // benchmark(&mctsBR1, &mctsBR2);
 

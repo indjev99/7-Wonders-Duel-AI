@@ -17,7 +17,7 @@ Action AgentIgnorerWrapper::getAction()
     return agent->getAction();
 }
 
-std::vector<Listener*> AgentIgnorerWrapper::getSubListeners() const
+std::vector<Listener*> AgentIgnorerWrapper::getSubListeners()
 {
     std::vector<Listener*> subListeners(ignored.begin(), ignored.end());
     subListeners.push_back(agent);

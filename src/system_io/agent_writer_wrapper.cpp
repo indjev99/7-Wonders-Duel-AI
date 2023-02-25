@@ -14,7 +14,7 @@ Action AgentWriterWrapper::getAction()
     return action;
 }
 
-std::vector<Listener*> AgentWriterWrapper::getSubListeners() const
+std::vector<Listener*> AgentWriterWrapper::getSubListeners()
 {
     return {agent};
 }
