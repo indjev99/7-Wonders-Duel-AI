@@ -1,9 +1,9 @@
 # 7-Wonders-Duel-AI
 
 An implementation of the popular board game 7 Wonders Duel.
-Also contains a class hierarchy of `Listeners` and `Players` that enables adding any sort of interface.
-One implementation is a pair of GUI `Player` and `Listener` classes for human interactions.
-The main product are the AI `Player` classes which can play against each other or versus a human.
+Also contains a class hierarchy of `Listeners` and `Agents` that enables adding any sort of interface.
+One implementation is a pair of GUI `Agent` and `Listener` classes for human interactions.
+The main product are the AI `Agent` classes which can play against each other or versus a human.
 
 ## GUI
 
