@@ -105,7 +105,6 @@ Action GameSimulator::lookAheadWonderAction() const
 
     if (wonder == OBJ_NONE) return Action();
 
-
     PlayerState nextState = state;
     PlayerState nextStateOther = game.getPlayerState(1 - currPlayer);
     nextState.otherPlayer = &nextStateOther;

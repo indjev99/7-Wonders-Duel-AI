@@ -55,10 +55,17 @@ void benchmark(Agent* agent1, Agent* agent2)
         double mean = (double) sum / cnt;
         double meanStd = sqrt(((double) sumSq / cnt - mean * mean) / std::max(1, cnt - 1));
 
+        std::cout << std::setprecision(2) << std::fixed;
+
         std::cout << cnt << ": " << mean << " +- " << meanStd << "  (";
-        for (int res = -RESULT_WIN_MILITARY; res <= RESULT_WIN_MILITARY; res++)
+        for (int res = RESULT_WIN_CIVILIAN; res <= RESULT_WIN_TIEBREAK; res++)
         {
-            std::cout << " " << std::setprecision(2) << std::fixed << (double) resCnts[res] / cnt;
+            std::cout << " " << (double) resCnts[res] / cnt;
+        }
+        std::cout << " |";
+        for (int res = RESULT_WIN_CIVILIAN; res <= RESULT_WIN_TIEBREAK; res++)
+        {
+            std::cout << " " << (double) resCnts[-res] / cnt;
         }
         std::cout << " )  --  " << totalNumSims / cnt << std::endl;
     }
@@ -210,7 +217,7 @@ int main()
     config1.testMode = true;
 
     MCConfig config2;
-    config2.secsPerMove = 2;
+    config2.secsPerMove = 5;
     config2.verbosity = 1;
 
     AgentMcts mcts1(config1);
@@ -219,7 +226,7 @@ int main()
     AgentMctsBlindReveals mctsBR1(config1);
     AgentMctsBlindReveals mctsBR2(config2);
 
-    playGame(nullptr, &mctsBR2);
+    playGame(nullptr, &mctsBR1);
 
     // playExternalGame(&mctsBR1);
 
