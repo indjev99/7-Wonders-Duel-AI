@@ -217,7 +217,7 @@ int main()
     config1.testMode = true;
 
     MCConfig config2;
-    config2.secsPerMove = 5;
+    config2.secsPerMove = 3;
     config2.verbosity = 1;
 
     AgentMcts mcts1(config1);
@@ -226,7 +226,7 @@ int main()
     AgentMctsBlindReveals mctsBR1(config1);
     AgentMctsBlindReveals mctsBR2(config2);
 
-    playGame(nullptr, &mctsBR1);
+    playGame(nullptr, &mctsBR2);
 
     // playExternalGame(&mctsBR1);
 

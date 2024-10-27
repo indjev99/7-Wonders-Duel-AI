@@ -617,7 +617,6 @@ void ListenerGUI::drawBuilt(int player)
     ImGui::PopID();
 }
 
-
 void ListenerGUI::drawPlayerStats(int player)
 {
     const PlayerState& state = game->getPlayerState(player);
@@ -650,8 +649,6 @@ void ListenerGUI::drawDiscarded()
 
     ImGui::PopID();
 }
-
-#include <iostream>
 
 void ListenerGUI::drawMilitaryLead()
 {
@@ -893,7 +890,6 @@ ListenerGUI::ListenerGUI(bool advanceButton, double advanceTimeSecs)
     objectTextures[O_TEXTURE_COPT_BUTTONS + COPT_DISCARD] = buttonTexture;
     objectTextures[O_TEXTURE_COPT_BUTTONS + COPT_WONDER] = buttonTexture;
     objectTextures[O_TEXTURE_ADVANCE_BUTTON] = buttonTexture;
-
 
     objectShortcuts[O_TEXTURE_PLAYER_BUTTONS + 0] = {ImGuiKey_1};
     objectShortcuts[O_TEXTURE_PLAYER_BUTTONS + 1] = {ImGuiKey_2};
